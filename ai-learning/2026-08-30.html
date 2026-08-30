@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>AI Daily Learning｜2026-08-30</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--ink:#172033;--muted:#667085;--line:#e6e9f0;--accent:#5657d9;--soft:#eef0ff;--good:#087f5b;--warn:#a15c00;--bad:#b42318}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1017;--card:#151923;--ink:#f4f6fb;--muted:#aab2c5;--line:#2b3140;--accent:#a9afff;--soft:#202641;--good:#65d6ad;--warn:#f1bd72;--bad:#ff9b91}}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.68 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}.wrap{max-width:860px;margin:auto;padding:16px 14px 56px}.hero{padding:24px 20px;border-radius:24px;color:#fff;background:linear-gradient(135deg,#22295f,#665de4);box-shadow:0 16px 38px rgba(54,58,150,.16)}.eyebrow{font-size:12px;letter-spacing:.08em;opacity:.82}.hero h1{margin:5px 0 8px;font-size:29px;line-height:1.2}.hero p{margin:0;opacity:.92}.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}.chip{font-size:12px;padding:5px 9px;border-radius:999px;background:rgba(255,255,255,.14)}.card{background:var(--card);border:1px solid var(--line);border-radius:19px;padding:18px;margin-top:15px}.card h2{font-size:21px;margin:0 0 10px;line-height:1.35}.card h3{font-size:17px;margin:17px 0 7px}.lead{font-size:17px}.muted{color:var(--muted)}.summary{margin:0;padding-left:22px}.summary li{margin:9px 0}.news{padding:16px 0;border-top:1px solid var(--line)}.news:first-of-type{border-top:0;padding-top:4px}.tag{display:inline-block;padding:4px 8px;border-radius:999px;background:var(--soft);color:var(--accent);font-size:12px;margin-right:6px}.src{font-size:13px;color:var(--muted);margin:5px 0 9px}.label{font-weight:750}.why{border-left:3px solid var(--accent);padding:9px 12px;background:var(--soft);border-radius:0 11px 11px 0;margin-top:9px}.concept{padding:14px 0;border-top:1px solid var(--line)}.concept:first-of-type{border-top:0}.concept-grid{display:grid;grid-template-columns:130px 1fr;gap:8px 13px;margin-top:9px}.concept-grid b{color:var(--muted);font-size:14px}.code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--soft);border-radius:10px;padding:2px 6px;word-break:break-word}.breakdown{display:grid;gap:9px}.part{border:1px solid var(--line);border-radius:14px;padding:12px}.part strong{display:block;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:17px;color:var(--accent)}.radar{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.level{font-size:12px;font-weight:750;padding:5px 9px;border-radius:999px;background:var(--soft);color:var(--accent)}.good{color:var(--good)}.warn{color:var(--warn)}.note{font-size:13px;color:var(--muted);padding:11px 12px;border:1px dashed var(--line);border-radius:12px;margin-top:10px}.decision{padding:11px 0;border-top:1px solid var(--line)}.decision:first-of-type{border-top:0}.links a,.source-link{color:var(--accent);text-decoration:none;font-weight:650}.links a:active,.source-link:active{opacity:.7}.footer{text-align:center;color:var(--muted);font-size:12px;margin-top:22px}.toc{display:flex;gap:7px;overflow:auto;padding:2px 0 3px}.toc a{white-space:nowrap;text-decoration:none;color:var(--accent);background:var(--soft);border-radius:999px;padding:7px 10px;font-size:12px}@media(max-width:560px){.hero h1{font-size:25px}.card{padding:16px}.concept-grid{grid-template-columns:1fr;gap:2px}.concept-grid b{margin-top:8px}.lead{font-size:16px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<section class="hero">
+<div class="eyebrow">AI DAILY LEARNING · 2026-08-30</div>
+<h1>每天 10 分钟，跟上 AI</h1>
+<p>今天的主线：Agent 不只是模型；真正拉开差距的，越来越是 Harness、评测方式和工程系统。</p>
+<div class="chips"><span class="chip">5 条关键资讯</span><span class="chip">3 个必懂概念</span><span class="chip">模型名拆解</span><span class="chip">DeepSeek Harness</span></div>
+</section>
+
+<section class="card"><div class="toc"><a href="#one-minute">1 分钟版</a><a href="#news">关键资讯</a><a href="#concepts">必懂概念</a><a href="#model">模型拆解</a><a href="#engineering">工程实践</a><a href="#product">产品视角</a></div></section>
+
+<section class="card" id="one-minute">
+<h2>⚡ 今日只记住这 5 件事</h2>
+<ol class="summary">
+<li><b>AI Coding 产品不能把命运绑死在单一模型供应商。</b> OpenAI 已宣布计划停止向被 SpaceX 收购后的 Cursor 提供模型，说明“模型可替换性”是产品架构问题，不只是采购问题。</li>
+<li><b>Agent 的下一步不只是“更会做事”，还包括“自动改进自己的安全行为”。</b> Anthropic 展示了让 Claude 自动训练模型、降低多类对齐失败的方法。</li>
+<li><b>别只看模型排行榜。</b> Terminal-Bench-Science 上最好的系统也只解决约 30% 的真实科研工作流，而且成绩是“模型 + Agent Harness + 工具配置”的组合结果。</li>
+<li><b>看到 <span class="code">2.4T-A95B-FP8</span> 不用怕。</b> 2.4T 是总参数，A95B 表示一次推理大约激活 95B 参数，FP8 是 8 位浮点权重/计算表示。</li>
+<li><b>Harness 正在成为独立技术层。</b> DeepSeek Harness 把模型、工具、会话、沙箱、调度、存储等都做成插件；但它目前仍是 Developer Preview，不宜当成稳定生产标准。</li>
+</ol>
+</section>
+
+<section class="card" id="news">
+<h2>📰 今日 AI 关键资讯</h2>
+
+<article class="news">
+<div><span class="tag">AI Coding</span><span class="tag">OpenAI</span></div>
+<h3>1. OpenAI 计划停止向 SpaceX 收购后的 Cursor 提供模型</h3>
+<div class="src">8 月 28–29 日 · OpenAI 官方 / Reuters</div>
+<p><span class="label">30 秒看懂：</span>OpenAI 表示，计划在 2026 年 11 月 12 日停止向 Cursor 提供 OpenAI 模型。原因不是 Cursor 当前被指控违规，而是 OpenAI 在 SpaceX 收购 Cursor 后，对合同执行和使用条款风险失去信心。</p>
+<div class="why"><span class="label">为什么重要：</span>对开发者最实际的启示不是公司恩怨，而是：AI 产品必须把“模型层”设计成可替换依赖。今天你可能用 OpenAI，明天因为价格、能力、政策或商业关系，需要切 Anthropic、Google 或开源模型。</div>
+<p class="links"><a href="https://openai.com/index/our-decision-on-cursor-following-its-acquisition-by-spacex/">OpenAI 官方</a> · <a href="https://www.reuters.com/business/media-telecom/openai-end-partnership-with-spacexs-cursor-2026-08-29/">Reuters</a></p>
+</article>
+
+<article class="news">
+<div><span class="tag">Agent Safety</span><span class="tag">Anthropic</span></div>
+<h3>2. Anthropic：自动化 AI 研究员可以降低多类对齐失败</h3>
+<div class="src">8 月 28 日 · Anthropic Research</div>
+<p><span class="label">30 秒看懂：</span>Anthropic 让 Claude 自主完成一套“训练更安全模型”的研究流程，并在 10 类公开对齐失败指标上进行优化，包括欺骗、迎合、越狱等。其核心不是让模型写一份安全报告，而是让模型参与训练和实验循环。</p>
+<div class="why"><span class="label">为什么重要：</span>这代表 AI 开始参与“改进 AI 本身”的工程循环。未来模型训练、评测、红队、安全修复可能越来越像自动化软件工程，而不是全靠研究员手工跑实验。</div>
+<p class="links"><a href="https://www.anthropic.com/research/automated-researchers-mitigate-alignment-failures">Anthropic 原文</a></p>
+</article>
+
+<article class="news">
+<div><span class="tag">Benchmark</span><span class="tag">Agents</span></div>
+<h3>3. Terminal-Bench-Science：最强系统在真实科研工作流上也只有 30%</h3>
+<div class="src">8 月 28 日 · Terminal-Bench-Science v0.1</div>
+<p><span class="label">30 秒看懂：</span>这个新 benchmark 用 70 个来自真实科研工作的终端任务测试 AI Agent。当前榜单里 Claude Opus 5 + Claude Code 的 resolution rate 为 30.0%，GPT-5.6 Sol + Codex 为 22.4%，Claude Fable 5 + Claude Code 为 21.4%。</p>
+<div class="why"><span class="label">为什么重要：</span>它提醒你：今天很多“模型能力”其实是系统能力。模型、Harness、工具权限、上下文策略、推理强度和成本都会改变结果。因此这张榜不能直接解读成“Opus 5 本体一定比 GPT-5.6 Sol 强 7.6 个点”。</div>
+<div class="note">评测提示：这是“模型 + Agent/CLI Harness”的组合评测；不同系统使用的 token 数、工具和执行方式不同，因此适合比较具体系统在该任务集上的表现，不适合作为全能力总排名。</div>
+<p class="links"><a href="https://www.terminal-bench-science.ai/">官方榜单与方法</a></p>
+</article>
+
+<article class="news">
+<div><span class="tag">Policy</span><span class="tag">Anthropic</span></div>
+<h3>4. 美国法官裁定五角大楼将 Anthropic 列为供应链风险的措施违法</h3>
+<div class="src">8 月 28 日 · Reuters / AP</div>
+<p><span class="label">30 秒看懂：</span>美国联邦法官裁定，美国国防部针对 Anthropic 的相关黑名单措施违法，并认为其程序和法律依据存在问题。争议背景涉及 Anthropic 对军事使用边界的限制。</p>
+<div class="why"><span class="label">为什么重要：</span>AI 模型的“可用范围”正在变成企业采购和系统架构的一部分。以后设计企业 AI 产品，不只要问模型强不强，还要问：供应商政策、合规边界、政府要求和合同条款是否与你的业务一致。</div>
+<p class="links"><a href="https://www.reuters.com/world/us-judge-rules-pentagon-blacklisting-anthropic-unlawful-2026-08-28/">Reuters</a> · <a href="https://apnews.com/article/f15e3c30186385e73e72bee82d85b05c">AP</a></p>
+</article>
+
+<article class="news">
+<div><span class="tag">未官宣</span><span class="tag">Google</span></div>
+<h3>5. 媒体称 Google 已在内部测试 Gemini 3.8 Flash</h3>
+<div class="src">8 月 28–29 日 · Business Insider 报道；Google 尚未正式发布</div>
+<p><span class="label">30 秒看懂：</span>报道称 Google 员工已经在内部编码平台测试下一代 Gemini 3.8 Flash。Google 近期 Flash 系列迭代很快，3.7 Flash 才在 8 月中旬正式发布。</p>
+<div class="why"><span class="label">为什么重要：</span>“Flash”类模型正在证明一个趋势：生产系统不一定追求最强模型，而是追求单位成本下足够好的 Agent/Coding 能力。对高频 Agent 来说，token 消耗巨大，便宜 30%–50% 可能比 benchmark 多 1–2 分更有商业价值。</div>
+<div class="note"><b>注意：</b>这是媒体报道，不是 Google 正式发布。型号、能力和发布时间在官宣前都不应当当成最终事实。</div>
+<p class="links"><a href="https://www.businessinsider.com/google-employees-testing-next-gemini-flash-3-8-model-2026-8">Business Insider</a> · <a href="https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-3-7-flash/">已正式发布的 Gemini 3.7 Flash</a></p>
+</article>
+</section>
+
+<section class="card" id="concepts">
+<h2>🧠 今日必懂 AI 概念</h2>
+
+<div class="concept">
+<h3>概念 1：Harness（Agent 执行框架）</h3>
+<div class="concept-grid"><b>一句人话</b><div>Harness 就是“让模型真正能干活的外骨骼”。模型负责想，Harness 负责把它接到文件、终端、浏览器、工具、记忆、权限和循环上。</div><b>举个例子</b><div>同一个模型放进普通聊天框，只能回答；放进 Codex、Claude Code 或 DeepSeek Harness，它就能读项目、改代码、跑测试、继续修错。</div><b>稍微技术一点</b><div>Harness 通常包含 agent loop、tool registry、context management、session/state、sandbox、approval/permission、compaction、subagents、logging/trajectory 等。</div><b>开发时何时碰到</b><div>只要你做“模型需要连续多步操作”的产品，就会碰到。比如自动改代码、自动分析公司文档并调用系统、自动执行 DevOps。</div><b>你只需记住</b><div><b>Agent ≠ 模型。</b> 很多 Agent 产品差异，来自 Harness，而不是模型本身。</div></div>
+</div>
+
+<div class="concept">
+<h3>概念 2：MoE 与 Active Parameters</h3>
+<div class="concept-grid"><b>一句人话</b><div>MoE（Mixture of Experts）像一家有很多专家的大公司：总员工很多，但每个任务只叫一小部分专家来处理。</div><b>举个例子</b><div><span class="code">2.4T-A95B</span> 可以理解为“总共约 2.4 万亿参数，但一次 token 推理大约只激活 950 亿参数”。</div><b>稍微技术一点</b><div>路由器会为每个 token 选择部分 expert 子网络。这样模型可以拥有很大的总容量，但每次推理不必执行全部参数的计算。</div><b>开发时何时碰到</b><div>你在评估开源模型部署成本时，不能只看总参数。总参数更影响权重存储/显存，active parameters 更直接影响每 token 的计算量。</div><b>你只需记住</b><div>“总参数决定模型有多大；激活参数决定每一步实际动多少计算”——这是简化但非常实用的理解。</div></div>
+</div>
+
+<div class="concept">
+<h3>概念 3：Benchmark Protocol（评测协议）</h3>
+<div class="concept-grid"><b>一句人话</b><div>同一道考试，用不用计算器、能不能上网、给多少时间，都会改变分数；AI benchmark 也一样。</div><b>举个例子</b><div>Terminal-Bench-Science 比的是“模型 + Claude Code/Codex 等执行环境”，不是把模型裸放在那里答选择题。</div><b>稍微技术一点</b><div>关键变量包括：工具权限、系统提示、推理预算、上下文长度、是否多次尝试、agent loop、测试集污染、评分器和运行环境。</div><b>开发时何时碰到</b><div>选模型时。看到“模型 A 排名第一”，第一反应应该是：在哪个任务集？用什么 Harness？花了多少 token 和钱？</div><b>你只需记住</b><div><b>先看协议，再看分数。</b> 不同协议下的数字不要直接横比。</div></div>
+</div>
+</section>
+
+<section class="card" id="model">
+<h2>🔍 模型名字拆解：Qwen3.8-2.4T-A95B-FP8</h2>
+<p class="lead">这个名字是真实存在的官方 Qwen 模型。你以后看到类似命名，可以按下面顺序拆。</p>
+<div class="breakdown">
+<div class="part"><strong>Qwen3.8</strong><span>模型系列 / 世代。先把它理解为产品家族名。</span></div>
+<div class="part"><strong>2.4T</strong><span><b>总参数量约 2.4 trillion（2.4 万亿）</b>。它是超大 MoE 模型，不意味着每生成一个 token 都会计算全部 2.4T 参数。</span></div>
+<div class="part"><strong>A95B</strong><span><b>Active 95B</b>：一次前向计算大约激活 950 亿参数。A 就是 Active。这个数字比 2.4T 更接近“每 token 实际参与计算的规模”。</span></div>
+<div class="part"><strong>FP8</strong><span>8 位浮点表示。相比 BF16/FP16，通常能显著降低权重显存和带宽压力，并提升支持 FP8 的服务器 GPU 上的推理效率；实际质量与速度取决于量化/实现和硬件。</span></div>
+</div>
+<h3>那它能不能在我的电脑上跑？</h3>
+<p>官方 Hugging Face 仓库当前约 <b>2.5 TB</b>，明显不是普通笔记本/单张消费级显卡的本地模型。它更适合多 GPU 服务器或云端集群。官方页面给出了 <b>vLLM</b> 和 <b>SGLang</b> 的服务启动方式。</p>
+<div class="note">一个容易混淆的点：<b>A95B 不代表只需要存 95B 参数。</b> MoE 推理时虽然只激活部分 expert，但完整权重仍需要被存储/分片，除非使用特殊 offload 或分层加载方案。</div>
+<p class="links"><a href="https://huggingface.co/Qwen/Qwen3.8-2.4T-A95B-FP8">官方 Hugging Face 模型页</a> · <a href="https://github.com/QwenLM/Qwen3.8">Qwen3.8 官方仓库</a></p>
+</section>
+
+<section class="card" id="engineering">
+<h2>🛠 AI 工程实践：DeepSeek Harness 到底是什么？</h2>
+<div class="radar"><span class="level">成熟度：快速发展 / Developer Preview</span><span class="warn">⚠ 不属于稳定生产标准</span></div>
+<p><b>一句话：</b>DeepSeek Harness 不是新模型，而是一套“把模型变成可执行 Agent”的开源运行时。DeepSeek 自己的公式就是：<b>Agent = Model + Harness</b>。</p>
+<h3>它解决什么问题？</h3>
+<p>如果你自己从零做 Agent，会发现麻烦的不是一次 LLM API 调用，而是：工具怎么注册、状态怎么保存、上下文怎么压缩、出错怎么继续、沙箱怎么隔离、多 Agent 怎么调度、运行过程怎么回放。Harness 就是把这些“Agent 基础设施”收拢起来。</p>
+<h3>DeepSeek Harness 有什么特别？</h3>
+<p>它主打 <b>Everything is a plugin</b>：模型、工具、skills、sessions、sandbox、storage、loop、scheduler、UI 都是插件。底层由 Cordis 管理插件挂载和依赖。它还把完整 trajectory 做成一等对象，方便 resume、fork、search、replay。</p>
+<h3>什么时候值得你试？</h3>
+<p class="good">✓ 你想研究 Agent Harness 本身、尝试替换不同模型/工具/沙箱、研究 Agent 可观测性和轨迹回放。</p>
+<p class="good">✓ 你要做比较“重”的 coding agent / autonomous agent，而不是简单聊天机器人。</p>
+<h3>什么时候暂时别用？</h3>
+<p>如果你的产品只是“用户提问 → 查数据库/RAG → 调一次模型 → 返回结构化结果”，普通 workflow 往往更简单、更可控。DeepSeek 官方明确写着 Developer Preview，且存在 breaking changes；生产系统现在押死它风险较高。</p>
+<div class="note"><b>快速判断：</b>能用普通函数编排解决，就先别上 Agent；需要模型自己决定多步动作、反复观察环境并持续执行时，再考虑 Harness。</div>
+<p class="links"><a href="https://deepseek.com/harness/en/">DeepSeek Harness 官方介绍</a> · <a href="https://github.com/deepseek-ai/deepseek-harness">官方 GitHub</a></p>
+</section>
+
+<section class="card" id="product">
+<h2>🏗 如果你以后设计 AI 产品，今天意味着什么</h2>
+<div class="decision"><b>1. 把模型供应商做成 Adapter，而不是写死。</b><br><span class="muted">业务层最好面向统一接口：messages、tools、structured output、streaming、usage。OpenAI/Cursor 事件就是现实版“供应商依赖风险”。</span></div>
+<div class="decision"><b>2. 能用确定性 workflow，就不要为了“Agent 感”硬上 Agent。</b><br><span class="muted">支付、权限、数据库写入、合规流程等关键步骤应让传统代码掌控；模型负责判断、生成或推荐，代码负责最终约束。</span></div>
+<div class="decision"><b>3. 做 Agent 评测时，测“整个系统”，不要只测模型。</b><br><span class="muted">记录模型版本、Harness 版本、prompt、工具权限、token 成本、成功率和耗时。否则升级任何一层后，你都不知道性能为什么变化。</span></div>
+</section>
+
+<section class="card">
+<h2>👀 值得继续追踪</h2>
+<ul>
+<li><b>Gemini 3.8 Flash 是否正式发布：</b>目前仍只是媒体报道，等 Google 官方模型页/博客确认。</li>
+<li><b>Cursor 的模型供应结构：</b>OpenAI 退出后，Cursor 会如何加大 Claude / Gemini / 其他模型占比。</li>
+<li><b>DeepSeek Harness 稳定化：</b>重点看 API/plugin contract 是否开始稳定、生产安全边界和生态插件质量。</li>
+<li><b>Agent benchmark 的“系统化”趋势：</b>未来榜单会越来越多地比较 model + harness，而不仅是裸模型。</li>
+</ul>
+</section>
+
+<section class="card">
+<h2>📚 今日主要来源</h2>
+<p class="links"><a href="https://openai.com/index/our-decision-on-cursor-following-its-acquisition-by-spacex/">OpenAI</a> · <a href="https://www.anthropic.com/research/automated-researchers-mitigate-alignment-failures">Anthropic Research</a> · <a href="https://www.terminal-bench-science.ai/">Terminal-Bench-Science</a> · <a href="https://huggingface.co/Qwen/Qwen3.8-2.4T-A95B-FP8">Qwen/Hugging Face</a> · <a href="https://deepseek.com/harness/en/">DeepSeek Harness</a></p>
+<p class="muted">信息窗口：截至 2026-08-30；新闻优先最近 24–48 小时。少量用于概念教学的模型/框架资料可能早于该窗口，并已在对应章节说明其角色。</p>
+</section>
+
+<div class="footer">AI Daily Learning · 2026-08-30 · 面向软件开发者的 AI 快速学习</div>
+</main>
+</body>
+</html>
