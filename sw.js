@@ -1,4 +1,4 @@
-const CACHE='ukbe-20260905-quality-v2';
+const CACHE='ukbe-20260905-content-first-v3';
 const FILES=["./", "index.html", "manifest.webmanifest", "course-plan.json", "sap-fico-handbook.html", "day01.html", "day02.html", "day03.html", "day04.html", "day05.html", "day06.html", "day07.html", "day08.html", "day09.html", "day10.html", "day11.html", "day12.html", "day13.html", "day14.html", "day15.html", "day16.html", "day17.html", "day18.html", "day19.html", "day20.html", "day21.html", "day22.html", "day23.html", "day24.html", "day25.html", "day26.html", "day27.html", "day28.html", "day29.html", "day30.html", "day31.html", "day32.html", "day33.html", "day34.html", "day35.html", "day36.html", "day37.html"];
 const PREFIX='ukbe-';
 self.addEventListener('install',e=>e.waitUntil((async()=>{const c=await caches.open(CACHE);await c.addAll(FILES);await self.skipWaiting();})()));
