@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-09-05T13:54:00+08:00",
+  "updated_at": "2026-09-05T16:06:00+08:00",
   "coverage_note": "根据实际读取的2026-08-30至2026-09-05页面初始化；记录已讲内容，不代表用户掌握。",
   "tracks": [
     "模型与规格",
@@ -307,17 +307,18 @@
     },
     {
       "date": "2026-09-05",
-      "title": "采购 AI 如何证明自己有用",
+      "title": "5 条最新 AI 资讯与一个入门知识点",
       "core_topic_id": "business-eval",
       "topic_ids": [
         "business-eval",
         "product-value"
       ],
       "news_event_ids": [
+        "bytedance-ai-loan-20260904",
+        "newspaper-copyright-lawsuit-20260905",
         "xai-procurement-20260904",
         "weathernext3-20260903",
-        "dsewiki-disclosure-20260904",
-        "ai-dialogue-report-20260904"
+        "dsewiki-disclosure-20260904"
       ]
     }
   ],
