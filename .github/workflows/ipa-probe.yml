@@ -1,0 +1,51 @@
+name: IPA quality probe
+on:
+  push:
+    paths:
+      - '.github/workflows/ipa-probe.yml'
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install gruut UK-capable version
+        run: pip install 'gruut==0.9.2'
+      - name: Generate sample UK IPA
+        run: |
+          python - <<'PY'
+          from gruut import sentences
+          samples = [
+              'Could I have a flat white, please?',
+              "I'd suggest starting with the easiest option.",
+              'Can you hear me okay?',
+              "What's the Wi-Fi password?",
+              'Could you give me a hand with this?',
+              'Is the flight delayed?'
+          ]
+          out=[]
+          for text in samples:
+              out.append(text)
+              try:
+                  parts=[]
+                  for sent in sentences(text, lang='en-gb'):
+                      for word in sent:
+                          if getattr(word, 'phonemes', None):
+                              parts.extend(word.phonemes)
+                  out.append('/' + ''.join(parts).replace('|',' ').replace('‖','').strip() + '/')
+              except Exception as e:
+                  out.append('ERROR: ' + repr(e))
+              out.append('')
+          open('ipa-probe.txt','w',encoding='utf-8').write('\n'.join(out))
+          PY
+      - name: Commit probe output
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add ipa-probe.txt
+          git commit -m 'Add IPA probe output' || exit 0
+          git push
