@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-09-05T16:06:00+08:00",
+  "updated_at": "2026-09-06T00:44:00+08:00",
   "coverage_note": "根据实际读取的2026-08-30至2026-09-05页面初始化；记录已讲内容，不代表用户掌握。",
   "tracks": [
     "模型与规格",
@@ -314,10 +314,10 @@
         "product-value"
       ],
       "news_event_ids": [
+        "gpt6-astra-api-availability-20260905",
         "bytedance-ai-loan-20260904",
         "newspaper-copyright-lawsuit-20260905",
         "xai-procurement-20260904",
-        "weathernext3-20260903",
         "dsewiki-disclosure-20260904"
       ]
     }
