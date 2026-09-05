@@ -1,340 +1,44 @@
 {
-  "version": "ukbe-10m-20260905",
+  "version": "ukbe-natural-high-frequency-20260905",
   "startDate": "2026-08-25",
   "updated": "2026-09-05",
   "lessons": [
-    {
-      "day": 1,
-      "date": "2026-08-25",
-      "title": "机场问路",
-      "english": "Airport Directions",
-      "path": "day01.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 2,
-      "date": "2026-08-26",
-      "title": "酒店入住",
-      "english": "Hotel Check-in",
-      "path": "day02.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 3,
-      "date": "2026-08-27",
-      "title": "办公室初次见面与寒暄",
-      "english": "Office Small Talk",
-      "path": "day03.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 4,
-      "date": "2026-08-28",
-      "title": "会议中澄清与确认",
-      "english": "Clarifying in Meetings",
-      "path": "day04.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 5,
-      "date": "2026-08-29",
-      "title": "商务午餐点餐与买单",
-      "english": "Business Lunch",
-      "path": "day05.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 6,
-      "date": "2026-08-30",
-      "title": "乘出租车去客户办公室",
-      "english": "Taxi to a Client Office",
-      "path": "day06.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 7,
-      "date": "2026-08-31",
-      "title": "综合复习：英国抵达日",
-      "english": "Weekly Speaking Review",
-      "path": "day07.html",
-      "weekly": true,
-      "originalTopic": "客户办公室前台登记"
-    },
-    {
-      "day": 8,
-      "date": "2026-09-01",
-      "title": "客户会议开场与确认议程",
-      "english": "Opening a Client Meeting",
-      "path": "day08.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 9,
-      "date": "2026-09-02",
-      "title": "介绍公司与个人职责",
-      "english": "Introducing Your Company and Role",
-      "path": "day09.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 10,
-      "date": "2026-09-03",
-      "title": "汇报项目进度",
-      "english": "Giving a Project Update",
-      "path": "day10.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 11,
-      "date": "2026-09-04",
-      "title": "说明技术问题与影响",
-      "english": "Explaining a Technical Issue",
-      "path": "day11.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 12,
-      "date": "2026-09-05",
-      "title": "确认客户需求与范围",
-      "english": "Confirming Requirements and Scope",
-      "path": "day12.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 13,
-      "date": "2026-09-06",
-      "title": "礼貌表达不同意见",
-      "english": "Disagreeing Politely",
-      "path": "day13.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 14,
-      "date": "2026-09-07",
-      "title": "综合复习：客户沟通",
-      "english": "Weekly Speaking Review",
-      "path": "day14.html",
-      "weekly": true,
-      "originalTopic": "提出建议与方案"
-    },
-    {
-      "day": 15,
-      "date": "2026-09-08",
-      "title": "协商时间表与截止日期",
-      "english": "Negotiating Timelines",
-      "path": "day15.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 16,
-      "date": "2026-09-09",
-      "title": "讨论预算与费用",
-      "english": "Discussing Budget and Costs",
-      "path": "day16.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 17,
-      "date": "2026-09-10",
-      "title": "分配职责与任务",
-      "english": "Assigning Responsibilities",
-      "path": "day17.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 18,
-      "date": "2026-09-11",
-      "title": "总结决定与行动项",
-      "english": "Summarising Decisions and Actions",
-      "path": "day18.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 19,
-      "date": "2026-09-12",
-      "title": "茶歇寒暄与拓展人脉",
-      "english": "Networking During a Coffee Break",
-      "path": "day19.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 20,
-      "date": "2026-09-13",
-      "title": "进入现场前的安全说明",
-      "english": "Understanding Site Safety",
-      "path": "day20.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 21,
-      "date": "2026-09-14",
-      "title": "综合复习：推进交付",
-      "english": "Weekly Speaking Review",
-      "path": "day21.html",
-      "weekly": true,
-      "originalTopic": "参观工厂与生产线"
-    },
-    {
-      "day": 22,
-      "date": "2026-09-15",
-      "title": "讨论质量标准与验收",
-      "english": "Discussing Quality Standards",
-      "path": "day22.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 23,
-      "date": "2026-09-16",
-      "title": "报告缺陷与分析根因",
-      "english": "Reporting a Defect",
-      "path": "day23.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 24,
-      "date": "2026-09-17",
-      "title": "提出纠正措施与预防方案",
-      "english": "Proposing Corrective Actions",
-      "path": "day24.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 25,
-      "date": "2026-09-18",
-      "title": "处理客户投诉",
-      "english": "Handling a Customer Complaint",
-      "path": "day25.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 26,
-      "date": "2026-09-19",
-      "title": "道歉与服务补救",
-      "english": "Apologising and Offering a Remedy",
-      "path": "day26.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 27,
-      "date": "2026-09-20",
-      "title": "参加视频会议",
-      "english": "Joining a Video Meeting",
-      "path": "day27.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 28,
-      "date": "2026-09-21",
-      "title": "综合复习：处理问题",
-      "english": "Weekly Speaking Review",
-      "path": "day28.html",
-      "weekly": true,
-      "originalTopic": "商务电话与语音留言"
-    },
-    {
-      "day": 29,
-      "date": "2026-09-22",
-      "title": "改期与重新安排会议",
-      "english": "Rescheduling a Meeting",
-      "path": "day29.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 30,
-      "date": "2026-09-23",
-      "title": "乘火车与确认行程",
-      "english": "Travelling by Train",
-      "path": "day30.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 31,
-      "date": "2026-09-24",
-      "title": "说明饮食要求与过敏",
-      "english": "Explaining Dietary Requirements",
-      "path": "day31.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 32,
-      "date": "2026-09-25",
-      "title": "向酒店报告客房问题",
-      "english": "Reporting a Hotel Room Problem",
-      "path": "day32.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 33,
-      "date": "2026-09-26",
-      "title": "索取收据与报销凭证",
-      "english": "Asking for Expense Documents",
-      "path": "day33.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 34,
-      "date": "2026-09-27",
-      "title": "展会交流与介绍产品",
-      "english": "Networking at a Trade Show",
-      "path": "day34.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 35,
-      "date": "2026-09-28",
-      "title": "综合复习：出行与变更",
-      "english": "Weekly Speaking Review",
-      "path": "day35.html",
-      "weekly": true,
-      "originalTopic": "机场值机与安检"
-    },
-    {
-      "day": 36,
-      "date": "2026-09-29",
-      "title": "告别客户并保持联系",
-      "english": "Saying Goodbye",
-      "path": "day36.html",
-      "weekly": false,
-      "originalTopic": null
-    },
-    {
-      "day": 37,
-      "date": "2026-09-30",
-      "title": "出差复盘与确认下一步",
-      "english": "Reviewing the Trip and Next Steps",
-      "path": "day37.html",
-      "weekly": false,
-      "originalTopic": null
-    }
+    {"day":1,"date":"2026-08-25","title":"机场问路","english":"Airport Directions","path":"day01.html","weekly":false},
+    {"day":2,"date":"2026-08-26","title":"酒店入住","english":"Hotel Check-in","path":"day02.html","weekly":false},
+    {"day":3,"date":"2026-08-27","title":"办公室初次见面与寒暄","english":"Office Small Talk","path":"day03.html","weekly":false},
+    {"day":4,"date":"2026-08-28","title":"会议中澄清与确认","english":"Clarifying in Meetings","path":"day04.html","weekly":false},
+    {"day":5,"date":"2026-08-29","title":"商务午餐点餐与买单","english":"Business Lunch","path":"day05.html","weekly":false},
+    {"day":6,"date":"2026-08-30","title":"乘出租车去客户办公室","english":"Taxi to a Client Office","path":"day06.html","weekly":false},
+    {"day":7,"date":"2026-08-31","title":"综合复习：英国抵达日","english":"Weekly Speaking Review","path":"day07.html","weekly":false},
+    {"day":8,"date":"2026-09-01","title":"客户会议开场与确认议程","english":"Opening a Client Meeting","path":"day08.html","weekly":false},
+    {"day":9,"date":"2026-09-02","title":"介绍公司与个人职责","english":"Introducing Your Company and Role","path":"day09.html","weekly":false},
+    {"day":10,"date":"2026-09-03","title":"汇报项目进度","english":"Giving a Project Update","path":"day10.html","weekly":false},
+    {"day":11,"date":"2026-09-04","title":"说明技术问题与影响","english":"Explaining a Technical Issue","path":"day11.html","weekly":false},
+    {"day":12,"date":"2026-09-05","title":"确认客户需求与范围","english":"Confirming Requirements and Scope","path":"day12.html","weekly":false},
+    {"day":13,"date":"2026-09-06","title":"礼貌表达不同意见","english":"Disagreeing Politely","path":"day13.html","weekly":false},
+    {"day":14,"date":"2026-09-07","title":"提出建议与方案","english":"Making Suggestions","path":"day14.html","weekly":false},
+    {"day":15,"date":"2026-09-08","title":"协商时间表与截止日期","english":"Discussing Timelines","path":"day15.html","weekly":false},
+    {"day":16,"date":"2026-09-09","title":"讨论预算与费用","english":"Discussing Costs","path":"day16.html","weekly":false},
+    {"day":17,"date":"2026-09-10","title":"分配职责与任务","english":"Agreeing Who Does What","path":"day17.html","weekly":false},
+    {"day":18,"date":"2026-09-11","title":"总结决定与行动项","english":"Wrapping Up a Meeting","path":"day18.html","weekly":false},
+    {"day":19,"date":"2026-09-12","title":"茶歇寒暄与拓展人脉","english":"Coffee-Break Small Talk","path":"day19.html","weekly":false},
+    {"day":20,"date":"2026-09-13","title":"进入现场前的安全说明","english":"Site Safety Briefing","path":"day20.html","weekly":false},
+    {"day":21,"date":"2026-09-14","title":"参观工厂与生产线","english":"Touring a Factory","path":"day21.html","weekly":false},
+    {"day":22,"date":"2026-09-15","title":"讨论质量标准与验收","english":"Discussing Quality","path":"day22.html","weekly":false},
+    {"day":23,"date":"2026-09-16","title":"报告缺陷与分析原因","english":"Reporting a Problem","path":"day23.html","weekly":false},
+    {"day":24,"date":"2026-09-17","title":"提出修复方案与预防措施","english":"Discussing a Fix","path":"day24.html","weekly":false},
+    {"day":25,"date":"2026-09-18","title":"处理客户投诉","english":"Handling a Complaint","path":"day25.html","weekly":false},
+    {"day":26,"date":"2026-09-19","title":"道歉与补救","english":"Apologising and Putting Things Right","path":"day26.html","weekly":false},
+    {"day":27,"date":"2026-09-20","title":"参加视频会议","english":"Joining a Video Meeting","path":"day27.html","weekly":false},
+    {"day":28,"date":"2026-09-21","title":"商务电话与语音留言","english":"Business Calls and Voicemail","path":"day28.html","weekly":false},
+    {"day":29,"date":"2026-09-22","title":"改期与重新安排会议","english":"Rescheduling a Meeting","path":"day29.html","weekly":false},
+    {"day":30,"date":"2026-09-23","title":"乘火车与确认行程","english":"Travelling by Train","path":"day30.html","weekly":false},
+    {"day":31,"date":"2026-09-24","title":"说明饮食要求与过敏","english":"Dietary Requirements","path":"day31.html","weekly":false},
+    {"day":32,"date":"2026-09-25","title":"向酒店报告客房问题","english":"Reporting a Hotel Problem","path":"day32.html","weekly":false},
+    {"day":33,"date":"2026-09-26","title":"索取收据与报销凭证","english":"Receipts and Expenses","path":"day33.html","weekly":false},
+    {"day":34,"date":"2026-09-27","title":"展会交流与介绍产品","english":"Trade Show Conversations","path":"day34.html","weekly":false},
+    {"day":35,"date":"2026-09-28","title":"机场值机与安检","english":"Airport Check-in and Security","path":"day35.html","weekly":false},
+    {"day":36,"date":"2026-09-29","title":"告别客户并保持联系","english":"Saying Goodbye to a Client","path":"day36.html","weekly":false},
+    {"day":37,"date":"2026-09-30","title":"出差复盘与确认下一步","english":"Reviewing the Trip and Next Steps","path":"day37.html","weekly":false}
   ]
 }
