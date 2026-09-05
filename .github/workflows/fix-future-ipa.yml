@@ -1,0 +1,133 @@
+name: Fix future lesson IPA
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-future-ipa.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install British speech lexicon tool
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq espeak
+      - name: Rebuild readable BrE IPA for Day 13-37
+        shell: bash
+        run: |
+          python - <<'PY'
+          import html, re, subprocess
+          from pathlib import Path
+
+          WEAK = {
+              'a':'ə','an':'ən','the':'ðə','to':'tə','of':'əv','and':'ən','for':'fə'
+          }
+          OVERRIDE = {
+              'ask':'ɑːsk','asked':'ɑːskt','asking':'ɑːskɪŋ',
+              'answer':'ɑːnsə','answers':'ɑːnsəz','answered':'ɑːnsəd',
+              'after':'ɑːftə','afternoon':'ɑːftənuːn',
+              'last':'lɑːst','past':'pɑːst','fast':'fɑːst','class':'klɑːs',
+              'classes':'klɑːsɪz','pass':'pɑːs','passed':'pɑːst','chance':'tʃɑːns',
+              'half':'hɑːf','staff':'stɑːf','rather':'rɑːðə','example':'ɪɡzɑːmpəl',
+              'examples':'ɪɡzɑːmpəlz',"can't":'kɑːnt','dance':'dɑːns','plant':'plɑːnt',
+              'branch':'brɑːntʃ','glass':'ɡlɑːs','master':'mɑːstə','path':'pɑːθ',
+              'password':'pɑːswɜːd','wifi':'waɪ faɪ','wi-fi':'waɪ faɪ','uk':'juː keɪ',
+              'sim':'sɪm','okay':'əʊkeɪ'
+          }
+          DIGIT = {'0':'zɪərəʊ','1':'wʌn','2':'tuː','3':'θriː','4':'fɔː','5':'faɪv','6':'sɪks','7':'sevən','8':'eɪt','9':'naɪn'}
+          LETTER = {
+              'a':'eɪ','b':'biː','c':'siː','d':'diː','e':'iː','f':'ef','g':'dʒiː','h':'eɪtʃ','i':'aɪ','j':'dʒeɪ','k':'keɪ','l':'el','m':'em','n':'en','o':'əʊ','p':'piː','q':'kjuː','r':'ɑː','s':'es','t':'tiː','u':'juː','v':'viː','w':'dʌbəljuː','x':'eks','y':'waɪ','z':'zed'
+          }
+
+          def raw(word):
+              out = subprocess.check_output(['espeak','-q','-v','en-gb','--ipa=3',word], text=True)
+              return ' '.join(out.replace('\u200d','').split())
+
+          def clean_piece(word):
+              low = word.lower().replace('’', "'")
+              if low in WEAK:
+                  return WEAK[low]
+              if low in OVERRIDE:
+                  return OVERRIDE[low]
+              if re.fullmatch(r'[A-Z]{2}\d{2,4}', word):
+                  m = re.fullmatch(r'([A-Z]{2})(\d{2,4})', word)
+                  return ' '.join([LETTER[c.lower()] for c in m.group(1)] + [DIGIT[d] for d in m.group(2)])
+              if word.isdigit():
+                  return ' '.join(DIGIT[d] for d in word)
+              p = raw(word)
+              p = p.replace('ɹ','r').replace('ɐ','ə').replace('ɛ','e')
+              # Conventional broad BrE/RP symbols: TRAP -> /æ/, but preserve PRICE/MOUTH diphthongs.
+              chars = list(p)
+              buf=[]
+              for i,ch in enumerate(chars):
+                  if ch == 'a':
+                      nxt = chars[i+1] if i+1 < len(chars) else ''
+                      if nxt not in ('ɪ','ʊ'):
+                          ch = 'æ'
+                  buf.append(ch)
+              p=''.join(buf)
+              # Raw eSpeak places lexical stress before the vowel nucleus. For sentence-learning IPA,
+              # omit lexical stress rather than show a non-dictionary stress position.
+              p=p.replace('ˈ','').replace('ˌ','')
+              p=re.sub(r'\s+',' ',p).strip()
+              return p
+
+          TOKEN_RE = re.compile(r"[A-Za-z]+(?:[-'][A-Za-z]+)*|[A-Z]{2}\d{2,4}|\d+")
+
+          def make_ipa(text):
+              text = html.unescape(re.sub(r'<[^>]+>','',text))
+              toks = TOKEN_RE.findall(text)
+              parts=[clean_piece(t) for t in toks]
+              return '/' + ' '.join(p for p in parts if p) + '/'
+
+          def tts_expand(s):
+              def repl(m):
+                  letters=' '.join(m.group(1))
+                  nums=' '.join({'0':'zero','1':'one','2':'two','3':'three','4':'four','5':'five','6':'six','7':'seven','8':'eight','9':'nine'}[d] for d in m.group(2))
+                  return letters + ' ' + nums
+              return re.sub(r'\b([A-Z]{2})(\d{2,4})\b', repl, s)
+
+          pat = re.compile(r'(<p class="en"[^>]*>)(.*?)(</p><p class="ipa">)(.*?)(</p>)', re.S)
+          tip = re.compile(r'(<div class="tip"><b>)(.*?)(</b> <span class="ipa">)(.*?)(</span>)', re.S)
+
+          changed=[]
+          for day in range(13,38):
+              path=Path(f'day{day:02d}.html')
+              text=path.read_text(encoding='utf-8')
+              text=text.replace('ukbe-balanced-natural-20260905-v3','ukbe-balanced-natural-20260905-v4')
+              def repl(m):
+                  return m.group(1)+m.group(2)+m.group(3)+make_ipa(m.group(2))+m.group(5)
+              text=pat.sub(repl,text)
+              def repl_tip(m):
+                  return m.group(1)+m.group(2)+m.group(3)+make_ipa(m.group(2))+m.group(5)
+              text=tip.sub(repl_tip,text)
+              # Make alphanumeric flight codes speak digit-by-digit while keeping display text unchanged.
+              text=re.sub(r'data-say="([^"]+)"', lambda m: 'data-say="'+html.escape(tts_expand(html.unescape(m.group(1))), quote=True)+'"', text)
+              if text.count('class="item"') != 10:
+                  raise SystemExit(f'{path}: expected 10 lesson items')
+              if text.count('class="dialogue"') != 3:
+                  raise SystemExit(f'{path}: expected 3 dialogues')
+              if any(x in text for x in ('localStorage','先自己说','隐藏答案','开始计时')):
+                  raise SystemExit(f'{path}: banned testing UI found')
+              if any(x in text for x in ('ɹ','ɐ','\u200d','wɪðð','ɪnðə')):
+                  raise SystemExit(f'{path}: raw eSpeak artifact remains')
+              en_count=text.count('class="en"')
+              ipa_count=text.count('<p class="ipa">')
+              if ipa_count < en_count:
+                  raise SystemExit(f'{path}: missing sentence IPA')
+              path.write_text(text,encoding='utf-8')
+              changed.append(str(path))
+
+          sw=Path('sw.js')
+          sw_text=sw.read_text(encoding='utf-8').replace('ukbe-20260905-balanced-v6','ukbe-20260905-balanced-v7')
+          sw.write_text(sw_text,encoding='utf-8')
+          print('updated', len(changed), 'lesson pages')
+          PY
+      - name: Commit corrected IPA and remove one-time workflow
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          rm .github/workflows/fix-future-ipa.yml
+          git add day13.html day14.html day15.html day16.html day17.html day18.html day19.html day20.html day21.html day22.html day23.html day24.html day25.html day26.html day27.html day28.html day29.html day30.html day31.html day32.html day33.html day34.html day35.html day36.html day37.html sw.js .github/workflows/fix-future-ipa.yml
+          git commit -m 'Clean up BrE IPA in future lessons'
+          git push
