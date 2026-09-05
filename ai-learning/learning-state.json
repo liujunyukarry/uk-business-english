@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-09-06T00:54:00+08:00",
+  "updated_at": "2026-09-06T05:58:00+08:00",
   "coverage_note": "根据实际读取的2026-08-30至2026-09-05页面初始化；记录已讲内容，不代表用户掌握。",
   "tracks": [
     "模型与规格",
@@ -238,6 +238,20 @@
       ],
       "last_reviewed": null,
       "rule": "先选一个可验证的窄问题，区分毛收益、净收益和增量价值。"
+    },
+    {
+      "id": "throughput-latency",
+      "name": "吞吐量与延迟",
+      "track": "部署与成本",
+      "prerequisites": [],
+      "lessons": [
+        {
+          "date": "2026-09-06",
+          "url": "2026-09-06.html#concept"
+        }
+      ],
+      "last_reviewed": null,
+      "rule": "吞吐量是一段时间处理多少工作，延迟是单个请求等待多久。"
     }
   ],
   "issues": [
@@ -320,6 +334,21 @@
         "tcs-ai-datacenter-20260905",
         "newspaper-copyright-lawsuit-20260905"
       ]
+    },
+    {
+      "date": "2026-09-06",
+      "title": "AI 每日学习｜2026-09-06｜5 条最新资讯",
+      "core_topic_id": "throughput-latency",
+      "topic_ids": [
+        "throughput-latency"
+      ],
+      "news_event_ids": [
+        "lyria-3-5-api-20260904",
+        "nvidia-pair-local-ai-20260903",
+        "weathernext-3-20260903",
+        "anthropic-ipo-timing-20260904",
+        "autonomous-weapons-consensus-20260905"
+      ]
     }
   ],
   "watch_items": [
@@ -336,19 +365,13 @@
       "id": "ai-dialogue",
       "question": "中美AI安全对话是否正式确认",
       "first_raised": "2026-09-05",
-      "last_checked": "2026-09-05",
-      "status": "Reuters消息人士说法；白宫否认已有九月中旬计划，未官宣。",
+      "last_checked": "2026-09-06",
+      "status": "未发现正式确认；Reuters 消息人士称或于九月中旬举行，白宫此前否认已有计划。",
       "source": "https://www.reuters.com/legal/litigation/us-china-gear-up-mid-september-ai-safety-dialogue-2026-09-04/",
       "next_check": "2026-09-12"
     }
   ],
   "next_topics": [
-    {
-      "id": "weekly-review",
-      "track": "综合",
-      "suggested_date": "2026-09-06",
-      "reason": "周日用最近实际已讲的部署、评测与产品取舍做短归纳；替代新课，不追加篇幅。"
-    },
     {
       "id": "rag-foundations",
       "track": "数据与 RAG",
