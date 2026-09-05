@@ -1,89 +1,53 @@
-<!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="color-scheme" content="light dark">
-  <title>Day 08｜客户会议开场与确认议程</title>
-  <style>
-    :root{--bg:#f5f7fb;--card:#fff;--ink:#172033;--muted:#667085;--line:#e6e9f0;--accent:#3559d5;--soft:#eef2ff}
-    @media(prefers-color-scheme:dark){:root{--bg:#0d1017;--card:#151923;--ink:#f4f6fb;--muted:#aab2c5;--line:#2a3040;--accent:#91a7ff;--soft:#202a4a}}
-    *{box-sizing:border-box}html,body{max-width:100%;overflow-x:hidden}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif}
-    .wrap{max-width:820px;margin:auto;padding:16px 14px calc(56px + env(safe-area-inset-bottom))}.hero{padding:24px 20px;border-radius:24px;color:#fff;background:linear-gradient(135deg,#27336f,#526bdc);box-shadow:0 14px 34px rgba(45,66,155,.18)}h1{font-size:27px;line-height:1.3;margin:6px 0}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:17px;margin-top:14px}.item{padding:13px 0;border-top:1px solid var(--line)}.item:first-child{border-top:0}.row{display:flex;align-items:flex-start;gap:10px}.grow{flex:1;min-width:0;overflow-wrap:anywhere}.en{font-weight:750}.ipa{color:var(--accent);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere}.zh,.note{color:var(--muted)}button{flex:0 0 auto;border:0;border-radius:12px;background:var(--soft);color:var(--accent);min-width:46px;min-height:46px;font-size:18px;touch-action:manipulation}.dialogue{border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:12px}.speaker{color:var(--accent);font-size:14px;font-weight:700}.tip{padding:10px 0;border-top:1px solid var(--line)}.tip:first-of-type{border-top:0}.foot{text-align:center;color:var(--muted);font-size:12px;margin-top:20px}
-  </style>
-</head>
-<body>
-<main class="wrap">
-  <section class="hero"><div>UK Business Trip English · 2026-09-01</div><h1>Day 08 · 客户会议开场与确认议程</h1><div>Opening a Client Meeting &amp; Confirming the Agenda</div></section>
-  <section class="card"><h2>最常用 12 句</h2><div id="phrases"></div></section>
-  <section class="card"><h2>难词发音</h2><div id="words"></div></section>
-  <section class="card"><h2>迷你对话</h2><div id="dialogues"></div></section>
-  <section class="card"><h2>英国常见说法 / 礼貌提醒</h2>
-    <div class="tip"><b>1. Shall we make a start?</b><br><span class="note">英国会议里很常见，用 “Shall we…?” 邀请大家一起开始，比直接说 “Let’s start” 更柔和。</span></div>
-    <div class="tip"><b>2. Perhaps we could…</b><br><span class="note">用 perhaps 弱化语气，是提出建议时很自然的英国式礼貌表达。</span></div>
-    <div class="tip"><b>3. Thank you for making the time.</b><br><span class="note">这里 make the time 是“特意抽出时间”，适合感谢客户安排会面。</span></div>
-    <div class="tip"><b>4. Brilliant.</b><br><span class="note">英国职场常用来表示“很好 / 太好了”。用于积极回应很自然，但正式场合不必句句都用。</span></div>
-  </section>
-  <section class="card"><h2>常见易错点</h2>
-    <p>❌ Let’s discuss about the launch date.<br>✅ Let’s discuss the launch date.<br><span class="note">discuss 后直接接讨论对象，不加 about。</span></p>
-    <p>❌ The aim for today meeting is…<br>✅ The aim of today’s meeting is…<br><span class="note">today’s meeting 要用所有格。</span></p>
-    <p>❌ We will confirm the actions.<br>✅ We’ll agree the actions.<br><span class="note">会议里的 actions 通常指会后任务；agree the actions 表示明确要做什么、由谁负责。</span></p>
-  </section>
-  <section class="card"><h2>今天只记这 3 句</h2><div id="remember"></div></section>
-  <div class="foot">British English IPA · UK Business Trip Speaking Practice<br>离线朗读取决于本机是否已下载对应英式语音 · 建议使用 Safari</div>
-</main>
-<script>
-const P=[
-  ['Good morning, everyone. Shall we make a start?','/ɡʊd ˈmɔːnɪŋ ˈevriwʌn | ʃəl wiː meɪk ə stɑːt/','大家早上好。我们开始吧？'],
-  ['Thank you for making the time to meet with us.','/ˈθæŋk juː fə ˈmeɪkɪŋ ðə taɪm tə miːt wɪð ʌs/','感谢您抽时间与我们会面。'],
-  ['Before we begin, could we quickly introduce ourselves?','/bɪˈfɔː wi bɪˈɡɪn | kʊd wi ˈkwɪkli ˌɪntrəˈdjuːs aʊəˈselvz/','开始之前，我们可以快速自我介绍一下吗？'],
-  ["The aim of today's meeting is to review the project plan.",'/ði eɪm əv təˈdeɪz ˈmiːtɪŋ ɪz tə rɪˈvjuː ðə ˈprɒdʒekt plæn/','今天会议的目标是审阅项目计划。'],
-  ["I've circulated a short agenda in advance.",'/aɪv ˈsɜːkjəleɪtɪd ə ʃɔːt əˈdʒendə ɪn ədˈvɑːns/','我已经提前发了一份简短的议程。'],
-  ['Does the agenda work for everyone?','/dʌz ði əˈdʒendə wɜːk fər ˈevriwʌn/','这份议程大家都合适吗？'],
-  ["Is there anything you'd like to add?",'/ɪz ðeər ˈeniθɪŋ juːd laɪk tə æd/','您还有什么想补充的吗？'],
-  ["We have an hour, so I'll keep us to time.",'/wi hæv ən ˈaʊə | səʊ aɪl kiːp ʌs tə taɪm/','我们有一个小时，所以我会把控好时间。'],
-  ['Perhaps we could start with a brief update.','/pəˈhæps wi kʊd stɑːt wɪð ə briːf ˈʌpdeɪt/','或许我们可以先从简短的进展汇报开始。'],
-  ["Then we'll move on to the next steps.",'/ðen wiːl muːv ɒn tə ðə nekst steps/','然后我们再讨论下一步。'],
-  ['Please feel free to ask questions as we go.','/pliːz fiːl friː tə ɑːsk ˈkwestʃənz əz wi ɡəʊ/','过程中有问题请随时提问。'],
-  ['Shall we agree the actions before we finish?','/ʃəl wi əˈɡriː ði ˈækʃənz bɪˈfɔː wi ˈfɪnɪʃ/','结束前我们把后续任务确认下来，好吗？']
-];
-const W=[
-  ['agenda','/əˈdʒendə/','议程'],
-  ['circulate','/ˈsɜːkjəleɪt/','传阅；分发'],
-  ['review','/rɪˈvjuː/','审阅；回顾'],
-  ['brief','/briːf/','简短的'],
-  ['action','/ˈækʃən/','会后任务；行动项'],
-  ['advance','/ədˈvɑːns/','提前；预先']
-];
-const D=[
-  ['欢迎与开场',[
-    ['Chair','Good morning, everyone. Shall we make a start?','大家早上好。我们开始吧？'],
-    ['Client',"Yes, we're all here.",'好的，我们人都到齐了。'],
-    ['Chair','Brilliant. Thank you for making the time.','太好了。感谢各位抽时间参会。']
-  ]],
-  ['确认议程',[
-    ['Chair',"I've circulated a short agenda in advance.",'我已经提前发了一份简短的议程。'],
-    ['Client','It looks good. Could we also discuss the launch date?','议程没问题。我们也可以讨论一下发布日期吗？'],
-    ['Chair',"Of course. I'll add that before the next steps.",'当然。我会把它加在“下一步”之前。']
-  ]],
-  ['介绍与会议目标',[
-    ['Chair','Before we begin, could we quickly introduce ourselves?','开始之前，我们可以快速自我介绍一下吗？'],
-    ['Client',"Certainly. I'm Sarah, and I lead the operations team.",'当然。我是 Sarah，负责运营团队。'],
-    ['Chair','Thanks, Sarah. The aim today is to review the project plan.','谢谢你，Sarah。今天的目标是审阅项目计划。']
-  ]],
-  ['时间与后续任务',[
-    ['Chair',"We have an hour, so I'll keep us to time.",'我们有一个小时，所以我会把控好时间。'],
-    ['Client',"That's fine. Please feel free to move us on if needed.",'没问题。如有需要，您可以随时推进到下一项。'],
-    ['Chair',"Great. We'll agree the actions before we finish.",'好的。结束前我们会确认后续任务。']
-  ]]
-];
-function esc(t){return String(t).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;')}
-function b(t){return `<button type="button" aria-label="播放英式发音" data-say="${esc(t)}">🔊</button>`}
-phrases.innerHTML=P.map(x=>`<div class="item"><div class="row"><div class="grow"><div class="en">${x[0]}</div><div class="ipa">${x[1]}</div><div class="zh">${x[2]}</div></div>${b(x[0])}</div></div>`).join('');
-words.innerHTML=W.map(w=>`<div class="item"><div class="row"><div class="grow"><div class="en">${w[0]}</div><div class="ipa">${w[1]}</div><div class="zh">${w[2]}</div></div>${b(w[0])}</div></div>`).join('');
-dialogues.innerHTML=D.map(d=>`<div class="dialogue"><b>${d[0]}</b>${d[1].map(t=>`<div class="item dialogue-turn"><div class="row"><div class="grow"><div class="speaker">${t[0]}</div><div class="en dialogue-en">${t[1]}</div><div class="zh dialogue-zh">${t[2]}</div></div>${b(t[1])}</div></div>`).join('')}</div>`).join('');
-remember.innerHTML=[P[0],P[3],P[11]].map(x=>`<div class="item"><div class="row"><div class="grow"><div class="en">${x[0]}</div><div class="zh">${x[2]}</div></div>${b(x[0])}</div></div>`).join('');
-let V=[];function loadVoices(){V=window.speechSynthesis?window.speechSynthesis.getVoices()||[]:[]}loadVoices();if('speechSynthesis'in window)speechSynthesis.onvoiceschanged=loadVoices;document.addEventListener('click',e=>{const q=e.target.closest('[data-say]');if(!q||!('speechSynthesis'in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(q.dataset.say);u.lang='en-GB';u.voice=V.find(v=>/^en-GB/i.test(v.lang))||V.find(v=>/^en/i.test(v.lang))||null;u.rate=.92;speechSynthesis.speak(u)});
-</script>
-</body>
-</html>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark"><meta name="course-standard" content="ukbe-10m-20260905"><title>Day 08｜客户会议开场与确认议程｜10分钟</title><style>:root{--bg:#f3f5f7;--card:#fff;--ink:#172536;--muted:#5e6c7b;--line:#dfe5eb;--brand:#145b62;--soft:#eaf4f2;--warm:#fbf3df;--shadow:0 8px 26px #18344808}*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:15px}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif}main{width:min(100%,820px);margin:auto;padding:16px 16px calc(32px + env(safe-area-inset-bottom))}nav,.section-head,.chips,.controls,.timer,.footer-nav{display:flex;align-items:center;gap:12px;flex-wrap:wrap}nav,.footer-nav{justify-content:space-between}nav{font-size:13px;margin:5px 0 22px}a{color:var(--brand);text-underline-offset:4px}header{background:var(--brand);color:#fff;border-radius:24px;padding:28px 23px;margin-bottom:18px}header .eyebrow{color:#c9e5e0}h1{font-size:clamp(25px,5vw,36px);line-height:1.3;margin:8px 0}h2{font-size:21px;line-height:1.4;margin:4px 0 12px}h3{font-size:17px}.subtitle{opacity:.8;font-size:14px}.chips span{border:1px solid #ffffff40;border-radius:999px;padding:3px 10px;font-size:12px}.card{border:1px solid var(--line);border-radius:20px;background:var(--card);padding:22px;margin:16px 0;box-shadow:var(--shadow)}.focus{border-top:4px solid var(--brand)}.eyebrow{font-size:12px;font-weight:650;letter-spacing:.03em;color:var(--muted);margin:0}.number{display:grid;place-items:center;background:var(--soft);color:var(--brand);font-weight:750;min-width:38px;height:38px;border-radius:12px}.section-head{align-items:flex-start}.section-head>div{flex:1;min-width:0}.section-head h2{margin-top:0}article{padding:18px 0;border-top:1px solid var(--line)}article:first-of-type{margin-top:16px}.sentence{position:relative}.en{font-size:19px;font-weight:650;line-height:1.5;margin:8px 0;color:var(--ink);overflow-wrap:anywhere}.ipa{font-size:14px;color:var(--brand);font-family:"DejaVu Sans",-apple-system,sans-serif;line-height:1.7;overflow-wrap:anywhere;margin:5px 0}.zh{font-size:15px;color:var(--muted);margin:6px 0}.sound{margin-top:5px}button,select{font:inherit;font-size:14px;min-height:44px;border:1px solid transparent;border-radius:12px;padding:9px 13px;background:var(--brand);color:#fff;cursor:pointer;touch-action:manipulation}button:focus-visible,summary:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid #db9a32;outline-offset:3px}button.quiet{background:var(--soft);color:var(--brand);border-color:var(--line)}button:disabled{opacity:.5}.timeline{display:grid;grid-template-columns:1fr 1fr;gap:8px}.timeline a{display:grid;padding:12px;background:var(--soft);border-radius:12px;text-decoration:none;font-size:14px}.timeline b{color:var(--brand)}.timeline span{color:var(--ink)}.note{font-size:13px;color:var(--muted)}.timer{border-top:1px solid var(--line);padding-top:14px}.timer output{font:700 26px ui-monospace,monospace;min-width:90px}.prompt{font-size:17px;font-weight:650;margin:10px 0}details summary{cursor:pointer;min-height:44px;padding:8px 0;font-weight:600;color:var(--brand);overflow-wrap:anywhere}details.answer{border:1px dashed var(--line);border-radius:12px;padding:0 12px;margin:12px 0}details.answer[open]{padding-bottom:12px}.subtle{font-size:12px}.controls{margin:15px 0}.turn{padding:15px;border-radius:15px;margin:12px 0;background:var(--bg)}.mine{background:var(--soft)}.speaker{font-size:12px;font-weight:700;color:var(--muted)}.turn .en{font-size:17px}.hidden-prompt{font-size:16px;margin:8px 0}.scene{border-top:1px solid var(--line);padding-top:16px}.challenge{background:var(--warm)}.optional>summary,.settings>summary{font-size:16px}.optional{box-shadow:none}.optional .sentence{border-top:1px solid var(--line);padding:10px 0}.settings label{margin-right:12px}.settings select{background:var(--soft);color:var(--ink)}footer{text-align:center;font-size:12px;color:var(--muted);padding:16px 0}.footer-nav a{padding:10px 0}#toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:max-content;max-width:90vw;background:var(--ink);color:var(--card);padding:12px 18px;border-radius:14px;box-shadow:0 6px 24px #0003;display:none;z-index:20}#toast.show{display:block}[hidden]{display:none!important}@media(max-width:400px){main{padding:12px 10px 32px}.card{padding:17px}.controls{gap:8px}.controls button{font-size:13px}.en{font-size:18px}}@media(prefers-color-scheme:dark){:root{--bg:#111b24;--card:#192631;--ink:#eef3f8;--muted:#a8b6c4;--line:#30404e;--brand:#9cd9d0;--soft:#223d40;--warm:#353222;--shadow:none}header{background:#17555b;color:white}button{color:#132d2c}header .eyebrow{color:#c9e5e0}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style></head><body><main>
+<nav><a href="index.html">← 全部课程</a><span>UK · 英式英语</span></nav>
+<header><p class="eyebrow">2026-09-01 · DAY 08 · 每日口语练习</p><h1>客户会议开场与确认议程</h1><p class="subtitle" lang="en-GB">Opening a Client Meeting</p><p>发起会议、说明目标并征求补充</p><div class="chips"><span>10 分钟</span><span>3 个核心句型</span><span>无需打分或打卡</span></div></header>
+<section class="card focus" id="core"><div class="section-head"><span class="number">01</span><div><p class="eyebrow">重点先看 · 学完能换信息再说</p><h2>今天只掌握这 3 句</h2></div></div><article><span class="eyebrow">核心句型 1</span><div class="sentence"><p class="en" lang="en-GB">Shall we make a start?</p><p class="ipa">/ʃəl wiː meɪk ə stɑːt/</p><p class="zh">我们开始吧？</p><button class="sound" data-say="Shall we make a start?" aria-label="朗读英文">▶ 朗读</button></div></article><article><span class="eyebrow">核心句型 2</span><div class="sentence"><p class="en" lang="en-GB">The aim today is to review the project plan.</p><p class="ipa">/ði eɪm təˈdeɪ ɪz tə rɪˈvjuː ðə ˈprɒdʒekt plæn/</p><p class="zh">今天的目标是审阅项目计划。</p><button class="sound" data-say="The aim today is to review the project plan." aria-label="朗读英文">▶ 朗读</button></div></article><article><span class="eyebrow">核心句型 3</span><div class="sentence"><p class="en" lang="en-GB">Is there anything you&#x27;d like to add?</p><p class="ipa">/ɪz ðeər ˈeniθɪŋ juːd laɪk tə æd/</p><p class="zh">您还有什么想补充的吗？</p><button class="sound" data-say="Is there anything you&#x27;d like to add?" aria-label="朗读英文">▶ 朗读</button></div></article></section>
+<section class="card route"><h2>按这个顺序练，10 分钟结束</h2><div class="timeline"><a href="#review"><b>0–2 分</b><span>回想 3 句旧句</span></a><a href="#core"><b>2–5 分</b><span>听读 3 个句型</span></a><a href="#dialogue"><b>5–8 分</b><span>角色练习</span></a><a href="#challenge"><b>8–10 分</b><span>换情境开口</span></a></div><p class="note">每句听一遍、跟读一遍，再尝试脱稿说。不会时看答案重说，不用记录。</p><div class="timer"><output id="clock" aria-live="off">10:00</output><button id="timer-toggle">开始计时</button><button id="timer-reset" class="quiet">重置</button></div><p id="timer-status" class="note" aria-live="polite">计时可选，不影响阅读。</p></section>
+<section class="card" id="review"><div class="section-head"><span class="number">02</span><div><p class="eyebrow">0–2 分钟 · 先回忆再核对</p><h2>今天的 3 句复习</h2></div></div><p class="note">优先从前 1、3、7 天各选一句；前几天不足时使用实际已有课程。无需任何标记。</p><article><span class="eyebrow">1 天前 · Day 07</span><div class="recall"><p class="prompt">行李提取处往哪边走？</p><details class="answer"><summary>显示英文与发音</summary><div class="sentence"><p class="en" lang="en-GB">Which way is baggage reclaim?</p><p class="ipa">/wɪtʃ weɪ ɪz ˈbæɡɪdʒ rɪˈkleɪm/</p><p class="zh">行李提取处往哪边走？</p><button class="sound" data-say="Which way is baggage reclaim?" aria-label="朗读英文">▶ 朗读</button></div></details></div><a class="subtle" href="day07.html">复习来源：综合复习：英国抵达日</a></article><article><span class="eyebrow">3 天前 · Day 05</span><div class="recall"><p class="prompt">我要一份炸鱼薯条，谢谢。</p><details class="answer"><summary>显示英文与发音</summary><div class="sentence"><p class="en" lang="en-GB">I&#x27;ll have the fish and chips, please.</p><p class="ipa">/aɪl hæv ðə fɪʃ ən tʃɪps pliːz/</p><p class="zh">我要一份炸鱼薯条，谢谢。</p><button class="sound" data-say="I&#x27;ll have the fish and chips, please." aria-label="朗读英文">▶ 朗读</button></div></details></div><a class="subtle" href="day05.html">复习来源：商务午餐点餐与买单</a></article><article><span class="eyebrow">7 天前 · Day 01</span><div class="recall"><p class="prompt">附近有电梯吗？</p><details class="answer"><summary>显示英文与发音</summary><div class="sentence"><p class="en" lang="en-GB">Is there a lift nearby?</p><p class="ipa">/ɪz ðeər ə lɪft ˌnɪəˈbaɪ/</p><p class="zh">附近有电梯吗？</p><button class="sound" data-say="Is there a lift nearby?" aria-label="朗读英文">▶ 朗读</button></div></details></div><a class="subtle" href="day01.html">复习来源：机场问路</a></article></section>
+<section class="card" id="dialogue"><div class="section-head"><span class="number">03</span><div><p class="eyebrow">5–8 分钟 · 一段完整对话</p><h2>第一遍听读，第二遍自己接话</h2></div></div><p class="note">第一遍中英对照；第二遍隐藏你的英文，看中文提示回答。听对方一句，再自己说一句。</p><div class="controls"><button id="dialogue-full">▶ 播放对话</button><button id="dialogue-practice">▶ 只播对方，留 7 秒回答</button><button id="hide-mine" class="quiet">隐藏我的英文</button></div><div id="dialogue-lines"><div class="turn mine" data-dialogue><details class="your-line" open><summary>你 · 先看中文尝试回答</summary><div class="sentence"><p class="en" lang="en-GB">Shall we make a start?</p><p class="ipa">/ʃəl wiː meɪk ə stɑːt/</p><p class="zh">我们开始吧？</p><button class="sound" data-say="Shall we make a start?" aria-label="朗读英文">▶ 朗读</button></div></details><p class="hidden-prompt" hidden>我们开始吧？</p></div><div class="turn theirs" data-dialogue><div class="speaker">客户</div><div class="sentence"><p class="en" lang="en-GB">Yes, everyone&#x27;s here.</p><p class="ipa">/jes ˈevriwʌnz hɪə/</p><p class="zh">好的，人都到齐了。</p><button class="sound" data-say="Yes, everyone&#x27;s here." aria-label="朗读英文">▶ 朗读</button></div></div><div class="turn mine" data-dialogue><details class="your-line" open><summary>你 · 先看中文尝试回答</summary><div class="sentence"><p class="en" lang="en-GB">The aim today is to review the project plan.</p><p class="ipa">/ði eɪm təˈdeɪ ɪz tə rɪˈvjuː ðə ˈprɒdʒekt plæn/</p><p class="zh">今天的目标是审阅项目计划。</p><button class="sound" data-say="The aim today is to review the project plan." aria-label="朗读英文">▶ 朗读</button></div></details><p class="hidden-prompt" hidden>今天的目标是审阅项目计划。</p></div><div class="turn theirs" data-dialogue><div class="speaker">客户</div><div class="sentence"><p class="en" lang="en-GB">That works for us.</p><p class="ipa">/ðæt wɜːks fər ʌs/</p><p class="zh">我们觉得这样合适。</p><button class="sound" data-say="That works for us." aria-label="朗读英文">▶ 朗读</button></div></div><div class="turn mine" data-dialogue><details class="your-line" open><summary>你 · 先看中文尝试回答</summary><div class="sentence"><p class="en" lang="en-GB">Is there anything you&#x27;d like to add?</p><p class="ipa">/ɪz ðeər ˈeniθɪŋ juːd laɪk tə æd/</p><p class="zh">您还有什么想补充的吗？</p><button class="sound" data-say="Is there anything you&#x27;d like to add?" aria-label="朗读英文">▶ 朗读</button></div></details><p class="hidden-prompt" hidden>您还有什么想补充的吗？</p></div><div class="turn theirs" data-dialogue><div class="speaker">客户</div><div class="sentence"><p class="en" lang="en-GB">Could we also discuss the launch date?</p><p class="ipa">/kʊd wiː ˈɔːlsəʊ dɪˈskʌs ðə lɔːntʃ deɪt/</p><p class="zh">我们也可以讨论一下发布日期吗？</p><button class="sound" data-say="Could we also discuss the launch date?" aria-label="朗读英文">▶ 朗读</button></div></div></div></section>
+<section class="card challenge" id="challenge"><div class="section-head"><span class="number">04</span><div><p class="eyebrow">8–10 分钟 · 从背句子到自己表达</p><h2>换个条件，再说一遍</h2></div></div><p>你主持一次简短会议：宣布开始，说明目标，再问客户是否需要补充。</p><p><b>替换练习：</b>把“项目计划”换成“测试结果”</p><details class="answer"><summary>先自己说，再看参考表达</summary><div class="sentence"><p class="en" lang="en-GB">The aim today is to review the test results.</p><p class="ipa">/ði eɪm təˈdeɪ ɪz tə rɪˈvjuː ðə test rɪˈzʌlts/</p><p class="zh">今天的目标是审阅测试结果。</p><button class="sound" data-say="The aim today is to review the test results." aria-label="朗读英文">▶ 朗读</button></div></details><details class="answer"><summary>忘了核心句？展开核对</summary><div class="sentence"><p class="en" lang="en-GB">Shall we make a start?</p><p class="ipa">/ʃəl wiː meɪk ə stɑːt/</p><p class="zh">我们开始吧？</p><button class="sound" data-say="Shall we make a start?" aria-label="朗读英文">▶ 朗读</button></div><div class="sentence"><p class="en" lang="en-GB">The aim today is to review the project plan.</p><p class="ipa">/ði eɪm təˈdeɪ ɪz tə rɪˈvjuː ðə ˈprɒdʒekt plæn/</p><p class="zh">今天的目标是审阅项目计划。</p><button class="sound" data-say="The aim today is to review the project plan." aria-label="朗读英文">▶ 朗读</button></div><div class="sentence"><p class="en" lang="en-GB">Is there anything you&#x27;d like to add?</p><p class="ipa">/ɪz ðeər ˈeniθɪŋ juːd laɪk tə æd/</p><p class="zh">您还有什么想补充的吗？</p><button class="sound" data-say="Is there anything you&#x27;d like to add?" aria-label="朗读英文">▶ 朗读</button></div></details><p class="note">目标：不看英文说一遍，再换一处信息说一遍。停顿没关系；无需勾选、评分或提交录音。</p></section>
+<details class="card optional"><summary>有余力再看 · 发音与表达提醒</summary><div class="sentence"><p class="en" lang="en-GB">review</p><p class="ipa">/rɪˈvjuː/</p><p class="zh">审阅；回顾</p><button class="sound" data-say="review" aria-label="朗读英文">▶ 朗读</button></div><h3>英国场景提醒</h3><p>本课明确练主持人角色；参会者可以先掌握说明目标与补充议题的表达。</p><h3>容易忽略的地方</h3><p>agenda 表示议程；不要把它误当成会议纪要。</p><p class="note">句子 IPA 为一种常见英式读法；词重音、弱读与实际语速可能影响听感。系统声音不一定与每个音标完全一致。</p></details>
+<details class="card settings"><summary>语音与使用说明</summary><p>人名、日期、金额、工作信息均为练习示例，请按真实情况替换。</p><label>速度 <select id="rate"><option value="0.85">稍慢</option><option value="1" selected>正常</option></select></label><button id="stop-audio" class="quiet">停止朗读</button><p id="audio-status" class="note" role="status">优先使用本机英式声音；建议用 Safari 打开。</p><p class="note">离线朗读取决于本机是否已下载对应英式语音。可离线阅读；不保证 ChatGPT App 的内嵌预览能够播放。</p></details>
+<footer><div class="footer-nav"><a href="day07.html">← 前一天</a><a href="index.html">课程目录</a><a href="day09.html">后一天 →</a></div><p>每天一份 · 固定复习 · 学完即可</p></footer></main><div id="toast" role="status" aria-live="polite"></div><script type="application/json" id="lesson-data">{"day": 8, "weekly": false, "dialogue": [{"en": "Shall we make a start?", "ipa": "/ʃəl wiː meɪk ə stɑːt/", "zh": "我们开始吧？", "speaker": "你", "you": true}, {"en": "Yes, everyone's here.", "ipa": "/jes ˈevriwʌnz hɪə/", "zh": "好的，人都到齐了。", "speaker": "客户", "you": false}, {"en": "The aim today is to review the project plan.", "ipa": "/ði eɪm təˈdeɪ ɪz tə rɪˈvjuː ðə ˈprɒdʒekt plæn/", "zh": "今天的目标是审阅项目计划。", "speaker": "你", "you": true}, {"en": "That works for us.", "ipa": "/ðæt wɜːks fər ʌs/", "zh": "我们觉得这样合适。", "speaker": "客户", "you": false}, {"en": "Is there anything you'd like to add?", "ipa": "/ɪz ðeər ˈeniθɪŋ juːd laɪk tə æd/", "zh": "您还有什么想补充的吗？", "speaker": "你", "you": true}, {"en": "Could we also discuss the launch date?", "ipa": "/kʊd wiː ˈɔːlsəʊ dɪˈskʌs ðə lɔːntʃ deɪt/", "zh": "我们也可以讨论一下发布日期吗？", "speaker": "客户", "you": false}]}</script><script>(() => {
+  'use strict';
+  const data=JSON.parse(document.getElementById('lesson-data').textContent);
+  const $=s=>document.querySelector(s);
+  let toastTimer;
+  function notify(s){const e=$('#toast');e.textContent=s;e.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>e.classList.remove('show'),6000);}
+  // Speech is started only from a tap. This app never records or scores speech.
+  let voices=[],speechToken=0,waitTimer,resolveWait=null;
+  function loadVoices(){voices='speechSynthesis' in window?speechSynthesis.getVoices():[];}
+  loadVoices();if('speechSynthesis' in window)speechSynthesis.addEventListener('voiceschanged',loadVoices);
+  function stop(){speechToken++;clearTimeout(waitTimer);if(resolveWait){resolveWait();resolveWait=null;}if('speechSynthesis' in window)speechSynthesis.cancel();}
+  function wait(ms){return new Promise(resolve=>{resolveWait=resolve;waitTimer=setTimeout(()=>{resolveWait=null;resolve();},ms);});}
+  function utter(text,token){return new Promise(resolve=>{
+    if(token!==speechToken){resolve();return;}
+    if(!('speechSynthesis' in window)){notify('当前预览不支持朗读，请用 Safari 打开。');resolve();return;}
+    loadVoices();const voice=voices.find(v=>/^en[-_]GB$/i.test(v.lang));
+    const u=new SpeechSynthesisUtterance(text);u.lang='en-GB';if(voice)u.voice=voice;u.rate=Number($('#rate').value);
+    $('#audio-status').textContent=voice?'当前声音：'+voice.name:'未找到明确的英式声音；交由系统选择，无法保证口音。';
+    u.onend=resolve;u.onerror=e=>{if(!['canceled','interrupted'].includes(e.error))notify('朗读未能播放。请检查系统语音，或用 Safari 打开。');resolve();};
+    speechSynthesis.speak(u);
+  });}
+  document.addEventListener('click',e=>{const b=e.target.closest('[data-say]');if(b){stop();utter(b.dataset.say,speechToken);}});
+  $('#stop-audio').addEventListener('click',stop);
+  function hideMine(hide){document.querySelectorAll('#dialogue-lines .your-line').forEach(e=>{e.open=!hide;e.nextElementSibling.hidden=!hide;});$('#hide-mine').textContent=hide?'显示我的英文':'隐藏我的英文';$('#hide-mine').setAttribute('aria-pressed',String(hide));}
+  $('#hide-mine').addEventListener('click',()=>hideMine($('#hide-mine').getAttribute('aria-pressed')!=='true'));
+  async function playDialogue(practice){stop();const token=speechToken;if(!('speechSynthesis' in window)){notify('当前预览不支持朗读，请用 Safari 打开。');return;}if(practice)hideMine(true);
+    for(let i=0;i<data.dialogue.length;i++){
+      if(token!==speechToken)break;
+      const t=data.dialogue[i];
+      if(practice&&t.you){notify('轮到你：'+t.zh);await wait(7000);}else{await utter(t.en,token);if(token===speechToken)await wait(350);}
+    }
+    if(token===speechToken)notify('对话练完了。换一处信息，再试一次。');
+  }
+  $('#dialogue-full').addEventListener('click',()=>playDialogue(false));$('#dialogue-practice').addEventListener('click',()=>playDialogue(true));
+  let remaining=600,running=false,deadline=0,timer;
+  function paint(){let seconds=running?Math.max(0,Math.ceil((deadline-Date.now())/1000)):remaining;$('#clock').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');if(running&&seconds===0){running=false;remaining=0;clearInterval(timer);$('#timer-toggle').textContent='重新计时';$('#timer-status').textContent='10 分钟到了。完成最后一次脱稿表达后，今天就可以结束。';notify('10 分钟到了，今天学到这里即可。');}}
+  $('#timer-toggle').addEventListener('click',()=>{if(running){remaining=Math.max(0,Math.ceil((deadline-Date.now())/1000));running=false;clearInterval(timer);$('#timer-toggle').textContent='继续计时';}else{if(!remaining)remaining=600;running=true;deadline=Date.now()+remaining*1000;timer=setInterval(paint,250);$('#timer-toggle').textContent='暂停计时';$('#timer-status').textContent='无需打卡。按路线练习即可。';}paint();});
+  $('#timer-reset').addEventListener('click',()=>{running=false;remaining=600;clearInterval(timer);$('#timer-toggle').textContent='开始计时';$('#timer-status').textContent='计时可选，不影响阅读。';paint();});
+  window.addEventListener('pagehide',()=>{stop();clearInterval(timer);});
+  if('serviceWorker'in navigator&&location.protocol!=='file:'){let reloading=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!reloading){reloading=true;location.reload();}});navigator.serviceWorker.register('./sw.js').then(r=>r.update()).catch(()=>{});}
+})();
+</script></body></html>
