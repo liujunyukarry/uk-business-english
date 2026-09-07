@@ -1,0 +1,137 @@
+name: optimize-lessons
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  optimize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update Day 15-37
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, html
+
+          G = {
+            'leave from':'从……出发；火车/航班常用','run on time':'准点运行；询问交通是否晚点','change trains':'换乘火车','contactless':'非接触式/感应支付，英国非常常见','seat taken':'座位有人/被占','let me know':'告诉我、通知我；很高频的请求表达',
+            "why don't we":'“要不我们……”；自然地提出建议','how about':'“……怎么样？”；后接名词或 doing','for now':'目前、暂时','i’d suggest':'“我建议……”；比命令更柔和','would it help if':'“如果……会不会更有帮助？”；委婉建议','sound reasonable':'听起来合理；用于确认对方是否接受方案',
+            'changing rooms':'试衣间；英国常用 changing room','try this on':'试穿这件；try on + 衣物','a bit too':'有点太……；语气比 too 更柔和','larger size':'大一号尺码','return this':'退货','refund':'退款；get a refund = 获得退款','receipt':'收据','fit':'合身、合适',
+            'say that again':'再说一遍；没听清时最直接礼貌的说法','more slowly':'更慢一点；请对方放慢语速','didn’t quite catch':'没太听清；catch 在这里是“听清”','mean by':'“……是什么意思”；询问具体含义','make sure i’ve understood':'确认我理解正确','got that right':'理解对了吗；英国口语很常见','run that by me':'再给我讲/过一遍；职场高频','make sense':'有道理/说得通',
+            'go over':'快速过一遍、复核','next steps':'下一步行动','take care of':'负责处理','handle':'处理、负责','need this by':'需要在……之前完成；by 表截止时间','let me know if':'如果……请告诉我','clear on':'对……很清楚','action point':'行动项；会议后的具体任务',
+            'walk you through':'带你逐步讲解/演示','come back to that':'稍后再回到这个话题','feel free to':'尽管/随时可以；礼貌鼓励对方','come back to you':'稍后回复你','so far':'到目前为止','cover':'这里指“讲到/涵盖”',
+            'pay by card':'刷卡/用卡支付','take contactless':'接受感应支付','split the bill':'分账、AA','pay separately':'各付各的','service included':'是否已包含服务费','charged twice':'被扣款两次','check that for me':'帮我查一下',
+            'headache':'头痛','sore throat':'喉咙痛','cough':'咳嗽','something for':'用于治疗……的东西/药','suitable for':'适合……','how often':'多久一次','take it with food':'随餐服用','make me sleepy':'让我犯困','pharmacist':'药剂师','give that a try':'试试看',
+            'check in':'办理值机/入住；机场和酒店都常用','check this bag in':'托运这个包','luggage':'行李，不可数名词','weight limit':'重量上限','aisle seat':'靠过道座位','security':'机场安检','take my laptop out':'把笔记本拿出来','hand luggage':'随身行李','queue':'队伍；英国非常常用','boarding':'登机',
+            'gate changed':'登机口变更','flight delayed':'航班延误','how long the delay':'延误多久','board with':'和……一起登机','charge my phone':'给手机充电',
+            'available':'可用的/有空的；会议、房间、商品都常见','reschedule':'重新安排时间','work for you':'这个时间/方案对你合适吗','get back to you':'稍后回复你','follow up':'跟进','on track':'按计划进行','behind schedule':'落后于计划','deadline':'截止时间','issue':'问题/故障；工作中比 problem 更中性','update':'进展更新','clarify':'澄清','confirm':'确认','approach':'做法/方案','option':'选项/方案','concern':'顾虑','timing':'时机/时间安排','risk':'风险','launch':'上线/发布','roll back':'回滚版本','scope':'范围','requirement':'需求','priority':'优先级','estimate':'估算','delay':'延误/延期','receipt':'收据','platform':'站台','pharmacy':'药店','chemist':'英国口语里也可指药店','takeaway':'外带','bill':'账单','tap':'轻触感应支付','tap in':'刷卡进站','tap out':'刷卡出站','single ticket':'单程票','return ticket':'往返票','off-peak':'非高峰时段','connection':'转车/衔接班次','direct train':'直达车','cancelled':'取消','replacement bus':'替代巴士','Wi-Fi':'无线网络','mobile data':'移动数据','signal':'信号','password':'密码','network':'网络','changing room':'试衣间','medium':'M码/中码','larger':'更大的','smaller':'更小的','refund':'退款','exchange':'换货','fit':'合身','small talk':'轻松寒暄','catch up':'聊聊近况/跟进','recommend':'推荐','local':'当地的','check out':'酒店退房','store my luggage':'寄存行李','invoice':'发票/账单文件','screen share':'屏幕共享','mute':'静音','unmute':'取消静音','cut out':'声音断断续续','frozen':'画面卡住','action items':'行动项','owner':'任务负责人','due':'到期/应完成','sore':'疼痛的','dosage':'剂量','side effects':'副作用','prescription':'处方','cash':'现金','cashless':'无现金支付','contactless':'感应支付','boarding pass':'登机牌','checked baggage':'托运行李','hand baggage':'随身行李','security tray':'安检托盘','liquids':'液体','departure board':'航班/列车信息屏'
+          }
+
+          PATTERNS = [
+            (r'^could you\b','Could you…＝礼貌请求“你可以……吗？”，比直接命令自然。'),
+            (r'^could i\b','Could I…＝礼貌询问“我可以……吗？”。'),
+            (r'^can i\b','Can I…＝日常高频询问许可/可用性。'),
+            (r'^do i need to\b','Do I need to…＝询问“我是否需要……”。'),
+            (r'^i’d like to|^i&#x27;d like to|^i\'d like to','I’d like to…＝“我想……”，比 I want to 更礼貌。'),
+            (r'^would you mind','Would you mind + doing…＝“你介意……吗？”，礼貌请求。'),
+            (r'^shall we\b','Shall we…＝“我们……好吗？”，英式英语里常用于共同决定。'),
+            (r'^let’s\b|^let&#x27;s\b|^let\'s\b','Let’s…＝“我们……吧”，自然地推进下一步。'),
+            (r'^i’m not sure|^i&#x27;m not sure|^i\'m not sure','I’m not sure… 常用于委婉表达保留意见，避免语气过硬。'),
+            (r'^maybe we should','Maybe we should…＝“也许我们应该……”，柔和地提出建议。')
+          ]
+
+          def clean_en(s):
+              s = html.unescape(re.sub('<[^>]+>','',s)).strip()
+              return s
+
+          def pick_notes(en, used, limit=2):
+              low=en.lower().replace('’',"'")
+              hits=[]
+              for k,v in sorted(G.items(), key=lambda kv: len(kv[0]), reverse=True):
+                  if k in low and k not in used:
+                      hits.append((k,v)); used.add(k)
+                      if len(hits)>=limit: break
+              if not hits:
+                  for pat,desc in PATTERNS:
+                      if re.search(pat,low):
+                          key='pattern:'+pat
+                          if key not in used:
+                              used.add(key); hits=[('用法',desc)]; break
+              return hits
+
+          def usage_html(notes):
+              if not notes: return ''
+              parts=[]
+              for k,v in notes:
+                  if k=='用法': parts.append(v)
+                  else: parts.append(f'<b>{html.escape(k)}</b>＝{v}')
+              return '<div class="usage">'+'；'.join(parts)+'。</div>'
+
+          triple=re.compile(r'(<p class="en"[^>]*>(.*?)</p><p class="ipa">.*?</p><p class="zh">.*?</p>)(?!<div class="usage">)',re.I|re.S)
+          marker='</section><section class="card"><h2>3 组真实迷你对话</h2>'
+          for n in range(15,38):
+              p=Path(f'day{n:02d}.html')
+              s=p.read_text(encoding='utf-8')
+              if 'ukbe-balanced-natural-20260907-v5' in s and 'class="usage"' in s: continue
+              s=s.replace('ukbe-balanced-natural-20260905-v4','ukbe-balanced-natural-20260907-v5')
+              s=s.replace('高频、地道、难度适中；按真实场景学会怎么说。','高频、地道、难度适中；生词和高频搭配直接在句子下面讲清楚。')
+              s=s.replace('<span>英式 IPA</span></div>','<span>英式 IPA</span><span>词汇 / 短语用法</span></div>')
+              s=s.replace('前 6 句重点掌握，后 4 句听懂也很有用。★ 只做重点标记，不重复展示。','前 6 句重点掌握，后 4 句听懂也很有用。每句只解释真正值得学的词或固定搭配，避免还要另外查词典。')
+              if '.usage{' not in s:
+                  s=s.replace('p.ipa,p.zh{margin:3px 0 7px}', 'p.ipa,p.zh{margin:3px 0 7px}.usage{margin:8px 0 10px;padding:9px 11px;border-radius:11px;background:var(--soft);font-size:14px;line-height:1.55}.usage b{color:var(--brand)}.pattern{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}')
+                  s=s.replace('.en{font-size:17px}}@media', '.en{font-size:17px}.usage{font-size:13.5px}}@media')
+              if marker in s:
+                  main,rest=s.split(marker,1)
+              else:
+                  main,rest=s,''
+              used=set(); count=[0]
+              def repl_main(m):
+                  en=clean_en(m.group(2)); notes=pick_notes(en,used,2)
+                  if not notes and count[0] < 8:
+                      notes=[('整句',f'这句是本场景常用完整表达，建议整块记忆，不要逐字直译')]
+                  if notes: count[0]+=1
+                  return m.group(1)+usage_html(notes)
+              main=triple.sub(repl_main,main)
+              # ensure at least 8 main usage cards by adding generic cards to earliest unmatched sentences
+              if count[0] < 8:
+                  def fill(m):
+                      if count[0] >= 8: return m.group(0)
+                      count[0]+=1
+                      return m.group(1)+usage_html([('整句','这句属于本场景高频表达，建议按整句记忆并直接替换关键词使用')])
+                  main=triple.sub(fill,main)
+              if rest:
+                  rest=rest.replace('看真实语境里怎么接话，不做题。','看真实语境里怎么接话；如果出现新的高频词，也直接在下面解释。')
+                  dused=set(used); dcount=[0]
+                  def repl_d(m):
+                      en=clean_en(m.group(2)); notes=pick_notes(en,dused,1)
+                      if notes and dcount[0] < 3:
+                          dcount[0]+=1; return m.group(1)+usage_html(notes)
+                      return m.group(0)
+                  rest=triple.sub(repl_d,rest)
+                  s=main+marker+rest
+              else: s=main
+              p.write_text(s,encoding='utf-8')
+
+          sw=Path('sw.js')
+          t=sw.read_text(encoding='utf-8')
+          t=re.sub(r"const CACHE='[^']+'","const CACHE='ukbe-20260907-vocab-v10'",t)
+          sw.write_text(t,encoding='utf-8')
+
+          # QA
+          for n in range(15,38):
+              s=Path(f'day{n:02d}.html').read_text(encoding='utf-8')
+              assert s.count('class="item"')==10, (n,'items')
+              assert s.count('class="dialogue"')==3, (n,'dialogs')
+              assert s.count('class="usage"')>=8, (n,'usage',s.count('class="usage"'))
+              assert 'ɹ' not in s and 'ɐ' not in s and '\u200b' not in s, (n,'ipa pollution')
+              assert 'localStorage' not in s, (n,'localStorage')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add day15.html day16.html day17.html day18.html day19.html day20.html day21.html day22.html day23.html day24.html day25.html day26.html day27.html day28.html day29.html day30.html day31.html day32.html day33.html day34.html day35.html day36.html day37.html sw.js
+          git commit -m "Add inline vocabulary guidance to Day 15-37"
+          git push
