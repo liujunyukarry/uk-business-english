@@ -1,0 +1,93 @@
+name: AI Daily 2026-09-08 sync
+on:
+  push:
+    paths:
+      - '.github/workflows/ai-daily-20260908.yml'
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Sync AI daily files and validate
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp ai-learning/2026-09-08.html ai-learning/latest.html
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          # index.html
+          p=Path('ai-learning/index.html'); s=p.read_text(encoding='utf-8')
+          s=s.replace('2026-09-07 <span class="latest">最新</span>','2026-09-07')
+          marker='<section class="card"><h2>每日学习归档</h2>'
+          entry='<a class="issue" href="2026-09-08.html"><div class="date">2026-09-08 <span class="latest">最新</span></div><h3>Agent 事故进入监管沟通，AI 芯片竞争转向软件生态</h3><div class="muted">OpenAI 向欧盟提交事件报告；Google/国泰扩大 AI 航迹云试验；中国 AI 芯片软件生态、Patagonia 数据中心与联合国 AI 红线。</div></a>'
+          if 'href="2026-09-08.html"' not in s:
+              s=s.replace(marker,marker+entry,1)
+          p.write_text(s,encoding='utf-8')
+
+          # learning-state.json
+          p=Path('ai-learning/learning-state.json'); d=json.loads(p.read_text(encoding='utf-8'))
+          d['updated_at']='2026-09-08T09:10:00+08:00'
+          d['coverage_note']='根据实际读取的2026-08-30至2026-09-08页面维护；记录已讲内容，不代表用户掌握。'
+          topic={
+            'id':'hardware-software-ecosystem','name':'芯片性能与软件生态护城河','track':'部署与成本','prerequisites':[],
+            'lessons':[{'date':'2026-09-08','url':'2026-09-08.html#concept'}],'last_reviewed':None,
+            'rule':'评估AI硬件不能只看峰值算力，还要看框架、算子、工具链和迁移成本。'
+          }
+          if not any(x.get('id')==topic['id'] for x in d.get('topics',[])): d['topics'].append(topic)
+          issue={
+            'date':'2026-09-08','title':'AI 每日学习｜2026-09-08｜5 条最新资讯','core_topic_id':'hardware-software-ecosystem',
+            'topic_ids':['hardware-software-ecosystem'],
+            'news_event_ids':['openai-eu-incident-report-20260907','google-cathay-contrails-20260907','china-ai-chip-software-moat-20260907','patagonia-ai-datacenters-20260907','un-ai-red-lines-20260907']
+          }
+          if not any(x.get('date')=='2026-09-08' for x in d.get('issues',[])): d['issues'].append(issue)
+          for w in d.get('watch_items',[]):
+              if w.get('id')=='astra-ga':
+                  w['last_checked']='2026-09-08'
+                  w['status']='截至2026-09-08 09:10（北京时间），OpenAI Release Notes 与 Help Center 仍写 limited organization rollout、尚未 generally available；暂无新的全面开放状态更新。'
+                  w['source']='https://openai.com/products/release-notes/'
+                  w['next_check']='2026-09-09'
+          p.write_text(json.dumps(d,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
+
+          # knowledge.html
+          p=Path('ai-learning/knowledge.html'); s=p.read_text(encoding='utf-8')
+          s=s.replace('<a href="2026-09-07.html">今天的学习</a>','<a href="2026-09-08.html">今天的学习</a>')
+          s=s.replace('收录已核对的 8 月 30 日至 9 月 7 日相关内容。','收录已核对的 8 月 30 日至 9 月 8 日相关内容。')
+          dep='<section><h2>部署与成本</h2>'
+          article='<article class="topic"><h3>芯片性能与软件生态护城河</h3><p>评估 AI 硬件不能只看峰值算力，还要看框架、算子、工具链、文档和迁移成本。</p><div class="sources"><a href="2026-09-08.html#concept">2026-09-08 ↗</a></div></article>'
+          if '芯片性能与软件生态护城河' not in s: s=s.replace(dep,dep+article,1)
+          old='<p><b>GPT‑6 Astra：</b>截至 2026-09-07 本次核查，OpenAI Release Notes 正文仍写仅向有限组织滚动开放、尚未 generally available。参见 <a href="2026-09-07.html">今天的状态核查</a>。</p>'
+          new='<p><b>GPT‑6 Astra：</b>2026-09-03 已正式发布；截至 2026-09-08 09:10（北京时间），OpenAI Release Notes 与 Help Center 仍写仅向有限组织滚动开放、尚未 generally available。参见 <a href="2026-09-08.html">今天的状态追踪</a>。</p>'
+          s=s.replace(old,new)
+          s=s.replace('更新于 2026-09-07 · 后续随每日学习维护','更新于 2026-09-08 · 后续随每日学习维护')
+          p.write_text(s,encoding='utf-8')
+
+          # QA
+          today=Path('ai-learning/2026-09-08.html').read_text(encoding='utf-8')
+          latest=Path('ai-learning/latest.html').read_text(encoding='utf-8')
+          assert today==latest
+          assert today.count('class="news"')==5
+          assert '2026-09-08' in Path('ai-learning/index.html').read_text(encoding='utf-8')
+          state=json.loads(Path('ai-learning/learning-state.json').read_text(encoding='utf-8'))
+          assert any(x.get('date')=='2026-09-08' for x in state['issues'])
+          assert '2026-09-08.html#concept' in Path('ai-learning/knowledge.html').read_text(encoding='utf-8')
+          print('AI_DAILY_20260908_QA_PASS')
+          PY
+      - name: Commit synchronized AI files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ai-learning/2026-09-08.html ai-learning/latest.html ai-learning/index.html ai-learning/learning-state.json ai-learning/knowledge.html
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -m "Complete AI Daily Learning for 2026-09-08"
+            git push origin HEAD:main
+          fi
