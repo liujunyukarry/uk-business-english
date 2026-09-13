@@ -1,1 +1,105 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0;url=2026-09-13.html"><title>AI 每日学习｜最新一期</title></head><body><p>正在打开最新一期：<a href="2026-09-13.html">2026-09-13 AI 每日学习</a></p></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>AI Daily Learning｜2026-09-14</title>
+<style>
+:root{--bg:#f3f6fb;--card:#fff;--text:#172033;--muted:#667085;--line:#dfe5ef;--accent:#3157d5;--soft:#eaf0ff}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1119;--card:#151b26;--text:#edf2ff;--muted:#a8b2c5;--line:#2a3444;--accent:#91aaff;--soft:#202b43}}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font:16.5px/1.72 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow-wrap:anywhere}
+main{max-width:760px;margin:auto;padding:env(safe-area-inset-top) 16px calc(42px + env(safe-area-inset-bottom))}
+header{padding:30px 4px 15px}.eyebrow{color:var(--accent);font-weight:750;letter-spacing:.04em}h1{font-size:2rem;line-height:1.16;margin:.25rem 0 .55rem}h2{font-size:1.35rem;margin:1.7rem 0 .7rem}h3{font-size:1.08rem;line-height:1.4;margin:.1rem 0 .45rem}
+.meta,.source{color:var(--muted);font-size:.9rem}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:17px;margin:12px 0;box-shadow:0 8px 24px rgba(23,32,51,.05)}
+.lead{background:linear-gradient(135deg,var(--soft),var(--card))}.tag{display:inline-block;padding:2px 9px;border-radius:999px;background:var(--soft);color:var(--accent);font-size:.78rem;font-weight:700;margin-bottom:7px}
+p{margin:.45rem 0}.take{border-left:3px solid var(--accent);padding-left:11px;margin-top:.7rem}a{color:var(--accent);text-underline-offset:3px;min-height:44px}.links a{display:inline-block;padding:8px 12px;margin:5px 5px 0 0;border:1px solid var(--line);border-radius:12px;text-decoration:none;font-weight:650}
+nav{display:flex;gap:8px;overflow:auto;padding:2px 0 7px}nav a{white-space:nowrap;background:var(--card);border:1px solid var(--line);padding:8px 12px;border-radius:999px;text-decoration:none;font-size:.88rem}
+footer{color:var(--muted);font-size:.88rem;padding:16px 4px}
+</style>
+</head>
+<body><main>
+<header>
+<div class="eyebrow">AI DAILY LEARNING</div>
+<h1>AI 每日学习</h1>
+<div class="meta">2026 年 9 月 14 日 · 检索截止 06:00（北京时间）· 约 10 分钟</div>
+</header>
+<nav aria-label="目录"><a href="#brief">30 秒速览</a><a href="#news">5 条资讯</a><a href="#concept">新手知识点</a><a href="#view">工程与产品</a></nav>
+
+<section id="brief" class="card lead">
+<span class="tag">30 秒速览</span>
+<h2 style="margin:.1rem 0 .5rem">今天最重要的变化</h2>
+<p>OpenAI 正式发布 GPT‑6 Astra，但首批只开放给少量组织；API 文档已列出型号与价格，不等于所有账号此刻都能调用。另一条直接影响开发者的是 DeepSeek：V4.1‑Flash 已上线 API，而旧 Pro 请求将在今天中午开始自动迁移。</p>
+<p>同时，AI 行业正把“更强模型”与“更严外部评估”放到同一张路线图上；代码审查和科学模型则继续向可执行、可复用的工具演进。</p>
+</section>
+
+<section id="news">
+<h2>今天的 5 条关键资讯</h2>
+
+<article class="card news-card" data-news-item="1">
+<span class="tag">模型发布 · 重点</span>
+<h3>1. GPT‑6 Astra 正式发布，但仍处于分批开放阶段</h3>
+<div class="source">2026-09-13 · OpenAI 官方发布页 + API 当前目录</div>
+<p><strong>发生了什么：</strong>OpenAI 发布 GPT‑6 Astra，主打电脑操作、编程、科学与长任务。官方发布页写明：目前先向少量组织开放，未来数日再覆盖 Plus、Pro、Business、Enterprise、API、Azure 与 Bedrock；API 目录已出现 <code>gpt-6-astra</code>、105 万上下文及每百万输入/输出 token 10/50 美元的规格。</p>
+<p><strong>为什么值得知道：</strong>这代表模型更像能操作软件的执行者，而不只是聊天工具。官方榜单属于厂商自报，且不同模型的工具、提示词和评测设置并不完全一致，不能只凭单项分数选型。</p>
+<p class="take"><strong>实用启发：</strong>先检测账号/API 是否实际获权，再做小规模真实任务评测；不要因为文档已上线就假定生产环境已全面可用。</p>
+<div class="links"><a href="https://openai.com/index/gpt-6-astra/">官方发布</a><a href="https://developers.openai.com/api/docs/models">API 模型目录</a></div>
+</article>
+
+<article class="card news-card" data-news-item="2">
+<span class="tag">开源模型 · API</span>
+<h3>2. DeepSeek V4.1‑Flash 已上线，今天将接管旧 Pro 请求</h3>
+<div class="source">2026-09-10 发布；2026-09-14 路由变更 · DeepSeek 官方</div>
+<p><strong>发生了什么：</strong>V4.1‑Flash 已可通过 <code>deepseek-flash</code> 调用，并开放 MIT 许可权重。它是 552B 参数的 MoE（每次只激活部分参数），输入阶段激活 8B、输出阶段 16B；官方计划在今天 12:00（北京时间）把 <code>deepseek-v4-pro</code> 请求临时路由到它，直至 V4.1‑Pro 发布。</p>
+<p><strong>为什么值得知道：</strong>更小的激活规模和 KV cache 能降低长上下文 Agent 的推理成本，但自动路由意味着同一模型名背后的实际模型会变化。</p>
+<p class="take"><strong>实用启发：</strong>今天中午后为旧 Pro 调用做回归测试，并在日志里记录实际返回的模型版本、成本和延迟。</p>
+<div class="links"><a href="https://www.deepseek.com/en/news/deepseek-v4-1-flash/">官方公告</a><a href="https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash">官方模型卡</a></div>
+</article>
+
+<article class="card news-card" data-news-item="3">
+<span class="tag">行业治理</span>
+<h3>3. Anthropic 提议放慢前沿模型竞赛，政治层面出现公开分歧</h3>
+<div class="source">2026-09-12 至 09-13 · Reuters / AP 独立报道</div>
+<p><strong>发生了什么：</strong>Anthropic CEO Dario Amodei 提议引入独立评估者、行业共同安全标准和国际协调；OpenAI CEO Sam Altman 与 Elon Musk 表示支持。美国总统特朗普随后反对因风险担忧而明显放慢研发，强调不应失去对华竞争优势。</p>
+<p><strong>为什么值得知道：</strong>这仍是倡议和公开表态，不是已经生效的停训协议或法规。它预示高能力模型的第三方评估、事故披露与部署门槛可能进入采购合同和监管要求。</p>
+<p class="take"><strong>实用启发：</strong>高权限 Agent 项目应提前保留操作日志、权限边界和可中止机制，不要等法规出台才补治理层。</p>
+<div class="links"><a href="https://www.reuters.com/business/anthropic-ceo-urges-ai-companies-slow-model-development-2026-09-12/">Reuters：提议</a><a href="https://apnews.com/article/9df0ebb4c1b0619aa0f88057b5a1092d">AP：政策分歧</a></div>
+</article>
+
+<article class="card news-card" data-news-item="4">
+<span class="tag">AI Coding</span>
+<h3>4. GitHub Copilot 代码审查开始用多 Agent 与真实工具验证</h3>
+<div class="source">2026-09-11 · GitHub 官方更新</div>
+<p><strong>发生了什么：</strong>Copilot Code Review 的 Lite 档改为多个 Agent 从不同角度检查，并可在隔离防火墙后运行构建、测试和脚本；修复后的评论会自动关闭。GitHub 自报实验中，高严重度问题被开发者处理的数量提升 47%，平均审查成本约降 8%。</p>
+<p><strong>为什么值得知道：</strong>AI 审查正从“阅读 diff 后提意见”转向“调用确定性工具验证”。但这些数字来自 GitHub 内部实验，不能等同于所有仓库都会提升 47%。</p>
+<p class="take"><strong>实用启发：</strong>把测试、lint、类型检查接进审查流程，让模型负责发现线索，传统工具负责给出可重复证据。</p>
+<div class="links"><a href="https://github.blog/changelog/2026-09-11-auto-resolution-and-analysis-updates-in-copilot-code-review/">GitHub 官方更新</a></div>
+</article>
+
+<article class="card news-card" data-news-item="5">
+<span class="tag">开源 · AI for Science</span>
+<h3>5. NASA 与 IBM 开源月球基础模型，权重、代码和数据同时放出</h3>
+<div class="source">2026-09-10 · NASA 官方</div>
+<p><strong>发生了什么：</strong>NASA‑IBM Lunar Foundation Model 使用约 200 万张月球图像切片预训练，可辅助识别陨石坑、火山特征和极区冰稳定区域。模型权重已在 Hugging Face 公开，代码、训练数据与评测集合也同步开放。</p>
+<p><strong>为什么值得知道：</strong>它展示了行业模型的成熟路径：先用大量无标签专业数据预训练，再用少量标注适配具体任务。NASA 称其在已测试任务上达到或超过多种强基线，但它是研究工具，不是自动决策系统。</p>
+<p class="take"><strong>实用启发：</strong>做垂直 AI 时，通用大模型未必最佳；高质量领域数据、可复现基线和轻量微调往往更关键。</p>
+<div class="links"><a href="https://science.nasa.gov/science-research/artificial-intelligence-lunar-foundation-model/">NASA 官方介绍</a></div>
+</article>
+</section>
+
+<section id="concept" class="card">
+<span class="tag">新手知识点</span>
+<h2 style="margin:.1rem 0 .5rem">发布、rollout 和 GA 不是一回事</h2>
+<p><strong>人话定义：</strong>“正式发布”表示厂商公开宣布产品；<em>rollout</em> 是分批把权限发给用户；GA（普遍可用）才表示符合条件的用户通常都能获得。API 文档出现型号，也只证明接口和规格已经登记，不保证你的项目立即有权限。</p>
+<p><strong>短例子：</strong>GPT‑6 Astra 已正式发布，首批组织已能用，同时更广泛的 ChatGPT 与 API 权限仍要在未来数日开放——这三句话可以同时成立。</p>
+<p><strong>什么时候有用：</strong>评估新模型时，把“公告日期、目标渠道、你的账号实测、是否承诺 GA”分开记录，避免产品排期建立在尚未到账的权限上。</p>
+</section>
+
+<section id="view">
+<h2>工程师 / AI 产品视角</h2>
+<div class="card"><h3>工程师视角</h3><p>今天就给模型网关增加“实际模型版本、路由变化、token、延迟、失败率”五项日志。DeepSeek 的自动迁移提醒我们：模型别名稳定，不代表底层能力永远不变。</p></div>
+<div class="card"><h3>AI 产品视角</h3><p>先做可回退的确定性 workflow，再把开放式 Agent 放到高价值、允许人工复核的步骤。模型越能操作电脑，权限隔离、审计和停止按钮越应成为产品功能，而不是后台补丁。</p></div>
+</section>
+
+<footer>编辑说明：从 17 条官方或权威媒体候选中筛选；事实核查截止 2026-09-14 06:00（北京时间）。“厂商自报”与独立报道已分别标示。</footer>
+</main></body></html>
