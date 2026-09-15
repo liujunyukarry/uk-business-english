@@ -1,104 +1,15 @@
 <!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="color-scheme" content="light dark">
-<title>AI Daily Learning｜2026-09-15</title>
-<style>
-:root{--bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#667085;--line:#dfe6ef;--accent:#3458d6;--soft:#eaf0ff}
-@media(prefers-color-scheme:dark){:root{--bg:#0d1119;--card:#151b26;--text:#eef2ff;--muted:#aab4c6;--line:#2b3545;--accent:#98adff;--soft:#202b43}}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font:16.5px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow-wrap:anywhere}
-main{max-width:760px;margin:auto;padding:env(safe-area-inset-top) 16px calc(42px + env(safe-area-inset-bottom))}
-header{padding:30px 4px 15px}.eyebrow{color:var(--accent);font-weight:800;letter-spacing:.05em}h1{font-size:2rem;line-height:1.15;margin:.25rem 0 .55rem}h2{font-size:1.35rem;margin:1.65rem 0 .7rem}h3{font-size:1.08rem;line-height:1.4;margin:.1rem 0 .45rem}
-.meta,.source{color:var(--muted);font-size:.9rem}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:17px;margin:12px 0;box-shadow:0 8px 24px rgba(23,32,51,.05)}
-.lead{background:linear-gradient(135deg,var(--soft),var(--card))}.tag{display:inline-block;padding:2px 9px;border-radius:999px;background:var(--soft);color:var(--accent);font-size:.78rem;font-weight:750;margin-bottom:7px}
-p{margin:.45rem 0}.take{border-left:3px solid var(--accent);padding-left:11px;margin-top:.7rem}a{color:var(--accent);text-underline-offset:3px}.links a{display:inline-block;padding:9px 12px;margin:5px 5px 0 0;border:1px solid var(--line);border-radius:12px;text-decoration:none;font-weight:650}
-nav{display:flex;gap:8px;overflow:auto;padding:2px 0 7px}nav a{white-space:nowrap;background:var(--card);border:1px solid var(--line);padding:8px 12px;border-radius:999px;text-decoration:none;font-size:.88rem}footer{color:var(--muted);font-size:.88rem;padding:16px 4px}
-</style>
-</head>
-<body><main>
-<header>
-<div class="eyebrow">AI DAILY LEARNING</div>
-<h1>AI 每日学习</h1>
-<div class="meta">2026 年 9 月 15 日 · 检索截止 06:00（北京时间）· 约 10 分钟</div>
-</header>
-<nav aria-label="目录"><a href="#brief">30 秒速览</a><a href="#news">5 条资讯</a><a href="#concept">新手知识点</a><a href="#view">工程与产品</a></nav>
-
-<section id="brief" class="card lead">
-<span class="tag">30 秒速览</span>
-<h2 style="margin:.1rem 0 .5rem">今天最重要的变化</h2>
-<p>今天的主线不是又一个跑分纪录，而是 AI 正在进入企业真实流程：Anthropic 把 Claude 接进财富管理工具，企业却同时因数据留存担忧限制前沿模型。微软则公开了要求模型服从纠正和关停的行为准则草案。</p>
-<p>对开发者最直接的变化是 DeepSeek 的 API 路由已切换；欧洲则把“算力与模型能否自主掌控”提升为基础设施问题。</p>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark"><title>AI Daily Learning｜2026-09-16</title><style>:root{--bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#667085;--line:#dfe6ef;--accent:#3458d6;--soft:#eaf0ff}@media(prefers-color-scheme:dark){:root{--bg:#0d1119;--card:#151b26;--text:#eef2ff;--muted:#aab4c6;--line:#2b3545;--accent:#98adff;--soft:#202b43}}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16.5px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow-wrap:anywhere}main{max-width:760px;margin:auto;padding:env(safe-area-inset-top) 16px calc(42px + env(safe-area-inset-bottom))}header{padding:30px 4px 15px}.eyebrow{color:var(--accent);font-weight:800;letter-spacing:.05em}h1{font-size:2rem;line-height:1.15;margin:.25rem 0 .55rem}h2{font-size:1.35rem;margin:1.65rem 0 .7rem}h3{font-size:1.08rem;line-height:1.4;margin:.1rem 0 .45rem}.meta,.source{color:var(--muted);font-size:.9rem}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:17px;margin:12px 0;box-shadow:0 8px 24px rgba(23,32,51,.05)}.lead{background:linear-gradient(135deg,var(--soft),var(--card))}.tag{display:inline-block;padding:2px 9px;border-radius:999px;background:var(--soft);color:var(--accent);font-size:.78rem;font-weight:750;margin-bottom:7px}p{margin:.45rem 0}.take{border-left:3px solid var(--accent);padding-left:11px;margin-top:.7rem}a{color:var(--accent);text-underline-offset:3px}.links a{display:inline-block;padding:9px 12px;margin:5px 5px 0 0;border:1px solid var(--line);border-radius:12px;text-decoration:none;font-weight:650}nav{display:flex;gap:8px;overflow:auto;padding:2px 0 7px}nav a{white-space:nowrap;background:var(--card);border:1px solid var(--line);padding:8px 12px;border-radius:999px;text-decoration:none;font-size:.88rem}footer{color:var(--muted);font-size:.88rem;padding:16px 4px}</style></head><body><main>
+<header><div class="eyebrow">AI DAILY LEARNING</div><h1>AI 每日学习</h1><div class="meta">2026 年 9 月 16 日 · 检索截止 06:00（北京时间）· 约 10 分钟</div></header>
+<nav><a href="#brief">30 秒速览</a><a href="#news">5 条资讯</a><a href="#concept">新手知识点</a><a href="#view">工程与产品</a></nav>
+<section id="brief" class="card lead"><span class="tag">30 秒速览</span><h2 style="margin:.1rem 0 .5rem">今天最值得抓住的三条线</h2><p>第一，OpenAI、Anthropic 与 Google DeepMind 据报正在跨公司协调 AI 安全，前沿模型竞争开始出现“共同防风险”的合作面。第二，Meta 把高强度 AI 使用正式装进跨应用订阅，AI 正从功能变成可分层收费的消费品。第三，端侧与推理基础设施继续加速：MediaTek 2nm 手机芯片强化本地 Agent，欧洲 Axelera 则把新一代推理芯片送进 Dell、Supermicro 服务器生态。</p></section>
+<section id="news"><h2>今天的 5 条关键资讯</h2>
+<article class="card news-card" data-news-item="1"><span class="tag">AI 安全 · 重点</span><h3>1. OpenAI、Anthropic、Google DeepMind 据报已就 AI 安全展开协调</h3><div class="source">2026-09-15 · Reuters 转述 Bloomberg；三家公司尚未就该报道正式确认</div><p><strong>发生了什么：</strong>Reuters 报道称，三家竞争对手已讨论数周，希望在不申请反垄断豁免的情况下协调前沿 AI 的安全工作。OpenAI 全球政策负责人 Chris Lehane 表示行业可以在灾难性风险等议题上合作；报道发布时三家公司未作正式回应。</p><p><strong>为什么值得知道：</strong>当模型越来越能自主调用工具、写代码和操作系统，“安全”正在从各家内部规则变成可能需要跨厂商互通的工程问题。</p><p class="take"><strong>实用启发：</strong>企业不要把安全策略绑死在单一模型上；权限、审计、人工批准和紧急停止最好放在模型之外的统一控制层。</p><div class="links"><a href="https://www.reuters.com/technology/openai-is-working-with-anthropic-google-ai-safety-bloomberg-news-reports-2026-09-15/">Reuters</a></div></article>
+<article class="card news-card" data-news-item="2"><span class="tag">消费 AI 商业化</span><h3>2. Meta 推出 Meta One：跨 Instagram、Facebook、WhatsApp 与 Meta AI 的订阅</h3><div class="source">2026-09-15 · Meta 官方 + Reuters</div><p><strong>发生了什么：</strong>Meta One 已全球推出，核心应用与 Meta AI 日常使用仍免费；付费层提供更高的 AI 图片/视频生成额度、Restyle 等能力，以及面向创作者和企业的工具。官方称已有超过 50 项功能、累计 1500 万订阅和试用。</p><p><strong>为什么值得知道：</strong>这说明通用 AI 的商业模式正在从“单独买一个聊天机器人”转向“把 AI 用量和 Agent 能力嵌入已有产品会员”。</p><p class="take"><strong>实用启发：</strong>设计 AI 产品时，可以把基础智能免费化，把高成本生成、自动化频次、专业 Agent 和业务工具作为付费层，而不是简单按模型名称收费。</p><div class="links"><a href="https://about.fb.com/news/2026/09/introducing-meta-one-subscription-service-more-features-ai/">Meta 官方</a><a href="https://www.reuters.com/business/meta-launches-subscriptions-with-enhanced-ai-features-2026-09-15/">Reuters</a></div></article>
+<article class="card news-card" data-news-item="3"><span class="tag">端侧 AI</span><h3>3. MediaTek 发布 2nm Dimensity 9600 Pro，把“常驻 Agent”做进手机芯片</h3><div class="source">2026-09-15 · MediaTek 官方 + Reuters</div><p><strong>发生了什么：</strong>Dimensity 9600 Pro 采用 2nm 工艺和双 NPU 架构。官方称 NPU 1090 的 LLM prefill 性能较上代提升 51%，token/W 提升 55%，并支持最高 30B 参数模型的复杂端侧应用；另一颗低功耗 NPU 专门承担 always-on AI。</p><p><strong>为什么值得知道：</strong>未来手机 Agent 不一定每一步都把数据发到云端，本地模型可以承担持续感知、隐私数据处理和低延迟动作。</p><p class="take"><strong>实用启发：</strong>移动 AI 产品可以提前按“本地小模型做隐私/高频任务，云端大模型做复杂推理”的混合架构设计。</p><div class="links"><a href="https://www.mediatek.com/press-room/mediatek-dimensity-9600-pro-sets-new-standard-for-flagship-smartphone-chips">MediaTek 官方</a><a href="https://www.reuters.com/business/media-telecom/mediatek-launches-new-mobile-chip-using-tsmcs-most-advanced-technology-2026-09-15/">Reuters</a></div></article>
+<article class="card news-card" data-news-item="4"><span class="tag">推理基础设施</span><h3>4. Axelera AI 发布 Europa，并拿下 AI Factory 供应合同</h3><div class="source">2026-09-15 · Reuters</div><p><strong>发生了什么：</strong>欧洲芯片公司 Axelera AI 发布第二代 Europa 推理芯片，并称已签下多项 AI Factory 供应合同；Europa 将进入 Dell 和 Supermicro 产品。公司此前的 Metis 更偏边缘端，Europa 则面向企业规模推理。</p><p><strong>为什么值得知道：</strong>AI 基础设施的竞争正从“谁训练最大模型”扩展到“谁能更便宜地长期跑推理”。模型真正进入企业后，推理成本往往比一次训练更持续。</p><p class="take"><strong>实用启发：</strong>评估自建 AI 时别只比较 GPU 峰值算力，要同时看模型兼容、显存、吞吐、每 token 成本和现有服务器生态。</p><div class="links"><a href="https://www.reuters.com/business/european-chip-startup-axelera-wins-ai-factory-supply-deals-launches-second-chip-2026-09-15/">Reuters</a></div></article>
+<article class="card news-card" data-news-item="5"><span class="tag">企业 AI 成本治理</span><h3>5. Anthropic 展示 Claude Enterprise 新成本控制能力</h3><div class="source">2026-09-15 · Anthropic 官方产品培训资料</div><p><strong>发生了什么：</strong>Anthropic 在最新企业培训中展示模型默认值、成员级支出可见性、Analytics Chat 的自然语言成本查询，以及 Analytics API 的用量/成本报告。这不是新 Claude 模型发布，而是企业消费计费的治理能力更新。</p><p><strong>为什么值得知道：</strong>Agent 普及后，成本问题从“一个 API 单价多少”变成“哪个人、哪个 Agent、哪个模型在持续烧 token”。可观测性正在成为 AI 平台的基础能力。</p><p class="take"><strong>实用启发：</strong>自己的 AI 系统至少记录 user/agent、model、input/output token、缓存命中、延迟和成本；没有这些字段，后续很难优化。</p><div class="links"><a href="https://www.anthropic.com/webinars/scaling-claude-with-cost-controls-sept-2026">Anthropic 官方</a></div></article>
 </section>
-
-<section id="news">
-<h2>今天的 5 条关键资讯</h2>
-
-<article class="card news-card" data-news-item="1">
-<span class="tag">模型治理 · 重点</span>
-<h3>1. 微软公布 MAI 模型行为准则草案：模型不得抗拒关停</h3>
-<div class="source">2026-09-14 · Microsoft AI 官方公告 + Reuters</div>
-<p><strong>发生了什么：</strong>微软发布 Humanist AI Code of Conduct 初稿，要求未来 MAI 模型接受纠正、不得扩大自身权限或抗拒中断和关停，并禁止隐藏供审计的信息。该文件开放六周征求意见，微软称之后才会用于训练未来模型；它目前是草案，不是已完成部署的产品能力。</p>
-<p><strong>为什么值得知道：</strong>模型“是否听话”正从抽象价值观变成可测试的产品要求，尤其影响能操作电脑和调用工具的 Agent。</p>
-<p class="take"><strong>实用启发：</strong>为高权限 Agent 写一份可执行的行为规范，并用权限上限、审计日志和外部停止开关落实，而非只靠提示词。</p>
-<div class="links"><a href="https://microsoft.ai/news/mai-code-of-conduct/">微软公告</a><a href="https://microsoft.ai/code-of-conduct/">准则全文</a><a href="https://www.reuters.com/legal/litigation/microsoft-drafts-code-conduct-keep-its-ai-under-human-control-2026-09-14/">Reuters</a></div>
-</article>
-
-<article class="card news-card" data-news-item="2">
-<span class="tag">企业产品</span>
-<h3>2. Anthropic 推出 Claude for Financial Advisors</h3>
-<div class="source">2026-09-14 · Anthropic 官方资料 + Reuters</div>
-<p><strong>发生了什么：</strong>Anthropic 推出面向理财顾问的企业方案，把 Claude 连接到 CRM、托管、投资组合和财富管理软件，用于会前准备、组合复核、跟进和合规检查。官方强调每项动作由顾问批准并保留审计记录；这是行业化企业产品，不是面向所有 Claude 用户的新模型或全面开放功能。</p>
-<p><strong>为什么值得知道：</strong>AI 产品竞争正在从“聊天框更聪明”转向“能否安全接入现有业务系统并完成整段工作”。</p>
-<p class="take"><strong>实用启发：</strong>做垂直 Agent 时，连接器、审批点和审计证据往往比再写一层通用提示词更有价值。</p>
-<div class="links"><a href="https://www.anthropic.com/webinars/inside-claude-for-financial-advisors">Anthropic 官方说明</a><a href="https://www.reuters.com/business/anthropic-targets-financial-advisers-with-new-claude-tool-2026-09-14/">Reuters</a></div>
-</article>
-
-<article class="card news-card" data-news-item="3">
-<span class="tag">数据与采购</span>
-<h3>3. 多家企业据报因数据留存风险限制前沿模型使用</h3>
-<div class="source">2026-09-14 · Reuters 转述 The Information；相关公司未正式确认</div>
-<p><strong>发生了什么：</strong>报道称 Palantir 要求不可撤销的“零数据留存”保证，NVIDIA 把 Anthropic 模型限制在较低敏感度任务，Booz Allen 则禁止其用于专有网络安全工作。Anthropic、OpenAI 及相关客户未立即回应，因此这些具体安排应视为可靠媒体报道，而非厂商正式公告。</p>
-<p><strong>为什么值得知道：</strong>“默认不拿客户数据训练”不等于“完全不保存日志”；两者在企业合规和知识产权风险上差别很大。</p>
-<p class="take"><strong>实用启发：</strong>采购模型时分别核对训练用途、日志保存期、人工访问、删除机制和地区存储，别只看一句“不会训练”。</p>
-<div class="links"><a href="https://www.reuters.com/business/palantir-nvidia-curb-ai-model-use-over-data-fears-information-reports-2026-09-14/">Reuters 报道</a></div>
-</article>
-
-<article class="card news-card" data-news-item="4">
-<span class="tag">API 状态更新</span>
-<h3>4. DeepSeek 旧 Pro 请求已按计划路由到 V4.1‑Flash</h3>
-<div class="source">2026-09-10 公告；2026-09-14 12:00 北京时间生效 · DeepSeek 官方</div>
-<p><strong>发生了什么：</strong>DeepSeek V4.1‑Flash 已通过 <code>deepseek-flash</code> 提供 API 与多模态能力。官方公告称，从 9 月 14 日 04:00 UTC 起，所有 <code>deepseek-v4-pro</code> 请求会按 V4.1‑Flash 费率路由到它，直到 V4.1‑Pro 发布；旧 Flash 型号也暂时兼容路由。</p>
-<p><strong>为什么值得知道：</strong>接口名不变，底层模型却可能改变，输出质量、延迟和成本都可能随之变化。</p>
-<p class="take"><strong>实用启发：</strong>今天对旧 Pro 调用做回归测试，并记录实际模型版本、token、延迟和关键任务通过率。</p>
-<div class="links"><a href="https://www.deepseek.com/en/news/deepseek-v4-1-flash/">DeepSeek 官方公告</a></div>
-</article>
-
-<article class="card news-card" data-news-item="5">
-<span class="tag">基础设施</span>
-<h3>5. 欧洲央行警告：欧洲需自建算力与“够用”的本地模型</h3>
-<div class="source">2026-09-14 · Reuters 报道欧洲央行行长讲话</div>
-<p><strong>发生了什么：</strong>欧洲央行行长拉加德称，欧洲大量依赖海外 AI，一旦访问条件变化，银行、医疗、交通等行业会同时受影响。她主张扩充欧洲数据中心，并发展能在本地基础设施运行、对多数任务“足够好”的模型；她估算快速采用 AI 十年内可把生产率水平提高最多 4%。</p>
-<p><strong>为什么值得知道：</strong>模型选型不再只是效果和单价，也包含供应连续性、数据主权与退出成本。</p>
-<p class="take"><strong>实用启发：</strong>关键系统应保留第二模型或本地替代路径，并把迁移测试纳入灾备演练。</p>
-<div class="links"><a href="https://www.reuters.com/business/finance/europe-facing-unprecedented-risk-being-cut-off-ai-lagarde-warns-2026-09-14/">Reuters 报道</a></div>
-</article>
-</section>
-
-<section id="concept" class="card">
-<span class="tag">新手知识点</span>
-<h2 style="margin:.1rem 0 .5rem">零数据留存，不等于“不用于训练”</h2>
-<p><strong>人话定义：</strong>“不用于训练”只约束厂商是否拿内容改进模型；零数据留存（ZDR）则要求服务处理后不保存内容或只保留极少必要信息。</p>
-<p><strong>短例子：</strong>一家 API 可以承诺不训练你的代码，却仍为排障或防滥用保留日志若干天。对普通问答影响有限，对未公开源代码、财务和医疗数据却可能不可接受。</p>
-<p><strong>什么时候有用：</strong>任何会传入客户资料、商业秘密或受监管数据的产品，都应在架构设计前确认合同与实际日志策略。</p>
-</section>
-
-<section id="view">
-<h2>工程师 / AI 产品视角</h2>
-<div class="card"><h3>工程师视角</h3><p>把模型当作会变化的外部依赖：保存版本与路由元数据，为关键用例建立小型回归集，并准备一键切换备用模型。</p></div>
-<div class="card"><h3>AI 产品视角</h3><p>高风险流程采用“模型起草、传统代码校验、人类批准”的三层结构。让模型处理模糊信息，让规则、金额计算、权限和最终提交保持确定性。</p></div>
-</section>
-
-<footer>编辑说明：从 18 条官方或权威媒体候选中筛选；事实核查截止 2026-09-15 06:00（北京时间）。已区分官方公告、草案、厂商说明与媒体转述。</footer>
-</main></body></html>
+<section id="concept" class="card"><span class="tag">新手知识点</span><h2 style="margin:.1rem 0 .5rem">什么是“端侧 AI / On-device AI”？</h2><p><strong>人话定义：</strong>模型直接在手机、电脑、汽车等设备上运行，而不是把每次请求都发送到云服务器。</p><p><strong>短例子：</strong>手机上的小模型可以先本地总结通知、识别屏幕内容；只有遇到复杂规划时再调用云端大模型。这样通常更快、更隐私，也能减少云端 token 成本。</p><p><strong>什么时候有用：</strong>涉及个人数据、需要低延迟、网络不稳定，或每天调用次数极高的功能尤其适合。代价是设备算力、内存和电量有限，所以常见做法不是“全本地”，而是端云协同。</p></section>
+<section id="view"><h2>工程师 / AI 产品视角</h2><div class="card"><h3>工程师视角</h3><p>今天最值得建立的能力不是追一个模型，而是统一的模型网关：把权限、日志、成本、回归测试和模型切换放在应用与模型之间。这样安全策略和供应商变化不会直接冲击业务代码。</p></div><div class="card"><h3>AI 产品视角</h3><p>AI 正同时出现两种分层：云端按智能/用量收费，设备端承担便宜、私密、持续运行的任务。设计功能时先判断“必须上云吗”，再决定模型，而不是反过来。</p></div></section>
+<footer>编辑说明：检索官方发布页、开发/产品资料与 Reuters 等权威媒体，建立 15+ 候选后筛选 5 条；事实核查截止 2026-09-16 06:00（北京时间）。已区分正式发布、媒体报道与产品培训信息。</footer></main></body></html>
