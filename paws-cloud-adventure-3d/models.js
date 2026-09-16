@@ -1,7 +1,14 @@
 import {sprintMotion} from './sprint.js?v=figurine9d';
 import * as T from './vendor/three.module.js';
 import {Group,Tween,Easing} from './vendor/tween.esm.js';
-import {SHAPES} from './assets/dog-shapes.js?v=figurine9d';
+const shapeParts=Array.from({length:10},(_,i)=>`./assets/packed/dog-shapes.gz.part${String(i).padStart(2,'0')}`);
+async function loadShapes(){
+ const buffers=await Promise.all(shapeParts.map(async url=>{const response=await fetch(url);if(!response.ok)throw Error('Model part unavailable');return response.arrayBuffer();}));
+ const stream=new Blob(buffers).stream().pipeThrough(new DecompressionStream('gzip'));
+ const source=await new Response(stream).text(),moduleUrl=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
+ try{return (await import(moduleUrl)).SHAPES;}finally{URL.revokeObjectURL(moduleUrl);}
+}
+const SHAPES=await loadShapes();
 const black=new T.MeshStandardMaterial({color:0x191b1b,roughness:.30,metalness:0});
 const outlineMat=new T.MeshBasicMaterial({color:0x302b27,side:T.BackSide});
 export const sphereGeo=new T.SphereGeometry(1,40,28);

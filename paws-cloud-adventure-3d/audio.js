@@ -1,4 +1,12 @@
 'use strict';
+const TRACK_PARTS={'assets/coast.mp3':7,'assets/forest.mp3':7,'assets/night.mp3':7,'assets/sky.mp3':7,'assets/snow.mp3':7,'assets/sunny-journey.mp3':6};
+async function fetchTrackBuffer(url,options={}){
+ const clean=url.split('?')[0],count=TRACK_PARTS[clean];
+ if(!count){const response=await fetch(url,options);if(!response.ok)throw Error('Music unavailable');return response.arrayBuffer();}
+ const packed=clean.replace('assets/','assets/packed/')+'.part';
+ const chunks=await Promise.all(Array.from({length:count},async(_,i)=>{const response=await fetch(packed+String(i).padStart(2,'0'),options);if(!response.ok)throw Error('Music part unavailable');return response.arrayBuffer();}));
+ return new Blob(chunks).arrayBuffer();
+}
 // Local recorded score, soft source crossfades and bounded voices. Safari unlock
 // remains synchronous with the initiating tap; no Audio element volume assumptions.
 class JourneyAudio {
@@ -7,7 +15,7 @@ class JourneyAudio {
   if(!this.context){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;const c=this.context=new AC();this.music=c.createGain();this.music.gain.value=0;this.music.connect(c.destination);this.effects=c.createGain();this.effects.gain.value=this.muted?0:this.effectsVolume;this.effects.connect(c.destination);this.loadSamples();this.createAmbience();}
   const c=this.context;if(c.state!=='running')c.resume().then(()=>{if(this.wantsMusic)this.play();}).catch(()=>{});
   const s=c.createBufferSource();s.buffer=c.createBuffer(1,1,c.sampleRate);s.connect(this.effects);s.start();s.onended=()=>s.disconnect();
-  if(!this.buffer&&!this.loading){const epoch=this.trackEpoch,url=this.url;this.abort?.abort();this.abort=new AbortController();this.loading=fetch(url,{signal:this.abort.signal}).then(r=>{if(!r.ok)throw Error('Music unavailable');return r.arrayBuffer();}).then(b=>c.decodeAudioData(b)).then(b=>{if(epoch!==this.trackEpoch)return;this.buffer=b;this.failed=false;if(this.wantsMusic)this.play();}).catch(e=>{if(epoch!==this.trackEpoch||e.name==='AbortError')return;this.failed=true;this.retire(this.outgoing,.3);this.outgoing=null;this.onError?.();}).finally(()=>{if(epoch===this.trackEpoch)this.loading=null;});}
+  if(!this.buffer&&!this.loading){const epoch=this.trackEpoch,url=this.url;this.abort?.abort();this.abort=new AbortController();this.loading=fetchTrackBuffer(url,{signal:this.abort.signal}).then(b=>c.decodeAudioData(b)).then(b=>{if(epoch!==this.trackEpoch)return;this.buffer=b;this.failed=false;if(this.wantsMusic)this.play();}).catch(e=>{if(epoch!==this.trackEpoch||e.name==='AbortError')return;this.failed=true;this.retire(this.outgoing,.3);this.outgoing=null;this.onError?.();}).finally(()=>{if(epoch===this.trackEpoch)this.loading=null;});}
  }catch{this.failed=true;this.onError?.();}}
  setTrack(url){this.loop=true;if(this.url===url)return;this.abort?.abort();this.retire(this.outgoing,.08);this.outgoing=this.source;this.source=null;this.trackEpoch++;this.url=url;this.buffer=null;this.loading=null;this.offset=0;this.failed=false;}
  play(reset=false){this.wantsMusic=true;if(reset){this.stopSource();this.offset=0;}if(this.muted)return;if(!this.context||!this.buffer)this.unlock();const c=this.context;if(!c||!this.buffer||c.state!=='running'||this.source)return;const s=c.createBufferSource(),g=c.createGain();s.buffer=this.buffer;s.loop=this.loop;s._gain=g;g.gain.setValueAtTime(0,c.currentTime);g.gain.linearRampToValueAtTime(1,c.currentTime+.65);s.connect(g);g.connect(this.music);s.start(0,this.offset%this.buffer.duration);this.startedAt=c.currentTime;this.source=s;this.retire(this.outgoing,.75);this.outgoing=null;s.onended=()=>{s.disconnect();g.disconnect();this.retiring.delete(s);if(this.source!==s)return;this.source=null;this.offset=0;if(!s.loop)this.wantsMusic=false;};}

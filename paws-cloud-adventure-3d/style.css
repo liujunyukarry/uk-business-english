@@ -105,3 +105,5 @@ html,body,#app{touch-action:manipulation}#app{-webkit-user-select:none;user-sele
 
 /* All live-game targets share one gesture boundary, including HUD and buttons. */
 #app.playing,#app.playing button{touch-action:none}
+/* GitHub Pages mirror uses a compact portrait asset. */
+.portrait{background-image:url('assets/duo-reference.webp')}
