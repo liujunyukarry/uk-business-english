@@ -1,0 +1,74 @@
+[
+  {
+    "file": "assets/sunny-journey.mp3",
+    "title": "Fairytale Waltz",
+    "artist": "Kevin MacLeod",
+    "isrc": "USUAN1100232",
+    "source": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100232",
+    "download": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Fairytale%20Waltz.mp3",
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "instruments": "Small Ensemble - Celesta, Oboe, Cello",
+    "changes": "Excerpt from 3.15s, 88s; loudness mastered, fades, stereo MP3 at 32 kHz.",
+    "bytes": 1409654
+  },
+  {
+    "file": "assets/coast.mp3",
+    "title": "Easy Lemon",
+    "artist": "Kevin MacLeod",
+    "isrc": "USUAN1200076",
+    "source": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1200076",
+    "download": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Easy%20Lemon.mp3",
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "instruments": "Guitar, Bass, Kit, Celesta, Marimba",
+    "changes": "Excerpt from 0s, 96s; loudness mastered, fades, stereo MP3 at 32 kHz.",
+    "bytes": 1537521
+  },
+  {
+    "file": "assets/forest.mp3",
+    "title": "Enchanted Valley",
+    "artist": "Kevin MacLeod",
+    "isrc": "USUAN1200093",
+    "source": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1200093",
+    "download": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Enchanted%20Valley.mp3",
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "instruments": "Celesta, Clarinet, Flute, Alto Flute, Bass Clarinet, Violins, Cellos",
+    "changes": "Excerpt from 0.35s, 96s; loudness mastered, fades, stereo MP3 at 32 kHz.",
+    "bytes": 1537527
+  },
+  {
+    "file": "assets/snow.mp3",
+    "title": "Frost Waltz",
+    "artist": "Kevin MacLeod",
+    "isrc": "USUAN1100516",
+    "source": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100516",
+    "download": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Frost%20Waltz.mp3",
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "instruments": "Celesta, Glockenspiel, Basses, Cellos, Violas, Violins, French Horns,",
+    "changes": "Excerpt from 1.15s, 96s; loudness mastered, fades, stereo MP3 at 32 kHz.",
+    "bytes": 1537522
+  },
+  {
+    "file": "assets/night.mp3",
+    "title": "Dreamy Flashback",
+    "artist": "Kevin MacLeod",
+    "isrc": "USUAN1100532",
+    "source": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100532",
+    "download": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Dreamy%20Flashback.mp3",
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "instruments": "Harp, Bells, Pizzicato Strings",
+    "changes": "Excerpt from 0s, 96s; loudness mastered, fades, stereo MP3 at 32 kHz.",
+    "bytes": 1537527
+  },
+  {
+    "file": "assets/sky.mp3",
+    "title": "Eternal Hope",
+    "artist": "Kevin MacLeod",
+    "isrc": "USUAN1100238",
+    "source": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100238",
+    "download": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Eternal%20Hope.mp3",
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "instruments": "Piano, Strings, Helicon, French Horn, Choir",
+    "changes": "Excerpt from 38s, 108s; loudness mastered, fades, stereo MP3 at 32 kHz.",
+    "bytes": 1729331
+  }
+]
