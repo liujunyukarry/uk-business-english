@@ -1,7 +1,7 @@
 import {sprintMotion} from './sprint.js?v=figurine9d';
 import * as T from './vendor/three.module.js';
 import {Group,Tween,Easing} from './vendor/tween.esm.js';
-const shapeParts=Array.from({length:11},(_,i)=>`./assets/packed/dog-platform17.gz.part${String(i).padStart(2,'0')}`);
+const shapeParts=Array.from({length:10},(_,i)=>`./assets/packed/dog-rules18.gz.part${String(i).padStart(2,'0')}`);
 async function loadShapes(){
  const buffers=await Promise.all(shapeParts.map(async url=>{const response=await fetch(url);if(!response.ok)throw Error('Model part unavailable');return response.arrayBuffer();}));
  const stream=new Blob(buffers).stream().pipeThrough(new DecompressionStream('gzip'));

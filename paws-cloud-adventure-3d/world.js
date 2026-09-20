@@ -1,6 +1,6 @@
 import * as T from './vendor/three.module.js';
 import {sphereGeo,material,ellipsoid,roundedBox,bone,star,heart} from './models.js?v=touchsound15b';
-import {WORLDS,LANES,HAZARDS,moverZ,rampHeight} from './levels.js?v=platform17';
+import {WORLDS,LANES,HAZARDS,moverZ,rampHeight} from './levels.js?v=rules18';
 const cylinder=new T.CylinderGeometry(1,1,1,9),ball=new T.SphereGeometry(1,10,8),cone=new T.ConeGeometry(1,1,7);
 function mesh(parent,geo,color,x,y,z,sx=1,sy=1,sz=1){const m=new T.Mesh(geo,material(color));m.position.set(x,y,z);m.scale.set(sx,sy,sz);parent.add(m);return m;}
 const cube=new T.BoxGeometry(1,1,1);

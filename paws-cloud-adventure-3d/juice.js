@@ -6,7 +6,7 @@ import {Group,Tween,Easing} from './vendor/tween.esm.js';
 export function protectionStatus(run){
  if(!run)return null;
  const pounce=run.character==='gold'?run.powerTime:0;
- if(run.fever>0||pounce>0){const dash=run.fever>=pounce;return {label:dash?'冲刺无敌':'飞扑无敌',time:Math.max(run.fever,pounce),max:dash?4.2:1.9,gold:true};}
+ if(run.fever>0||pounce>0){const dash=run.fever>=pounce;return {label:dash?'冲刺破障':'飞扑破障',time:Math.max(run.fever,pounce),max:dash?4.2:1.9,gold:true};}
  if(run.itemShield>0||run.powerTime>0&&run.powerShield){const item=run.itemShield>=run.powerTime||!run.powerShield;return {label:'护盾 · 挡一次',time:item?run.itemShield:run.powerTime,max:item?12:3.1,gold:false};}
  if(run.invincible>0&&run.hurtTime<=0)return {label:'余留保护',time:run.invincible,max:.9,gold:false};
  return null;

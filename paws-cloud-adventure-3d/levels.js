@@ -27,6 +27,7 @@ const labels={springTrail:'花朵弹跳 · 踩上自动起跳',islands:'跳岛�
 export const LEVELS=names.map((name,i)=>{const world=Math.floor(i/2),speed=9.2+i*.28,beat=60/TEMPOS[world],phrase=beat*speed*8;return{id:i,name,world,speed,beat,length:18+phrase*10+12,lesson:labels[recipes[i][0]]+' · 左右换道，上跳下滑'};});
 export const LANES=[-2.25,0,2.25];
 export const FEVER_DURATION=4.2,FEVER_TARGET=28,SLIDE_DURATION=1.05;
+export function resultStars(run){return run.state==='clear'?1+Number(run.stars===3)+Number(run.hp===3):0;}
 export const HAZARDS={crate:{height:.88,low:0,half:.55},tall:{height:2.9,low:0,half:.70},bar:{height:3.02,low:1.34,half:.42},mover:{height:1.3,low:0,half:.65},wave:{height:.75,low:0,half:.5},log:{height:.93,low:0,half:.7},tunnel:{height:3.42,low:1.34,half:1.4},snowball:{height:1.45,low:0,half:.72},gate:{height:3.3,low:0,half:.6},break:{height:1.1,low:0,half:.45}};
 export function moverZ(o,time){return LANES[o.lane]+Math.sin(time*1.7+o.phase)*.38;}
 export function rampHeight(p,x){return p.height*Math.max(0,Math.min(1,(x-p.a)/p.ramp,(p.b-x)/p.ramp));}
@@ -114,8 +115,21 @@ export class Run {
  power(){if(this.state!=='running'||this.powerCooldown>0)return;this.powerTime=this.character==='gold'?1.9:3.1;this.powerCooldown=this.character==='gold'?8:9;this.powerShield=this.character==='white';this.emit('power');}
  get boosted(){return this.fever>0||this.powerTime>0&&this.character==='gold';}
  get speed(){return this.level.speed*(this.fever>0?1.18:1);}
- ground(x=this.x,z=this.z){const bridge=this.character==='white'&&this.powerTime>0||this.fever>0;let h=this.data.gaps.some(g=>x>g.a&&x<g.b&&Math.abs(z-LANES[g.lane])<1.07)&&!bridge?-20:0,p=platformHeight(this.data.platforms,x,z);if(p>0)h=Math.max(h,p);return h;}
- hurt(fall=false){if(this.invincible>0&&!fall)return;this.hp--;this.damage++;this.combo=0;this.charge=Math.max(0,this.charge-5);this.invincible=1.65;this.hurtTime=.65;this.hitStop=.08;this.impact=1;this.emit('hurt',{fall});if(this.hp<=0){this.state='over';this.emit('over');return;}if(fall){this.itemShield=0;this.magnetTime=0;this.x=this.checkpoint;this.y=0;this.vy=0;this.z=0;this.lane=1;this.laneFrom=0;this.laneT=1;this.jumps=0;this.invincible=2.5;this.emit('respawn');}}
+ ground(x=this.x,z=this.z){let h=this.data.gaps.some(g=>x>g.a&&x<g.b&&Math.abs(z-LANES[g.lane])<1.07)?-20:0,p=platformHeight(this.data.platforms,x,z);if(p>0)h=Math.max(h,p);return h;}
+ rescue(){
+  // Find solid ground nearby with a full second to react. Never rewind
+  // collected rewards or send a surviving player back to the start.
+  const lanes=[this.lane,...[0,1,2].filter(l=>l!==this.lane)];let landing;
+  for(let offset=0;offset<60&&!landing;offset+=.5)for(const lane of lanes){const x=this.x+offset,z=LANES[lane],end=x+this.level.speed;
+   if(this.data.gaps.some(g=>g.lane===lane&&g.b>x-.6&&g.a<end+.6))continue;
+   if(this.data.platforms.some(p=>p.lane===lane&&p.b>x-.6&&p.a<end+.6))continue;
+   if(this.data.items.some(o=>!o.taken&&HAZARDS[o.type]&&o.x>x-1.5&&o.x<end+1.5&&(['mover','snowball'].includes(o.type)?Math.abs(moverZ(o,this.time)-z)<1.2:o.lane===lane)))continue;
+   landing={x,z,lane};break;
+  }
+  if(!landing){this.state='over';this.emit('over');return;}
+  Object.assign(this,landing,{y:0,vy:0,laneFrom:landing.z,laneT:1,jumps:0,jumpBuffer:0,slideTime:0,powerTime:0,powerShield:false,fever:0,invincible:2.5});this.emit('respawn');
+ }
+ hurt(fall=false){if(this.invincible>0&&!fall)return;this.hp--;this.damage++;this.combo=0;this.charge=Math.max(0,this.charge-5);this.invincible=1.65;this.hurtTime=.65;this.hitStop=.08;this.impact=1;this.emit('hurt',{fall});if(this.hp<=0){this.state='over';this.emit('over');return;}if(fall)this.rescue();}
  tick(dt){
   if(this.state!=='running')return;
   if(this.hitStop>0){this.hitStop=Math.max(0,this.hitStop-dt);return;}
@@ -144,7 +158,7 @@ export class Run {
     const magnet=(this.powerTime>0||this.fever>0||this.magnetTime>0)&&o.type==='bone';
     if(Math.abs(dx)<(magnet?4.8:.86)&&Math.abs(this.z-zz)<(magnet?4.8:.86)&&Math.abs(this.y+.82-o.y)<(magnet?4.8:.91)){
      o.taken=true;if(o.type==='bone'){this.bones++;this.collectPulse=.18;this.score+=this.fever>0?40:20;if(this.fever===0){this.charge++;if(this.charge>=FEVER_TARGET){this.charge=0;this.fever=FEVER_DURATION;this.emit('fever');}}}
-     if(o.type==='star'){this.stars++;this.score+=250;}if(o.type==='heart')this.hp=Math.min(3,this.hp+1);if(o.type==='magnet')this.magnetTime=6;if(o.type==='shieldOrb')this.itemShield=12;this.emit(o.type,{item:o});
+     let healed=false;if(o.type==='star'){this.stars++;this.score+=250;}if(o.type==='heart'){healed=this.hp<3;this.hp=Math.min(3,this.hp+1);if(!healed)this.score+=50;}if(o.type==='magnet')this.magnetTime=6;if(o.type==='shieldOrb')this.itemShield=12;this.emit(o.type,{item:o,healed});
     }continue;
    }
    const spec=HAZARDS[o.type];if(!spec)continue;
