@@ -1,7 +1,7 @@
 import {sprintMotion} from './sprint.js?v=figurine9d';
 import * as T from './vendor/three.module.js';
 import {Group,Tween,Easing} from './vendor/tween.esm.js';
-const shapeParts=Array.from({length:10},(_,i)=>`./assets/packed/dog-shapes.gz.part${String(i).padStart(2,'0')}`);
+const shapeParts=Array.from({length:11},(_,i)=>`./assets/packed/dog-platform17.gz.part${String(i).padStart(2,'0')}`);
 async function loadShapes(){
  const buffers=await Promise.all(shapeParts.map(async url=>{const response=await fetch(url);if(!response.ok)throw Error('Model part unavailable');return response.arrayBuffer();}));
  const stream=new Blob(buffers).stream().pipeThrough(new DecompressionStream('gzip'));
@@ -18,7 +18,7 @@ export function roundedBox(parent,color,x,y,z,w,h,d,r=.12){const shape=new T.Sha
 function tube(parent,points,r,color=black){const c=new T.CatmullRomCurve3(points.map(p=>new T.Vector3(...p)));const m=new T.Mesh(new T.TubeGeometry(c,20,r,7,false),typeof color==='number'?material(color):color);parent.add(m);return m;}
 const sculptureCache=new Map();
 function sculpture(name){if(!sculptureCache.has(name)){const a=SHAPES[name],g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(a.position,3));g.setAttribute('normal',new T.Float32BufferAttribute(a.normal,3));g.setIndex(a.index);g.computeBoundingSphere();sculptureCache.set(name,g);}return sculptureCache.get(name);}
-function faceDepth(x,y){const yy=y/.80,p=2.3-.30*yy,rx=.88*(1-.10*yy);return .65*Math.pow(Math.max(.001,1-Math.pow(Math.abs(x/rx),p)-Math.pow(Math.abs(yy),p)),1/p);}
+function faceDepth(x,y){const yy=y/.80,p=2.3-.30*yy,rx=.88*(1-.10*yy);return .035+.78*Math.pow(Math.max(.001,1-Math.pow(Math.abs(x/rx),p)-Math.pow(Math.abs(yy),p)),1/p);}
 function addFace(head){
  const eyes=[],happyEyes=[],hurtEyes=[],blush=[],eyebrows=[];
  for(const side of [-1,1]){const x=side*.285,y=-.04,z=faceDepth(x,y);const eye=ellipsoid(head,black,[x,y,z+.017],[.055,.061,.034]);eye.userData.baseY=.061;eyes.push(eye);
@@ -57,17 +57,31 @@ export function dog(kind,lowDetail=false){const detail=lowDetail?'Low':'';
  const headMesh=new T.SkinnedMesh(hg,bodyMat);headMesh.castShadow=headMesh.receiveShadow=true;head.add(headMesh);
  rig.updateMatrixWorld(true);body.bind(new T.Skeleton([base,...legs,...arms]));headMesh.bind(new T.Skeleton([head,...ears]));
  const face=addFace(head);const {eyes,tongue,happyEyes,hurtEyes,blush,eyebrows}=face;
+ const surfaceMesh=new T.Mesh(sculpture(kind+'Body'+detail),bodyMat),ray=new T.Raycaster();
+ const frontAt=(x,y)=>{ray.set(new T.Vector3(x,y,2),new T.Vector3(0,0,-1));return ray.intersectObject(surfaceMesh,false)[0]?.point.z??.4;};
  let collar=null;if(kind==='gold'){
-  collar=new T.Group();collar.position.y=.97;base.add(collar);
-  const band=new T.Mesh(new T.CylinderGeometry(.62,.62,.105,80,1,true),material(0xe43d43,.67));band.scale.z=.84;collar.add(band);
-  for(const y of [-.0525,.0525]){const rim=new T.Mesh(new T.TorusGeometry(.62,.014,8,80),band.material);rim.rotation.x=Math.PI/2;rim.scale.y=.84;rim.position.y=y;collar.add(rim);}
+  collar=new T.Group();head.add(collar);
+  // A fitted ribbon at the rounded chin/neck seam, attached to the head so
+  // crouching cannot leave an upright hoop protruding from the back.
+  const positions=[],triangles=[],segments=64;
+  for(let row=0;row<=3;row++)for(let i=0;i<=segments;i++){
+   const a=i/segments*Math.PI*2,dx=Math.cos(a),dz=Math.sin(a),y=-.704+row*.018;
+   const yy=Math.max(y,-.688)/.80,p=2.3-.30*yy,rx=.88*(1-.10*yy);
+   const radius=Math.pow((1-Math.pow(Math.abs(yy),p))/(Math.pow(Math.abs(dx/rx),p)+Math.pow(Math.abs(dz/.78),p)),1/p)+.008;
+   positions.push(dx*radius,y,.035+dz*radius);
+   if(row<3&&i<segments){const k=row*(segments+1)+i;triangles.push(k,k+1,k+segments+1,k+1,k+segments+2,k+segments+1);}
+  }
+  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(positions,3));g.setIndex(triangles);g.computeVertexNormals();
+  const ribbon=material(0xe43d43,.67).clone();ribbon.side=T.DoubleSide;collar.add(new T.Mesh(g,ribbon));
  }
  // The little cross-body companion bag follows the torso, not a hand joint.
- const bag=new T.Group();bag.position.set(.20,.50,.56);bag.rotation.z=-.10;bag.scale.setScalar(.34);base.add(bag);
+ const bag=new T.Group();bag.position.set(.24,.49,frontAt(.24,.49)+.14);bag.rotation.z=-.10;bag.scale.set(.34,.34,.20);base.add(bag);
+ bag.userData.restZ=bag.position.z;
  const buddy=kind==='gold'?'white':'gold',bagShell=new T.Mesh(sculpture(buddy+'Head'+detail),material(buddy==='gold'?0xf1d5ba:0xf8f6f2,.82));bagShell.castShadow=bagShell.receiveShadow=true;bag.add(bagShell);addFace(bag);
- const strapPoints=[[-.43,1.075,.32],[-.34,.94,.43],[-.16,.77,.49],[.08,.61,.54],[.26,.51,.60]];
- const strap=tube(base,strapPoints,.025,material(kind==='gold'?0xf2dfcf:0x8ec7e2,.9));
- const tail=new T.Group();tail.position.set(0,.32,-.47);base.add(tail);ellipsoid(tail,bodyMat,[0,0,-.055],[.108,.113,.135]);
+ const strapPoints=Array.from({length:19},(_,i)=>{const t=i/18,x=-.40+.66*t,y=1.075-.565*t;return [x,y,frontAt(x,y)+.031];});
+ const strap=tube(base,strapPoints,.025,material(kind==='gold'?0xedaeae:0x6bb8dd,.85));
+ strap.userData.restPosition=strap.geometry.attributes.position.array.slice();
+ const tail=new T.Group();tail.position.set(0,.38,-.55);base.add(tail);ellipsoid(tail,bodyMat,[0,0,-.055],[.108,.113,.135]);
  const guard=new T.Group();guard.position.y=1.15;guard.visible=false;root.add(guard);for(const axis of [0,1]){const ring=new T.Mesh(new T.TorusGeometry(1.28,.018,5,40),material(0xa8e5ea,.5));ring.rotation.y=axis*Math.PI/2;guard.add(ring);}
  root.userData={guard,kind,rig,head,headMesh,body,bag,strap,collar,ears,arms,legs,eyes,tongue,tail,blush,happyEyes,hurtEyes,eyebrows,animation:new Group(),pose:{run:0,air:0,slide:0,pounce:0,cheer:0,pet:0},lastMode:'idle',animationTime:0,mood:'normal',moodTime:0};return root;
 }
@@ -81,10 +95,12 @@ export function animateDog(d,t,mode='idle',state={}){
  const f=t*(r.kind==='gold'?17.6:18.8),stride=Math.sin(f),air=pose.air,slide=pose.slide,run=pose.run,pounce=pose.pounce,joy=pose.cheer+pose.pet;
  const landing=state.land||0,turn=state.turn||0;
  const bound=sprintMotion(t),spring=pounce*bound.lift,contact=pounce*bound.contact;
- rig.position.y=Math.abs(stride)*.095*run+Math.sin(t*2.1)*.018*(1-run-pounce-slide)+slide*.645+spring*.24+pose.cheer*Math.abs(Math.sin(t*6))*.27;
+ rig.position.y=Math.abs(stride)*.095*run+Math.sin(t*2.1)*.018*(1-run-pounce-slide)+slide*.685+spring*.24+pose.cheer*Math.abs(Math.sin(t*6))*.27;
  rig.position.z=-slide*.10+pounce*Math.sin(bound.phase-.4)*.045;
  head.position.y=1.66-slide*.65;head.position.z=slide*.35;
- if(r.collar)r.collar.position.set(0,.97+slide*.06,slide*.12);
+ // Pull the pouch up against the chest while crouching, leaving dog volume intact.
+ r.bag.position.y=.49+slide*.30;r.bag.position.z=r.bag.userData.restZ-slide*.03;
+ if(r.strap.userData.lastSlide!==slide){const p=r.strap.geometry.attributes.position,a=r.strap.userData.restPosition;for(let i=0;i<p.count;i++){const w=T.MathUtils.smoothstep(1.075-a[i*3+1],0,.565);p.setXYZ(i,a[i*3],a[i*3+1]+slide*.30*w,a[i*3+2]-slide*.03*w);}p.needsUpdate=true;r.strap.geometry.computeVertexNormals();r.strap.userData.lastSlide=slide;}
  const squash=landing*.06+contact*.015;rig.scale.set(1+squash,1-squash,1+squash);
  rig.rotation.x=.10*run+1.17*slide+pounce*(.24+Math.sin(bound.phase-.5)*.12)-.10*air;rig.rotation.z=turn*.16*(1-slide*.95)+Math.sin(f*.5)*.025*run+pounce*Math.sin(bound.phase*.5)*.035+Math.sin(t*5)*.11*pose.pet;
  // Head trails the body, then turns toward the player after a clean combo.

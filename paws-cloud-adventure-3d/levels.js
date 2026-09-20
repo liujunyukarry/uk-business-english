@@ -30,6 +30,7 @@ export const FEVER_DURATION=4.2,FEVER_TARGET=28,SLIDE_DURATION=1.05;
 export const HAZARDS={crate:{height:.88,low:0,half:.55},tall:{height:2.9,low:0,half:.70},bar:{height:3.02,low:1.34,half:.42},mover:{height:1.3,low:0,half:.65},wave:{height:.75,low:0,half:.5},log:{height:.93,low:0,half:.7},tunnel:{height:3.42,low:1.34,half:1.4},snowball:{height:1.45,low:0,half:.72},gate:{height:3.3,low:0,half:.6},break:{height:1.1,low:0,half:.45}};
 export function moverZ(o,time){return LANES[o.lane]+Math.sin(time*1.7+o.phase)*.38;}
 export function rampHeight(p,x){return p.height*Math.max(0,Math.min(1,(x-p.a)/p.ramp,(p.b-x)/p.ramp));}
+export function platformHeight(platforms,x,z){let h=0;for(const p of platforms)if(x>=p.a&&x<=p.b&&Math.abs(z-LANES[p.lane])<.91)h=Math.max(h,rampHeight(p,x));return h;}
 export function levelData(index){
  const l=LEVELS[index],items=[],gaps=[],platforms=[],sections=[];let id=0;
  const put=(type,x,lane=1,y=0,extra={})=>{const o={id:id++,type,x,lane,z:LANES[lane],y,...extra};items.push(o);return o;};
@@ -101,14 +102,19 @@ export class Run {
  }
  emit(type,data={}){this.events.push({type,...data});}
  switch(){if(this.state!=='running'||this.powerTime>0||this.swapCooldown>0)return;this.character=this.character==='gold'?'white':'gold';this.swapCooldown=.65;this.emit('swap');}
- laneMove(d){if(this.state!=='running')return;const next=Math.max(0,Math.min(2,this.lane+Math.sign(d)));if(next===this.lane)return;this.laneFrom=this.z;this.laneT=0;this.lane=next;this.lastLaneTime=this.time;this.emit('lane',{direction:Math.sign(d)});}
+ laneMove(d){if(this.state!=='running')return;const direction=Math.sign(d),next=Math.max(0,Math.min(2,this.lane+direction));if(next===this.lane)return;
+  // Elevated decks are separate routes, not lanes that can be entered or
+  // exited sideways. Check the full 130 ms lane-change window so a swipe
+  // immediately before a ramp cannot finish through the deck's side wall.
+  for(const ahead of [0,.065,.13]){const x=this.x+this.speed*ahead,from=platformHeight(this.data.platforms,x,this.z),to=platformHeight(this.data.platforms,x,LANES[next]);if(Math.abs(from-to)>.08){this.emit('rail',{direction});return;}}
+  this.laneFrom=this.z;this.laneT=0;this.lane=next;this.lastLaneTime=this.time;this.emit('lane',{direction});}
  jump(){if(this.state!=='running')return;if(this.jumps>=2){this.jumpBuffer=.12;return;}this.slideTime=0;this.vy=this.jumps===0?10.8:8.7;this.jumps++;this.posePulse=.3;this.emit('jump',{double:this.jumps===2});}
  slide(){if(this.state!=='running')return;this.slideTime=SLIDE_DURATION;if(this.y>.2)this.vy=-17;this.emit('slide',{air:this.y>.2});}
  ceilingAhead(){return this.data.items.some(o=>!o.taken&&['bar','tunnel'].includes(o.type)&&Math.abs(this.z-o.z)<1.03&&o.x-this.x>-(HAZARDS[o.type].half+.82)&&o.x-this.x<HAZARDS[o.type].half+.42);}
  power(){if(this.state!=='running'||this.powerCooldown>0)return;this.powerTime=this.character==='gold'?1.9:3.1;this.powerCooldown=this.character==='gold'?8:9;this.powerShield=this.character==='white';this.emit('power');}
  get boosted(){return this.fever>0||this.powerTime>0&&this.character==='gold';}
  get speed(){return this.level.speed*(this.fever>0?1.18:1);}
- ground(x=this.x,z=this.z){const bridge=this.character==='white'&&this.powerTime>0||this.fever>0;let h=this.data.gaps.some(g=>x>g.a&&x<g.b&&Math.abs(z-LANES[g.lane])<1.07)&&!bridge?-20:0;for(const p of this.data.platforms)if(x>=p.a&&x<=p.b&&Math.abs(z-LANES[p.lane])<.91)h=Math.max(h,rampHeight(p,x));return h;}
+ ground(x=this.x,z=this.z){const bridge=this.character==='white'&&this.powerTime>0||this.fever>0;let h=this.data.gaps.some(g=>x>g.a&&x<g.b&&Math.abs(z-LANES[g.lane])<1.07)&&!bridge?-20:0,p=platformHeight(this.data.platforms,x,z);if(p>0)h=Math.max(h,p);return h;}
  hurt(fall=false){if(this.invincible>0&&!fall)return;this.hp--;this.damage++;this.combo=0;this.charge=Math.max(0,this.charge-5);this.invincible=1.65;this.hurtTime=.65;this.hitStop=.08;this.impact=1;this.emit('hurt',{fall});if(this.hp<=0){this.state='over';this.emit('over');return;}if(fall){this.itemShield=0;this.magnetTime=0;this.x=this.checkpoint;this.y=0;this.vy=0;this.z=0;this.lane=1;this.laneFrom=0;this.laneT=1;this.jumps=0;this.invincible=2.5;this.emit('respawn');}}
  tick(dt){
   if(this.state!=='running')return;
