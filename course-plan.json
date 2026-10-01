@@ -1,45 +1,556 @@
 {
-  "version": "ukbe-balanced-natural-20260905-v2",
+  "version": "ukbe-balanced-natural-20261001-v3",
   "startDate": "2026-08-25",
-  "updated": "2026-09-05",
-  "targetMix": {"daily": "50%", "work": "50%", "rollingWindowDays": 10},
+  "updated": "2026-10-01",
+  "targetMix": {
+    "daily": "50%",
+    "work": "50%",
+    "rollingWindowDays": 10
+  },
   "lessons": [
-    {"day":1,"date":"2026-08-25","category":"日常","title":"机场问路","english":"Airport Directions","path":"day01.html"},
-    {"day":2,"date":"2026-08-26","category":"日常","title":"酒店入住","english":"Hotel Check-in","path":"day02.html"},
-    {"day":3,"date":"2026-08-27","category":"工作","title":"办公室初次见面与寒暄","english":"Office Small Talk","path":"day03.html"},
-    {"day":4,"date":"2026-08-28","category":"工作","title":"会议中澄清与确认","english":"Clarifying in Meetings","path":"day04.html"},
-    {"day":5,"date":"2026-08-29","category":"日常","title":"商务午餐点餐与买单","english":"Business Lunch","path":"day05.html"},
-    {"day":6,"date":"2026-08-30","category":"日常","title":"乘出租车去客户办公室","english":"Taxi to a Client Office","path":"day06.html"},
-    {"day":7,"date":"2026-08-31","category":"日常","title":"综合复习：英国抵达日","english":"Weekly Speaking Review","path":"day07.html"},
-    {"day":8,"date":"2026-09-01","category":"工作","title":"客户会议开场与确认议程","english":"Opening a Client Meeting","path":"day08.html"},
-    {"day":9,"date":"2026-09-02","category":"工作","title":"介绍公司与个人职责","english":"Introducing Your Company and Role","path":"day09.html"},
-    {"day":10,"date":"2026-09-03","category":"工作","title":"汇报项目进度","english":"Giving a Project Update","path":"day10.html"},
-    {"day":11,"date":"2026-09-04","category":"工作","title":"说明技术问题与影响","english":"Explaining a Technical Issue","path":"day11.html"},
-    {"day":12,"date":"2026-09-05","category":"工作","title":"确认客户需求与范围","english":"Confirming Requirements and Scope","path":"day12.html"},
-    {"day":13,"date":"2026-09-06","category":"日常","title":"咖啡店点单与外带","english":"Ordering Coffee and Takeaway","path":"day13.html"},
-    {"day":14,"date":"2026-09-07","category":"工作","title":"礼貌表达不同意见","english":"Disagreeing Politely","path":"day14.html"},
-    {"day":15,"date":"2026-09-08","category":"日常","title":"乘火车与确认站台","english":"Taking the Train","path":"day15.html"},
-    {"day":16,"date":"2026-09-09","category":"工作","title":"提出建议与讨论方案","english":"Making Suggestions","path":"day16.html"},
-    {"day":17,"date":"2026-09-10","category":"日常","title":"酒店房间问题与请求帮助","english":"Hotel Room Problems","path":"day17.html"},
-    {"day":18,"date":"2026-09-11","category":"工作","title":"安排与确认会议时间","english":"Arranging a Meeting","path":"day18.html"},
-    {"day":19,"date":"2026-09-12","category":"日常","title":"手机网络与 Wi‑Fi","english":"Mobile Data and Wi-Fi","path":"day19.html"},
-    {"day":20,"date":"2026-09-13","category":"工作","title":"听不清、请重复与确认理解","english":"Asking for Clarification","path":"day20.html"},
-    {"day":21,"date":"2026-09-14","category":"日常","title":"超市购物与找商品","english":"Shopping at a Supermarket","path":"day21.html"},
-    {"day":22,"date":"2026-09-15","category":"工作","title":"请求帮助与跟进事情","english":"Asking for Help and Following Up","path":"day22.html"},
-    {"day":23,"date":"2026-09-16","category":"日常","title":"地铁、公交与问路","english":"Getting Around Town","path":"day23.html"},
-    {"day":24,"date":"2026-09-17","category":"工作","title":"表达同意、保留意见与决定","english":"Agreeing and Deciding","path":"day24.html"},
-    {"day":25,"date":"2026-09-18","category":"日常","title":"购物试衣、尺码与退换","english":"Clothes Shopping and Returns","path":"day25.html"},
-    {"day":26,"date":"2026-09-19","category":"工作","title":"说明进度、延迟与下一步","english":"Updates, Delays and Next Steps","path":"day26.html"},
-    {"day":27,"date":"2026-09-20","category":"日常","title":"同事午餐与轻松寒暄","english":"Lunch and Small Talk","path":"day27.html"},
-    {"day":28,"date":"2026-09-21","category":"工作","title":"电话与视频会议常用口语","english":"Calls and Video Meetings","path":"day28.html"},
-    {"day":29,"date":"2026-09-22","category":"日常","title":"酒店退房、寄存行李与收据","english":"Checking Out of a Hotel","path":"day29.html"},
-    {"day":30,"date":"2026-09-23","category":"工作","title":"客户沟通：确认行动项","english":"Confirming Action Points","path":"day30.html"},
-    {"day":31,"date":"2026-09-24","category":"日常","title":"药店描述常见小问题","english":"At the Pharmacy","path":"day31.html"},
-    {"day":32,"date":"2026-09-25","category":"工作","title":"演示、分享屏幕与回答问题","english":"Presenting and Sharing Your Screen","path":"day32.html"},
-    {"day":33,"date":"2026-09-26","category":"日常","title":"付款、刷卡与收据","english":"Paying and Getting a Receipt","path":"day33.html"},
-    {"day":34,"date":"2026-09-27","category":"工作","title":"礼貌催进度与确认截止时间","english":"Following Up on Deadlines","path":"day34.html"},
-    {"day":35,"date":"2026-09-28","category":"日常","title":"机场值机、行李与安检","english":"Airport Check-in and Security","path":"day35.html"},
-    {"day":36,"date":"2026-09-29","category":"工作","title":"告别客户并保持联系","english":"Saying Goodbye to a Client","path":"day36.html"},
-    {"day":37,"date":"2026-09-30","category":"日常","title":"机场候机、登机与航班变化","english":"At the Gate and Boarding","path":"day37.html"}
+    {
+      "day": 1,
+      "date": "2026-08-25",
+      "category": "日常",
+      "title": "机场问路",
+      "english": "Airport Directions",
+      "path": "day01.html"
+    },
+    {
+      "day": 2,
+      "date": "2026-08-26",
+      "category": "日常",
+      "title": "酒店入住",
+      "english": "Hotel Check-in",
+      "path": "day02.html"
+    },
+    {
+      "day": 3,
+      "date": "2026-08-27",
+      "category": "工作",
+      "title": "办公室初次见面与寒暄",
+      "english": "Office Small Talk",
+      "path": "day03.html"
+    },
+    {
+      "day": 4,
+      "date": "2026-08-28",
+      "category": "工作",
+      "title": "会议中澄清与确认",
+      "english": "Clarifying in Meetings",
+      "path": "day04.html"
+    },
+    {
+      "day": 5,
+      "date": "2026-08-29",
+      "category": "日常",
+      "title": "商务午餐点餐与买单",
+      "english": "Business Lunch",
+      "path": "day05.html"
+    },
+    {
+      "day": 6,
+      "date": "2026-08-30",
+      "category": "日常",
+      "title": "乘出租车去客户办公室",
+      "english": "Taxi to a Client Office",
+      "path": "day06.html"
+    },
+    {
+      "day": 7,
+      "date": "2026-08-31",
+      "category": "日常",
+      "title": "综合复习：英国抵达日",
+      "english": "Weekly Speaking Review",
+      "path": "day07.html"
+    },
+    {
+      "day": 8,
+      "date": "2026-09-01",
+      "category": "工作",
+      "title": "客户会议开场与确认议程",
+      "english": "Opening a Client Meeting",
+      "path": "day08.html"
+    },
+    {
+      "day": 9,
+      "date": "2026-09-02",
+      "category": "工作",
+      "title": "介绍公司与个人职责",
+      "english": "Introducing Your Company and Role",
+      "path": "day09.html"
+    },
+    {
+      "day": 10,
+      "date": "2026-09-03",
+      "category": "工作",
+      "title": "汇报项目进度",
+      "english": "Giving a Project Update",
+      "path": "day10.html"
+    },
+    {
+      "day": 11,
+      "date": "2026-09-04",
+      "category": "工作",
+      "title": "说明技术问题与影响",
+      "english": "Explaining a Technical Issue",
+      "path": "day11.html"
+    },
+    {
+      "day": 12,
+      "date": "2026-09-05",
+      "category": "工作",
+      "title": "确认客户需求与范围",
+      "english": "Confirming Requirements and Scope",
+      "path": "day12.html"
+    },
+    {
+      "day": 13,
+      "date": "2026-09-06",
+      "category": "日常",
+      "title": "咖啡店点单与外带",
+      "english": "Ordering Coffee and Takeaway",
+      "path": "day13.html"
+    },
+    {
+      "day": 14,
+      "date": "2026-09-07",
+      "category": "工作",
+      "title": "礼貌表达不同意见",
+      "english": "Disagreeing Politely",
+      "path": "day14.html"
+    },
+    {
+      "day": 15,
+      "date": "2026-09-08",
+      "category": "日常",
+      "title": "乘火车与确认站台",
+      "english": "Taking the Train",
+      "path": "day15.html"
+    },
+    {
+      "day": 16,
+      "date": "2026-09-09",
+      "category": "工作",
+      "title": "提出建议与讨论方案",
+      "english": "Making Suggestions",
+      "path": "day16.html"
+    },
+    {
+      "day": 17,
+      "date": "2026-09-10",
+      "category": "日常",
+      "title": "酒店房间问题与请求帮助",
+      "english": "Hotel Room Problems",
+      "path": "day17.html"
+    },
+    {
+      "day": 18,
+      "date": "2026-09-11",
+      "category": "工作",
+      "title": "安排与确认会议时间",
+      "english": "Arranging a Meeting",
+      "path": "day18.html"
+    },
+    {
+      "day": 19,
+      "date": "2026-09-12",
+      "category": "日常",
+      "title": "手机网络与 Wi‑Fi",
+      "english": "Mobile Data and Wi-Fi",
+      "path": "day19.html"
+    },
+    {
+      "day": 20,
+      "date": "2026-09-13",
+      "category": "工作",
+      "title": "听不清、请重复与确认理解",
+      "english": "Asking for Clarification",
+      "path": "day20.html"
+    },
+    {
+      "day": 21,
+      "date": "2026-09-14",
+      "category": "日常",
+      "title": "超市购物与找商品",
+      "english": "Shopping at a Supermarket",
+      "path": "day21.html"
+    },
+    {
+      "day": 22,
+      "date": "2026-09-15",
+      "category": "工作",
+      "title": "请求帮助与跟进事情",
+      "english": "Asking for Help and Following Up",
+      "path": "day22.html"
+    },
+    {
+      "day": 23,
+      "date": "2026-09-16",
+      "category": "日常",
+      "title": "地铁、公交与问路",
+      "english": "Getting Around Town",
+      "path": "day23.html"
+    },
+    {
+      "day": 24,
+      "date": "2026-09-17",
+      "category": "工作",
+      "title": "表达同意、保留意见与决定",
+      "english": "Agreeing and Deciding",
+      "path": "day24.html"
+    },
+    {
+      "day": 25,
+      "date": "2026-09-18",
+      "category": "日常",
+      "title": "购物试衣、尺码与退换",
+      "english": "Clothes Shopping and Returns",
+      "path": "day25.html"
+    },
+    {
+      "day": 26,
+      "date": "2026-09-19",
+      "category": "工作",
+      "title": "说明进度、延迟与下一步",
+      "english": "Updates, Delays and Next Steps",
+      "path": "day26.html"
+    },
+    {
+      "day": 27,
+      "date": "2026-09-20",
+      "category": "日常",
+      "title": "同事午餐与轻松寒暄",
+      "english": "Lunch and Small Talk",
+      "path": "day27.html"
+    },
+    {
+      "day": 28,
+      "date": "2026-09-21",
+      "category": "工作",
+      "title": "电话与视频会议常用口语",
+      "english": "Calls and Video Meetings",
+      "path": "day28.html"
+    },
+    {
+      "day": 29,
+      "date": "2026-09-22",
+      "category": "日常",
+      "title": "酒店退房、寄存行李与收据",
+      "english": "Checking Out of a Hotel",
+      "path": "day29.html"
+    },
+    {
+      "day": 30,
+      "date": "2026-09-23",
+      "category": "工作",
+      "title": "客户沟通：确认行动项",
+      "english": "Confirming Action Points",
+      "path": "day30.html"
+    },
+    {
+      "day": 31,
+      "date": "2026-09-24",
+      "category": "日常",
+      "title": "药店描述常见小问题",
+      "english": "At the Pharmacy",
+      "path": "day31.html"
+    },
+    {
+      "day": 32,
+      "date": "2026-09-25",
+      "category": "工作",
+      "title": "演示、分享屏幕与回答问题",
+      "english": "Presenting and Sharing Your Screen",
+      "path": "day32.html"
+    },
+    {
+      "day": 33,
+      "date": "2026-09-26",
+      "category": "日常",
+      "title": "付款、刷卡与收据",
+      "english": "Paying and Getting a Receipt",
+      "path": "day33.html"
+    },
+    {
+      "day": 34,
+      "date": "2026-09-27",
+      "category": "工作",
+      "title": "礼貌催进度与确认截止时间",
+      "english": "Following Up on Deadlines",
+      "path": "day34.html"
+    },
+    {
+      "day": 35,
+      "date": "2026-09-28",
+      "category": "日常",
+      "title": "机场值机、行李与安检",
+      "english": "Airport Check-in and Security",
+      "path": "day35.html"
+    },
+    {
+      "day": 36,
+      "date": "2026-09-29",
+      "category": "工作",
+      "title": "告别客户并保持联系",
+      "english": "Saying Goodbye to a Client",
+      "path": "day36.html"
+    },
+    {
+      "day": 37,
+      "date": "2026-09-30",
+      "category": "日常",
+      "title": "机场候机、登机与航班变化",
+      "english": "At the Gate and Boarding",
+      "path": "day37.html"
+    },
+    {
+      "day": 38,
+      "date": "2026-10-01",
+      "category": "工作",
+      "title": "出差结束后汇报成果与下一步",
+      "english": "Reporting Back After a Business Trip",
+      "path": "day38.html"
+    },
+    {
+      "day": 39,
+      "date": "2026-10-02",
+      "category": "日常",
+      "title": "航班到达、入境与取行李",
+      "english": "Arrivals, Immigration and Baggage",
+      "path": "day39.html"
+    },
+    {
+      "day": 40,
+      "date": "2026-10-03",
+      "category": "工作",
+      "title": "发邮件确认会议纪要与责任人",
+      "english": "Confirming Minutes and Owners",
+      "path": "day40.html"
+    },
+    {
+      "day": 41,
+      "date": "2026-10-04",
+      "category": "日常",
+      "title": "咖啡店修改订单与处理出错",
+      "english": "Fixing a Coffee Order",
+      "path": "day41.html"
+    },
+    {
+      "day": 42,
+      "date": "2026-10-05",
+      "category": "工作",
+      "title": "客户提出新需求时确认优先级",
+      "english": "Clarifying Priorities for New Requests",
+      "path": "day42.html"
+    },
+    {
+      "day": 43,
+      "date": "2026-10-06",
+      "category": "日常",
+      "title": "酒店延迟退房与费用",
+      "english": "Late Check-out and Charges",
+      "path": "day43.html"
+    },
+    {
+      "day": 44,
+      "date": "2026-10-07",
+      "category": "工作",
+      "title": "技术方案演示后的追问与答复",
+      "english": "Handling Questions After a Demo",
+      "path": "day44.html"
+    },
+    {
+      "day": 45,
+      "date": "2026-10-08",
+      "category": "日常",
+      "title": "餐厅预订、改时间与取消",
+      "english": "Restaurant Bookings and Changes",
+      "path": "day45.html"
+    },
+    {
+      "day": 46,
+      "date": "2026-10-09",
+      "category": "工作",
+      "title": "风险、阻塞项与需要支持",
+      "english": "Risks, Blockers and Support",
+      "path": "day46.html"
+    },
+    {
+      "day": 47,
+      "date": "2026-10-10",
+      "category": "日常",
+      "title": "火车晚点、换乘与退票",
+      "english": "Train Delays, Connections and Refunds",
+      "path": "day47.html"
+    },
+    {
+      "day": 48,
+      "date": "2026-10-11",
+      "category": "工作",
+      "title": "跨团队交接与确认责任",
+      "english": "Cross-team Handover and Ownership",
+      "path": "day48.html"
+    },
+    {
+      "day": 49,
+      "date": "2026-10-12",
+      "category": "日常",
+      "title": "同事下班后的轻松社交",
+      "english": "After-work Socialising",
+      "path": "day49.html"
+    },
+    {
+      "day": 50,
+      "date": "2026-10-13",
+      "category": "工作",
+      "title": "需求不清时用例子确认",
+      "english": "Clarifying Requirements with Examples",
+      "path": "day50.html"
+    },
+    {
+      "day": 51,
+      "date": "2026-10-14",
+      "category": "日常",
+      "title": "问路时确认距离和入口",
+      "english": "Checking Distance and Entrances",
+      "path": "day51.html"
+    },
+    {
+      "day": 52,
+      "date": "2026-10-15",
+      "category": "工作",
+      "title": "会上礼貌插话与拉回主题",
+      "english": "Interrupting and Refocusing Politely",
+      "path": "day52.html"
+    },
+    {
+      "day": 53,
+      "date": "2026-10-16",
+      "category": "日常",
+      "title": "酒店要求安静房间与换房",
+      "english": "Requesting a Quiet Room",
+      "path": "day53.html"
+    },
+    {
+      "day": 54,
+      "date": "2026-10-17",
+      "category": "工作",
+      "title": "解释临时方案与正式修复",
+      "english": "Explaining Workarounds and Fixes",
+      "path": "day54.html"
+    },
+    {
+      "day": 55,
+      "date": "2026-10-18",
+      "category": "日常",
+      "title": "购物结账、优惠与会员",
+      "english": "Checkout, Discounts and Loyalty Cards",
+      "path": "day55.html"
+    },
+    {
+      "day": 56,
+      "date": "2026-10-19",
+      "category": "工作",
+      "title": "讨论上线窗口与回滚计划",
+      "english": "Release Windows and Rollback Plans",
+      "path": "day56.html"
+    },
+    {
+      "day": 57,
+      "date": "2026-10-20",
+      "category": "日常",
+      "title": "机场安检后二次检查",
+      "english": "Extra Security Checks at the Airport",
+      "path": "day57.html"
+    },
+    {
+      "day": 58,
+      "date": "2026-10-21",
+      "category": "工作",
+      "title": "确认数据、附件与版本",
+      "english": "Confirming Data, Attachments and Versions",
+      "path": "day58.html"
+    },
+    {
+      "day": 59,
+      "date": "2026-10-22",
+      "category": "日常",
+      "title": "餐厅说明过敏与忌口",
+      "english": "Allergies and Dietary Requirements",
+      "path": "day59.html"
+    },
+    {
+      "day": 60,
+      "date": "2026-10-23",
+      "category": "工作",
+      "title": "给出估时与表达不确定性",
+      "english": "Giving Estimates and Uncertainty",
+      "path": "day60.html"
+    },
+    {
+      "day": 61,
+      "date": "2026-10-24",
+      "category": "日常",
+      "title": "打车与确认上车点",
+      "english": "Taxi Pick-up Points",
+      "path": "day61.html"
+    },
+    {
+      "day": 62,
+      "date": "2026-10-25",
+      "category": "工作",
+      "title": "客户不满意时回应与行动",
+      "english": "Responding to Client Concerns",
+      "path": "day62.html"
+    },
+    {
+      "day": 63,
+      "date": "2026-10-26",
+      "category": "日常",
+      "title": "超市自助结账遇到问题",
+      "english": "Problems at Self-checkout",
+      "path": "day63.html"
+    },
+    {
+      "day": 64,
+      "date": "2026-10-27",
+      "category": "工作",
+      "title": "项目收尾与验收",
+      "english": "Project Close-out and Acceptance",
+      "path": "day64.html"
+    },
+    {
+      "day": 65,
+      "date": "2026-10-28",
+      "category": "日常",
+      "title": "机场退税与免税购物",
+      "english": "Tax Refunds and Duty-free Shopping",
+      "path": "day65.html"
+    },
+    {
+      "day": 66,
+      "date": "2026-10-29",
+      "category": "工作",
+      "title": "复盘会议：顺利点与改进点",
+      "english": "Project Retrospective",
+      "path": "day66.html"
+    },
+    {
+      "day": 67,
+      "date": "2026-10-30",
+      "category": "日常",
+      "title": "同事邀约、接受与婉拒",
+      "english": "Invitations, Accepting and Declining",
+      "path": "day67.html"
+    },
+    {
+      "day": 68,
+      "date": "2026-10-31",
+      "category": "工作",
+      "title": "确认下次会议与后续跟进",
+      "english": "Agreeing the Next Meeting and Follow-up",
+      "path": "day68.html"
+    }
   ]
 }
