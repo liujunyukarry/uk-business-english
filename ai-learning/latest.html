@@ -10,8 +10,9 @@
 
 </section>
 
-<section class="card"><span class="tag">新手知识点</span><h2 style="margin:.1rem 0 .4rem">什么叫“应用层兜底”？</h2><p><strong>人话：</strong>模型负责“判断和生成”，但真正危险的权限控制不要交给模型自己决定。</p><p><strong>例子：</strong>Agent 想删数据库记录，模型可以提出动作，但后端仍要检查用户权限、参数范围，并要求高风险操作二次确认。</p><p><strong>什么时候有用：</strong>只要 Agent 能调用文件、数据库、浏览器、支付或企业系统，就需要应用层兜底。</p></section>
+<section class="card" data-knowledge-item="1"><span class="tag">AI 全栈知识点 · 独立于今日新闻</span><h2 style="margin:.1rem 0 .4rem">Speculative Decoding（推测解码）是什么？</h2><p><strong>人话：</strong>让一个更小、更快的“草稿模型”先一次猜出几个 token，再由大模型批量检查；猜对的直接接受，猜错的位置再由大模型继续生成。目标不是让答案更聪明，而是<strong>减少大模型逐 token 生成时的等待</strong>。</p><p><strong>短例子：</strong>原本大模型要连续做 5 次前向计算才能产出 5 个 token；推测解码先让小模型猜 5 个，再让大模型一次性验证其中多枚，猜中率高时就能减少实际解码轮次。</p><p><strong>为什么工程上重要：</strong>它主要优化 <em>decode</em> 阶段的延迟和吞吐，适合对响应速度敏感的在线推理。你以后评估 vLLM、SGLang 等 Serving 方案时，会经常看到它。关键是：加速效果取决于草稿模型速度和“猜中率”，并不是所有模型/请求都一定更快。</p></section>
 
 <section><h2>工程师 / AI 产品视角</h2><div class="card"><h3>工程师视角</h3><p>今天没有新模型值得硬写，反而提醒我们：生产系统的竞争重点正在从“追最新模型”转向“怎么安全、可审计地把模型接进真实权限体系”。</p></div><div class="card"><h3>AI 产品视角</h3><p>高权限 Agent 的信任感来自透明边界：用户要知道它能访问什么、刚执行了什么，以及什么时候必须由人确认。</p></div></section>
 
-<footer>日期校验：执行时刻换算为 Asia/Shanghai 后为 2026-10-05；联网时间源同样显示上海为 2026-10-05。仅收录严格 24 小时窗口内且发布时间可确认的新增事实。</footer></main></body></html>
+<footer>日期校验：执行时刻换算为 Asia/Shanghai 后为 2026-10-05；联网时间源同样显示上海为 2026-10-05。仅收录严格 24 小时窗口内且发布时间可确认的新增事实。</footer><!-- knowledge-history: Speculative Decoding（推测解码） -->
+</main></body></html>
