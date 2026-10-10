@@ -74,3 +74,10 @@ Hero → 10 句主列表（含必要的就地词汇/短语说明）→ 3 组迷�
 - 因此课程范围扩展时通常只需要更新 course-plan.json，不再需要把同一份课程列表手工复制进 index.html。
 - index.html 只有在自动日期逻辑或动态读取逻辑损坏时才需要修改。
 - service worker 对 course-plan.json 使用网络优先、缓存兜底，避免首页长期读到旧课程计划。
+
+## 发布前质量门禁（2026-10-10 增补）
+- **逐组对话语义审查**：每组按“提问/说明 → 针对性回应 → 必要时追问”逐句复核；不能机械地从10句中抽两句拼成对话。检查人物角色、上下文、是否真正回答了问题，以及是否误导实际操作。
+- **逐页内容检查**：日期、Day、场景和路径与 course-plan.json 一致；明确分为6句重点和4句自然表达，3个高频★、3组对话；每条英文均配 BrE IPA、自然中文、独立 en-GB TTS；所有音标禁止 raw phonemizer 字符污染。
+- **事实和当地规则**：涉及英国铁路退款、机场、海关、VAT、药品或过敏等实际规则时，以适用日期的官方来源核对，不得凭常识推断。例如大不列颠游客携带离境商品通常不能申请 VAT Retail Export Scheme 退款，北爱尔兰规定不同；见 https://www.gov.uk/tax-on-shopping/taxfree-shopping 。
+- **移动端与交付**：页面使用完整 HTML、viewport-fit=cover、响应式布局、深浅色、至少44px触摸按钮、speechSynthesis en-GB 与 cancel()；不添加测试/打卡/localStorage。提交后重新读取 GitHub main；GitHub Pages 的最新成功 workflow 必须对应最终 HEAD。源码和工作流成功不等于已完成 iPhone 实机公网访问验证，不得混称。
+- **定时任务边界**：06:00 的唯一英语任务仍为 GitHub 只读验收和通知；有问题时只在聊天内兜底，不执行 GitHub/Vercel 写入。新课程只能在用户主动发起的普通聊天中提前生成和提交。
