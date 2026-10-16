@@ -798,7 +798,7 @@
         [
           "Would the extra night be charged at the same rate?",
           "额外一晚也是同样房价吗？",
-          "rate＝房价"
+          "rate＝酒店每晚的房价，不是汇率"
         ],
         [
           "The rate is slightly different for tonight.",

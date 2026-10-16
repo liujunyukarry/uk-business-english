@@ -1172,7 +1172,7 @@
         [
           "What time do I need to leave by?",
           "我最晚几点要离开？",
-          "by＝不晚于"
+          "by＝不晚于指定时间；用于说明最后离开的时限"
         ],
         [
           "Thanks, that sounds suitable for today.",
