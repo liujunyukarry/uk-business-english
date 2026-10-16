@@ -1,0 +1,1185 @@
+{
+  "status": "draft, not approved for publication",
+  "lessons": [
+    {
+      "day": 90,
+      "date": "2026-11-22",
+      "category": "工作",
+      "title": "展示原型并收集意见",
+      "english": "Showing a Prototype",
+      "lines": [
+        [
+          "Could I show you a quick prototype of the new screen?",
+          "我能快速演示一下新页面的原型吗？",
+          "prototype＝供讨论思路的原型，不一定是正式产品"
+        ],
+        [
+          "Yes, I'd like to see how the flow works.",
+          "可以，我想看看整个操作流程。",
+          "flow＝用户完成任务的操作路径"
+        ],
+        [
+          "What's the first thing a user would do here?",
+          "用户在这里第一步会做什么？",
+          "first thing＝第一步动作"
+        ],
+        [
+          "They'd select a project and choose a date range.",
+          "他们会先选择项目，再选日期范围。",
+          "date range＝起止日期区间"
+        ],
+        [
+          "Can we try it with some realistic sample data?",
+          "能用更接近实际的示例数据试试吗？",
+          "realistic sample data＝贴近业务的数据样本"
+        ],
+        [
+          "Of course. I'll load a typical customer case.",
+          "当然，我会加载一个典型客户场景。",
+          "typical case＝有代表性的案例"
+        ],
+        [
+          "This is only a draft, so I'd welcome feedback.",
+          "这还只是初稿，很欢迎提意见。",
+          "I'd welcome feedback＝礼貌邀请反馈"
+        ],
+        [
+          "I'm not convinced the button label is clear enough.",
+          "我觉得按钮文字可能还不够清楚。",
+          "not convinced＝尚不确定或不完全认可"
+        ],
+        [
+          "We could simplify the page before adding more options.",
+          "可以先简化页面，再增加更多选项。",
+          "before adding＝先做前面的事"
+        ],
+        [
+          "I'll revise the prototype and share another version.",
+          "我会调整原型，再分享一版。",
+          "revise＝根据反馈修改"
+        ]
+      ]
+    },
+    {
+      "day": 91,
+      "date": "2026-11-23",
+      "category": "日常",
+      "title": "健身房咨询单次入场",
+      "english": "Asking About a Gym Day Pass",
+      "lines": [
+        [
+          "Hello, do you offer a day pass for visitors?",
+          "你好，你们有访客单日入场票吗？",
+          "day pass＝单日使用资格"
+        ],
+        [
+          "Yes, you can pay for a single visit at reception.",
+          "有，您可以在前台支付单次费用。",
+          "single visit＝只使用一次"
+        ],
+        [
+          "Does the pass include the swimming pool?",
+          "这个票包含游泳池吗？",
+          "include＝收费中已包含"
+        ],
+        [
+          "The pool has a separate entry fee.",
+          "泳池需要另付入场费。",
+          "separate fee＝单独收费"
+        ],
+        [
+          "Are there any quieter times in the evening?",
+          "晚上有没有人少一点的时段？",
+          "quieter times＝相对不那么繁忙的时段"
+        ],
+        [
+          "It's usually less busy after eight.",
+          "一般八点以后人会少些。",
+          "less busy＝较不拥挤"
+        ],
+        [
+          "Do I need to bring a padlock for the locker?",
+          "储物柜需要自己带锁吗？",
+          "padlock＝挂锁；locker＝储物柜"
+        ],
+        [
+          "Could you show me where the changing rooms are?",
+          "能告诉我更衣室在哪里吗？",
+          "changing rooms＝更衣室"
+        ],
+        [
+          "I'll start with a short workout today.",
+          "我今天先简单练一会儿。",
+          "workout＝一次锻炼"
+        ],
+        [
+          "Thanks. I'll have a look around before deciding.",
+          "谢谢，我决定前先看看环境。",
+          "have a look around＝四处看看"
+        ]
+      ]
+    },
+    {
+      "day": 92,
+      "date": "2026-11-24",
+      "category": "工作",
+      "title": "发现数据质量问题",
+      "english": "Discussing Data Quality",
+      "lines": [
+        [
+          "I've noticed some gaps in yesterday's data.",
+          "我发现昨天的数据有几处缺失。",
+          "gaps＝数据中缺少的部分"
+        ],
+        [
+          "Do you know which records are affected?",
+          "你知道哪些记录受影响吗？",
+          "affected＝受到问题影响"
+        ],
+        [
+          "It seems to be limited to one source system.",
+          "目前看似乎只涉及一个源系统。",
+          "limited to＝影响范围局限于"
+        ],
+        [
+          "Could we confirm that before changing anything?",
+          "修改之前能先确认一下吗？",
+          "before changing anything＝避免过早采取有风险的修复"
+        ],
+        [
+          "What's our best way to check the raw data?",
+          "怎样核对原始数据最合适？",
+          "raw data＝未经当前处理流程加工的数据"
+        ],
+        [
+          "We can compare it with the source export.",
+          "可以和源系统导出的数据比对。",
+          "source export＝来源系统导出结果"
+        ],
+        [
+          "I'd rather fix the cause than patch the numbers.",
+          "我更愿意修复原因，而不是临时改数字。",
+          "patch the numbers＝为掩盖问题而临时修补结果"
+        ],
+        [
+          "Let's record which reports might be inaccurate.",
+          "把可能不准确的报表记录下来吧。",
+          "might be inaccurate＝可能不准确，尚需证实"
+        ],
+        [
+          "We should flag this before the next business review.",
+          "下次业务评审前应主动说明此事。",
+          "flag＝主动提醒相关风险"
+        ],
+        [
+          "I'll share the findings once we've checked the source.",
+          "核实来源后，我会分享发现。",
+          "findings＝检查得到的结论"
+        ]
+      ]
+    },
+    {
+      "day": 93,
+      "date": "2026-11-25",
+      "category": "日常",
+      "title": "周末城市步行游览",
+      "english": "Planning a Walking Tour",
+      "lines": [
+        [
+          "Is this area easy to explore on foot?",
+          "这片区域适合步行游览吗？",
+          "on foot＝步行"
+        ],
+        [
+          "Yes, most of the sights are close together.",
+          "适合，大多数景点距离很近。",
+          "sights＝值得参观的地方"
+        ],
+        [
+          "How long would the whole walk take?",
+          "走完整条路线需要多久？",
+          "the whole walk＝整个步行路线"
+        ],
+        [
+          "Allow about two hours if you stop for photos.",
+          "如果会停下来拍照，预留约两小时。",
+          "allow two hours＝为活动预留两小时"
+        ],
+        [
+          "Could we start somewhere near the station?",
+          "我们能从车站附近开始吗？",
+          "somewhere near＝某个接近目标的地点"
+        ],
+        [
+          "That would make it easier to get back later.",
+          "这样之后返程更方便。",
+          "get back＝返回出发地"
+        ],
+        [
+          "Is there a nice place to stop for coffee?",
+          "途中有适合喝咖啡的地方吗？",
+          "stop for coffee＝中途歇脚喝咖啡"
+        ],
+        [
+          "I'd prefer a route with fewer busy roads.",
+          "我更喜欢少穿过繁忙马路的路线。",
+          "fewer＝数量更少"
+        ],
+        [
+          "Let's keep the afternoon fairly relaxed.",
+          "下午的安排轻松一点吧。",
+          "fairly relaxed＝不赶时间"
+        ],
+        [
+          "Could you mark the starting point on the map?",
+          "能在地图上标出起点吗？",
+          "starting point＝出发点"
+        ]
+      ]
+    },
+    {
+      "day": 94,
+      "date": "2026-11-26",
+      "category": "工作",
+      "title": "整理客户反馈",
+      "english": "Summarising Customer Feedback",
+      "lines": [
+        [
+          "Can we go through the feedback from the pilot?",
+          "能一起看看试点阶段的反馈吗？",
+          "pilot＝小范围试运行"
+        ],
+        [
+          "Most users found the new screen easier to navigate.",
+          "多数用户认为新页面更容易操作。",
+          "navigate＝在界面中找到要操作的内容"
+        ],
+        [
+          "Which problems came up more than once?",
+          "哪些问题被重复提到了？",
+          "came up＝在讨论或反馈中出现"
+        ],
+        [
+          "Several people struggled with the export settings.",
+          "有几个人不太会使用导出设置。",
+          "struggle with＝使用时感到困难"
+        ],
+        [
+          "Do we know how serious that is for daily work?",
+          "我们知道这对日常工作影响多大吗？",
+          "how serious＝严重程度"
+        ],
+        [
+          "It slows down their end-of-day reporting.",
+          "它拖慢了他们每日收尾报表的工作。",
+          "slow down＝降低速度或效率"
+        ],
+        [
+          "Let's separate urgent issues from general suggestions.",
+          "我们把紧急问题与普通建议分开吧。",
+          "separate … from＝进行分类区分"
+        ],
+        [
+          "I'd like to speak to two users before we decide.",
+          "决定前我想再找两位用户聊聊。",
+          "before we decide＝不要过早决定"
+        ],
+        [
+          "Could we share a short summary with the customer?",
+          "能向客户发一个简短总结吗？",
+          "share a summary＝提供重点归纳"
+        ],
+        [
+          "I'll update the priorities based on what we learn.",
+          "我会根据了解的情况调整优先级。",
+          "based on＝以某些信息为依据"
+        ]
+      ]
+    },
+    {
+      "day": 95,
+      "date": "2026-11-27",
+      "category": "日常",
+      "title": "餐厅分开结账",
+      "english": "Splitting the Bill",
+      "lines": [
+        [
+          "Would it be possible to split the bill, please?",
+          "请问可以分开结账吗？",
+          "split the bill＝把账单分开支付"
+        ],
+        [
+          "Of course. How would you like to split it?",
+          "当然，您希望怎么分？",
+          "how would you like＝礼貌询问具体方式"
+        ],
+        [
+          "Could we each pay for what we ordered?",
+          "我们能各自付自己点的菜吗？",
+          "each pay for＝分别支付自己的消费"
+        ],
+        [
+          "Yes, I'll separate the items on the till.",
+          "可以，我在收银系统里把各项分开。",
+          "till＝英国店铺的收银机或收银系统"
+        ],
+        [
+          "I had the soup and the sparkling water.",
+          "我点的是汤和气泡水。",
+          "sparkling water＝带气的水"
+        ],
+        [
+          "Thanks. That comes to twelve pounds fifty.",
+          "谢谢，这一份是12.50英镑。",
+          "comes to＝总计多少钱"
+        ],
+        [
+          "Can I pay my part by card?",
+          "我这部分能刷卡吗？",
+          "my part＝我应付的那一份"
+        ],
+        [
+          "Could I have a separate receipt as well?",
+          "我还能单独拿一张收据吗？",
+          "as well＝同时也需要"
+        ],
+        [
+          "Shall we check that nothing has been missed?",
+          "我们核对一下有没有漏掉项目？",
+          "been missed＝被遗漏"
+        ],
+        [
+          "That looks right. Thank you very much.",
+          "没问题，非常感谢。",
+          "looks right＝看起来金额正确"
+        ]
+      ]
+    },
+    {
+      "day": 96,
+      "date": "2026-11-28",
+      "category": "工作",
+      "title": "协商可交付时间",
+      "english": "Negotiating Delivery Dates",
+      "lines": [
+        [
+          "Could we review the proposed delivery date?",
+          "我们能重新看一下建议的交付日期吗？",
+          "proposed＝目前提出但未最终确认的"
+        ],
+        [
+          "Is there a particular reason it needs to be Friday?",
+          "一定要周五交付，有什么特别原因吗？",
+          "particular reason＝具体理由"
+        ],
+        [
+          "The customer wants to test it before the weekend.",
+          "客户希望周末前测试。",
+          "before the weekend＝在周末到来之前"
+        ],
+        [
+          "We might need another day for proper verification.",
+          "我们可能还需要一天做充分验证。",
+          "proper verification＝足够完整的验证"
+        ],
+        [
+          "Could we deliver the core feature first?",
+          "我们能先交付核心功能吗？",
+          "core feature＝最关键的功能"
+        ],
+        [
+          "That could work if the remaining items are clearly listed.",
+          "只要剩余事项列得清楚，可能可行。",
+          "could work＝可能是可行方案"
+        ],
+        [
+          "I don't want to promise a date we can't meet.",
+          "我不想承诺一个做不到的日期。",
+          "meet a date＝按承诺日期完成"
+        ],
+        [
+          "Let's agree what can safely be deferred.",
+          "我们确认哪些工作可以安全地延期吧。",
+          "deferred＝推迟处理"
+        ],
+        [
+          "I'll send an updated estimate with the assumptions.",
+          "我会发送带有前提条件的新估时。",
+          "assumptions＝估算赖以成立的假设"
+        ],
+        [
+          "Can we confirm the decision in writing?",
+          "能否用书面形式确认决定？",
+          "in writing＝以文字记录"
+        ]
+      ]
+    },
+    {
+      "day": 97,
+      "date": "2026-11-29",
+      "category": "日常",
+      "title": "药店咨询用药说明",
+      "english": "Clarifying Pharmacy Instructions",
+      "lines": [
+        [
+          "Could you help me understand the directions on this label?",
+          "能帮我看懂标签上的使用说明吗？",
+          "directions＝用药说明，不是地图方向"
+        ],
+        [
+          "Of course. Which part is unclear?",
+          "当然，哪部分不清楚？",
+          "unclear＝含义不明确"
+        ],
+        [
+          "Does it say to take this with food?",
+          "这里是说要随餐服用吗？",
+          "with food＝和食物一起；须按药师确认的说明执行"
+        ],
+        [
+          "Let me check the exact instructions with you.",
+          "我和您一起核对准确说明。",
+          "exact instructions＝针对这款药的具体说明"
+        ],
+        [
+          "Is there anything I should avoid while taking it?",
+          "服用期间有什么应该避免的吗？",
+          "avoid＝避免某种活动或食物"
+        ],
+        [
+          "The pharmacist can talk you through any precautions.",
+          "药师可以为您逐项解释注意事项。",
+          "talk you through＝一步步讲解"
+        ],
+        [
+          "Could I speak to the pharmacist directly?",
+          "我能直接和药师沟通吗？",
+          "pharmacist＝药师，能提供专业用药建议"
+        ],
+        [
+          "I'd rather check than make an assumption.",
+          "我宁愿确认一下，也不想凭猜测用药。",
+          "make an assumption＝未经核实就作出判断"
+        ],
+        [
+          "Can you write down the advice for me?",
+          "可以把建议写给我吗？",
+          "write down＝写成文字便于核对"
+        ],
+        [
+          "Thanks. I'll follow the instructions on the label.",
+          "谢谢，我会按标签说明使用。",
+          "follow the instructions＝按照具体说明操作"
+        ]
+      ]
+    },
+    {
+      "day": 98,
+      "date": "2026-11-30",
+      "category": "工作",
+      "title": "排查API对接问题",
+      "english": "Troubleshooting an API",
+      "lines": [
+        [
+          "Are we getting a response from the API at all?",
+          "这个API现在有返回响应吗？",
+          "at all＝到底有没有，强调基本情况"
+        ],
+        [
+          "Yes, but the status code is not what we expect.",
+          "有，但状态码不是预期的。",
+          "status code＝表示请求结果的HTTP状态码"
+        ],
+        [
+          "Could you share the request you used for testing?",
+          "能分享一下测试时发送的请求吗？",
+          "request＝发送到接口的请求数据"
+        ],
+        [
+          "I'll remove any secrets before sharing it.",
+          "分享前我会去掉敏感密钥。",
+          "secrets＝令牌、密码等敏感凭证"
+        ],
+        [
+          "Does the issue happen in both test and production?",
+          "测试环境和生产环境都会发生吗？",
+          "production＝面向真实业务运行的环境"
+        ],
+        [
+          "No, we've only seen it in the test environment.",
+          "没有，目前只在测试环境出现。",
+          "only seen＝观察范围仅限于"
+        ],
+        [
+          "Let's compare the configuration on both sides.",
+          "我们比较一下双方的配置。",
+          "on both sides＝通信或集成的双方"
+        ],
+        [
+          "We should check the timeout before changing the retry logic.",
+          "改重试逻辑前应先查超时设置。",
+          "timeout＝允许等待响应的时间上限"
+        ],
+        [
+          "Can we capture one failing example with a timestamp?",
+          "能记录一个带时间戳的失败样本吗？",
+          "timestamp＝事件发生的具体时间"
+        ],
+        [
+          "I'll document the fix once the integration passes.",
+          "集成测试通过后我会记录修复方法。",
+          "document the fix＝将解决方法写入文档"
+        ]
+      ]
+    },
+    {
+      "day": 99,
+      "date": "2026-12-01",
+      "category": "日常",
+      "title": "理发预约与沟通",
+      "english": "Booking a Haircut",
+      "lines": [
+        [
+          "Hello, have you got any appointments this afternoon?",
+          "您好，今天下午还有预约时段吗？",
+          "have you got＝英式常见询问是否有"
+        ],
+        [
+          "We have an opening at half past three.",
+          "我们三点半有空档。",
+          "an opening＝可预约的空档"
+        ],
+        [
+          "How long does a basic haircut usually take?",
+          "普通理发通常要多久？",
+          "basic haircut＝一般剪发服务"
+        ],
+        [
+          "About half an hour, depending on the style.",
+          "大约半小时，具体看发型。",
+          "depending on＝取决于"
+        ],
+        [
+          "I'd just like a tidy-up, nothing too short.",
+          "我只想稍微修整一下，不要剪太短。",
+          "tidy-up＝小幅修剪整理"
+        ],
+        [
+          "Would you like us to wash your hair first?",
+          "您想先洗头吗？",
+          "wash your hair＝洗头发"
+        ],
+        [
+          "Could you take a little off the sides?",
+          "两侧能稍微剪短一点吗？",
+          "take a little off＝剪掉一点长度"
+        ],
+        [
+          "Please keep the top a bit longer.",
+          "顶部请保留长一些。",
+          "a bit longer＝稍微长一点"
+        ],
+        [
+          "That looks good. Could I check the back as well?",
+          "这样不错，我还能看看后面吗？",
+          "check the back＝查看后脑勺的修剪效果"
+        ],
+        [
+          "Thanks, I'm happy with that length.",
+          "谢谢，这个长度我很满意。",
+          "happy with＝对结果满意"
+        ]
+      ]
+    },
+    {
+      "day": 100,
+      "date": "2026-12-02",
+      "category": "工作",
+      "title": "讨论技术债优先级",
+      "english": "Prioritising Technical Debt",
+      "lines": [
+        [
+          "Should we set aside time for the old module?",
+          "我们要不要为旧模块专门留点时间？",
+          "set aside time＝预留时间"
+        ],
+        [
+          "What problems is it causing at the moment?",
+          "它目前带来了哪些问题？",
+          "at the moment＝目前"
+        ],
+        [
+          "It's making simple changes take much longer.",
+          "它让一些简单改动花了很久。",
+          "make … take longer＝导致耗时增加"
+        ],
+        [
+          "Do we have examples of the extra effort?",
+          "有额外工作量的具体例子吗？",
+          "extra effort＝增加的成本"
+        ],
+        [
+          "Yes, every release needs manual checks in three places.",
+          "有，每次发布都得在三个地方人工检查。",
+          "manual checks＝需要人去确认的步骤"
+        ],
+        [
+          "That sounds worth addressing before the next big feature.",
+          "这听起来值得在下个大功能前处理。",
+          "worth addressing＝值得着手解决"
+        ],
+        [
+          "Let's estimate the risk of leaving it as it is.",
+          "我们估算一下保持现状的风险。",
+          "leave it as it is＝暂时不作改变"
+        ],
+        [
+          "We don't need a complete rewrite to improve it.",
+          "要改善它不一定需要全部重写。",
+          "complete rewrite＝整体重新开发"
+        ],
+        [
+          "Could we start by adding a few focused tests?",
+          "能先加几个针对性测试吗？",
+          "focused tests＝针对具体风险点的测试"
+        ],
+        [
+          "I'll suggest a small improvement we can measure.",
+          "我会提出一个效果可衡量的小改进。",
+          "we can measure＝可以用指标判断效果"
+        ]
+      ]
+    },
+    {
+      "day": 101,
+      "date": "2026-12-03",
+      "category": "日常",
+      "title": "酒店早餐时间与选择",
+      "english": "Asking About Breakfast",
+      "lines": [
+        [
+          "Is breakfast included in my room rate?",
+          "房费里包含早餐吗？",
+          "room rate＝酒店房间价格"
+        ],
+        [
+          "Yes, it is. Breakfast is served downstairs.",
+          "包含，早餐在楼下供应。",
+          "served＝在某处供应餐食"
+        ],
+        [
+          "What time does breakfast finish on weekdays?",
+          "工作日早餐几点结束？",
+          "finish＝供应结束，不一定是关闭餐厅"
+        ],
+        [
+          "At ten, but it gets busy before nine.",
+          "十点结束，不过九点前会很忙。",
+          "gets busy＝人逐渐多起来"
+        ],
+        [
+          "Do you have any dairy-free options?",
+          "有不含乳制品的选择吗？",
+          "dairy-free＝不含乳制品"
+        ],
+        [
+          "There's fruit and toast, but please check the labels.",
+          "有水果和吐司，但请核对标签。",
+          "check the labels＝看食物说明以确认适用性"
+        ],
+        [
+          "Could I take a coffee away with me?",
+          "我可以把咖啡带走吗？",
+          "take away＝外带"
+        ],
+        [
+          "Do I need to give my room number at the entrance?",
+          "进餐厅时要报房号吗？",
+          "give my room number＝告知房号"
+        ],
+        [
+          "I have an early train, so I'd like to eat quickly.",
+          "我得赶早班火车，所以想快点吃。",
+          "early train＝早班列车"
+        ],
+        [
+          "Thanks. I'll come down just after seven.",
+          "谢谢，我七点过一点就下来。",
+          "just after＝刚过某个时间"
+        ]
+      ]
+    },
+    {
+      "day": 102,
+      "date": "2026-12-04",
+      "category": "工作",
+      "title": "主持技术讨论工作坊",
+      "english": "Opening a Workshop",
+      "lines": [
+        [
+          "Thanks for joining today's workshop.",
+          "谢谢大家参加今天的讨论会。",
+          "workshop＝共同讨论、实践和产出成果的工作会议"
+        ],
+        [
+          "Can we start by agreeing what we need to decide?",
+          "先确认今天要决定哪些问题，好吗？",
+          "agree what to decide＝先统一目标"
+        ],
+        [
+          "We'd like to leave with a clear technical direction.",
+          "我们希望会议结束时技术方向明确。",
+          "leave with＝结束时带着某项成果"
+        ],
+        [
+          "That sounds good. Who's capturing the decisions?",
+          "听起来不错，谁负责记录决定？",
+          "capture decisions＝将决策整理成记录"
+        ],
+        [
+          "Could everyone briefly share their main concern?",
+          "能请大家简要说说主要担忧吗？",
+          "main concern＝最关心的问题"
+        ],
+        [
+          "I'm worried about how we'll handle peak traffic.",
+          "我担心高峰流量的处理方式。",
+          "peak traffic＝流量高峰"
+        ],
+        [
+          "Let's put that on the board for discussion.",
+          "我们把它写到讨论板上吧。",
+          "put on the board＝放进共同讨论内容"
+        ],
+        [
+          "We don't have to solve every detail today.",
+          "今天不必解决所有细节。",
+          "every detail＝全部细枝末节"
+        ],
+        [
+          "I'd like to keep the conversation focused on the key choices.",
+          "我希望讨论集中在关键选项上。",
+          "keep focused＝避免话题跑偏"
+        ],
+        [
+          "We'll finish by assigning owners and next steps.",
+          "最后我们会确定负责人和后续行动。",
+          "assign owners＝明确责任人"
+        ]
+      ]
+    },
+    {
+      "day": 103,
+      "date": "2026-12-05",
+      "category": "日常",
+      "title": "电影院买票与选座",
+      "english": "Booking Cinema Tickets",
+      "lines": [
+        [
+          "Have you got two seats for the evening showing?",
+          "晚场还有两个座位吗？",
+          "showing＝某场次电影放映"
+        ],
+        [
+          "Yes, there are a few seats near the back.",
+          "有，靠后还有几个位置。",
+          "near the back＝靠近后排"
+        ],
+        [
+          "Are those seats next to each other?",
+          "那些座位挨着吗？",
+          "next to each other＝相邻"
+        ],
+        [
+          "These two are together, in row H.",
+          "这两个连在一起，在H排。",
+          "row＝座位排号"
+        ],
+        [
+          "Does the film have subtitles?",
+          "这部电影有字幕吗？",
+          "subtitles＝画面上的对白文字"
+        ],
+        [
+          "Let me check the details for that screening.",
+          "我查一下那场的具体信息。",
+          "screening＝一场特定的放映"
+        ],
+        [
+          "Could we collect the tickets at the cinema?",
+          "我们能到影院取票吗？",
+          "collect tickets＝领取预订票"
+        ],
+        [
+          "How early should we arrive before it starts?",
+          "开场前我们应该提前多久到？",
+          "how early＝提前多长时间"
+        ],
+        [
+          "I'd rather sit away from the front row.",
+          "我更想坐得离第一排远一点。",
+          "away from＝远离"
+        ],
+        [
+          "Thanks, those seats will be fine.",
+          "谢谢，这两个座位可以。",
+          "will be fine＝可以接受"
+        ]
+      ]
+    },
+    {
+      "day": 104,
+      "date": "2026-12-06",
+      "category": "工作",
+      "title": "总结研讨会结论",
+      "english": "Closing a Workshop",
+      "lines": [
+        [
+          "Could we recap the decisions before we finish?",
+          "结束前能总结一下决定吗？",
+          "recap＝简要回顾要点"
+        ],
+        [
+          "We've agreed to test the simpler approach first.",
+          "我们已决定先测试较简单的方案。",
+          "agreed to＝已一致同意去做"
+        ],
+        [
+          "What still needs a decision from the customer?",
+          "还有什么需要客户拍板？",
+          "needs a decision＝尚未定案"
+        ],
+        [
+          "The data retention period hasn't been confirmed.",
+          "数据保留期限还没确认。",
+          "retention period＝数据保留的时长"
+        ],
+        [
+          "Who'll follow up on that point?",
+          "那一点由谁跟进？",
+          "follow up on＝后续继续推进"
+        ],
+        [
+          "I'll take it and bring an answer to the next meeting.",
+          "我负责，下次会议给出答复。",
+          "take it＝接下这项任务"
+        ],
+        [
+          "Let's make sure the owners are written down.",
+          "确保负责人都记录下来了。",
+          "written down＝写成正式记录"
+        ],
+        [
+          "We should share the summary while it's still fresh.",
+          "趁大家记忆还清晰，尽快发总结。",
+          "while it's still fresh＝趁印象还深"
+        ],
+        [
+          "Can everyone confirm the next steps by email?",
+          "大家能通过邮件确认后续步骤吗？",
+          "confirm by email＝书面确认"
+        ],
+        [
+          "Thanks for a productive discussion today.",
+          "感谢大家今天高效的讨论。",
+          "productive＝有实际产出的"
+        ]
+      ]
+    },
+    {
+      "day": 105,
+      "date": "2026-12-07",
+      "category": "日常",
+      "title": "航班登机口变化",
+      "english": "Handling a Gate Change",
+      "lines": [
+        [
+          "Excuse me, has the gate for this flight changed?",
+          "请问这班航班的登机口改了吗？",
+          "gate＝登机口"
+        ],
+        [
+          "Yes, it's now departing from gate twenty-two.",
+          "是的，现在改为22号登机口。",
+          "departing from＝从某登机口出发"
+        ],
+        [
+          "Is it far from here?",
+          "离这里远吗？",
+          "far from here＝与当前地点相距较远"
+        ],
+        [
+          "It's about ten minutes on foot.",
+          "走过去大概十分钟。",
+          "on foot＝步行"
+        ],
+        [
+          "Has the boarding time changed as well?",
+          "登机时间也变了吗？",
+          "as well＝也"
+        ],
+        [
+          "The screens are showing the latest boarding information.",
+          "显示屏上有最新登机信息。",
+          "boarding information＝何时何地登机的更新"
+        ],
+        [
+          "Could you point me towards the new gate?",
+          "能指一下新登机口的方向吗？",
+          "point me towards＝告诉大致方向"
+        ],
+        [
+          "I'd better head over now to be safe.",
+          "保险起见，我最好现在过去。",
+          "to be safe＝为稳妥起见"
+        ],
+        [
+          "Do you know whether there's a shuttle between terminals?",
+          "航站楼之间有摆渡车吗？",
+          "shuttle＝短距离接驳车"
+        ],
+        [
+          "Thanks, I'll follow the airport signs.",
+          "谢谢，我会按照机场标识走。",
+          "follow the signs＝沿指示牌所指方向走"
+        ]
+      ]
+    },
+    {
+      "day": 106,
+      "date": "2026-12-08",
+      "category": "工作",
+      "title": "讨论测试覆盖范围",
+      "english": "Discussing Test Coverage",
+      "lines": [
+        [
+          "Which parts of the feature are covered by tests?",
+          "这个功能哪些部分有测试覆盖？",
+          "covered by tests＝已有测试会检查"
+        ],
+        [
+          "We've tested the main flow and the common errors.",
+          "我们测了主流程和常见错误。",
+          "main flow＝用户主要操作路径"
+        ],
+        [
+          "What about cases where the external service times out?",
+          "外部服务超时时怎么办？",
+          "times out＝超过等待时限"
+        ],
+        [
+          "We haven't added that case yet.",
+          "那个情况还没有加进测试。",
+          "that case＝特定测试场景"
+        ],
+        [
+          "Could we add one test for a failed connection?",
+          "能增加一个连接失败的测试吗？",
+          "failed connection＝未能建立或保持连接"
+        ],
+        [
+          "Yes, it would help verify the retry behaviour.",
+          "可以，这能帮助验证重试行为。",
+          "retry behaviour＝失败后如何重试"
+        ],
+        [
+          "I'd also like to check we don't duplicate requests.",
+          "我还想确认不会重复发请求。",
+          "duplicate requests＝重复提交同一操作"
+        ],
+        [
+          "Let's prioritise the cases with the highest risk.",
+          "我们优先测风险最高的情况。",
+          "highest risk＝最可能造成严重影响"
+        ],
+        [
+          "Can we show the remaining gaps in the test report?",
+          "测试报告能列出剩余空白吗？",
+          "remaining gaps＝尚未覆盖部分"
+        ],
+        [
+          "I'll update the test list before the next build.",
+          "下次构建前我会更新测试清单。",
+          "next build＝下一次生成的程序版本"
+        ]
+      ]
+    },
+    {
+      "day": 107,
+      "date": "2026-12-09",
+      "category": "日常",
+      "title": "挑选礼物与退换政策",
+      "english": "Buying a Gift",
+      "lines": [
+        [
+          "I'm looking for a small gift for a colleague.",
+          "我想给一位同事买份小礼物。",
+          "looking for＝在寻找"
+        ],
+        [
+          "Would you prefer something practical or decorative?",
+          "您喜欢实用的还是装饰性的？",
+          "practical＝实用的"
+        ],
+        [
+          "Something local would be nice, but not too expensive.",
+          "最好有点当地特色，但不要太贵。",
+          "something local＝当地特色物品"
+        ],
+        [
+          "These chocolates are made nearby and are popular.",
+          "这些巧克力是附近生产的，很受欢迎。",
+          "made nearby＝在附近生产"
+        ],
+        [
+          "Could you tell me how long they'll keep?",
+          "能告诉我能保存多久吗？",
+          "how long they'll keep＝食品保质时间，不是保存数据"
+        ],
+        [
+          "The best-before date is printed on the back.",
+          "建议食用期限印在背面。",
+          "best-before＝品质最佳日期，不等同于安全保证"
+        ],
+        [
+          "Is it possible to get this gift-wrapped?",
+          "可以帮我把它包装成礼物吗？",
+          "gift-wrapped＝礼品包装"
+        ],
+        [
+          "Could I have a gift receipt without the price?",
+          "可以给我一张不显示价格的礼品收据吗？",
+          "gift receipt＝方便收礼人换货的收据"
+        ],
+        [
+          "Do you offer exchanges if it isn't suitable?",
+          "如果不合适，可以换货吗？",
+          "exchanges＝换货"
+        ],
+        [
+          "Thanks, I'll take this one.",
+          "谢谢，我就买这个。",
+          "take this one＝决定购买这个"
+        ]
+      ]
+    },
+    {
+      "day": 108,
+      "date": "2026-12-10",
+      "category": "工作",
+      "title": "跨时区远程协作",
+      "english": "Coordinating Across Time Zones",
+      "lines": [
+        [
+          "Could we find a meeting time that works for both teams?",
+          "能找一个两边团队都方便的会议时间吗？",
+          "works for＝对某方合适"
+        ],
+        [
+          "Your morning would be late afternoon for us.",
+          "你们上午对应我们傍晚。",
+          "late afternoon＝下午较晚的时段"
+        ],
+        [
+          "Would an earlier start be manageable for you?",
+          "你们能接受稍早一点开始吗？",
+          "manageable＝可以承受、安排得过来"
+        ],
+        [
+          "Yes, as long as we keep it to half an hour.",
+          "可以，只要控制在半小时。",
+          "as long as＝条件是"
+        ],
+        [
+          "Could we share the agenda before the call?",
+          "能在会议前分享议程吗？",
+          "before the call＝通话开始之前"
+        ],
+        [
+          "That would let everyone prepare asynchronously.",
+          "这样大家就能异步提前准备。",
+          "asynchronously＝不同时间各自完成"
+        ],
+        [
+          "Let's record the decision so nobody misses it.",
+          "我们记录下决定，免得有人错过。",
+          "miss it＝未收到关键信息"
+        ],
+        [
+          "I don't want anyone to feel they must reply overnight.",
+          "我不希望大家觉得必须连夜回复。",
+          "overnight＝在夜间或过夜"
+        ],
+        [
+          "Can we agree on normal response times?",
+          "能统一正常回复时限吗？",
+          "response times＝通常多久回应"
+        ],
+        [
+          "I'll send the notes to both teams tomorrow.",
+          "我明天把记录发给两个团队。",
+          "both teams＝双方团队"
+        ]
+      ]
+    },
+    {
+      "day": 109,
+      "date": "2026-12-11",
+      "category": "日常",
+      "title": "临时共享办公空间",
+      "english": "Booking a Workspace",
+      "lines": [
+        [
+          "Do you have a desk available for just one day?",
+          "有只租一天的工位吗？",
+          "for just one day＝仅用一天"
+        ],
+        [
+          "Yes, we offer day passes for visitors.",
+          "有，我们提供访客单日票。",
+          "day pass＝按日使用的凭证"
+        ],
+        [
+          "Is there somewhere quiet to take a video call?",
+          "有没有安静的地方可以开视频会议？",
+          "take a video call＝进行视频通话"
+        ],
+        [
+          "There's a phone booth you can book by the hour.",
+          "有一个电话间，可以按小时预约。",
+          "phone booth＝供私人通话的小隔间"
+        ],
+        [
+          "Does the pass include reliable Wi-Fi?",
+          "单日票包含稳定的无线网络吗？",
+          "include＝费用中已涵盖"
+        ],
+        [
+          "Yes, the network details are at reception.",
+          "有，网络信息可以在前台领取。",
+          "network details＝无线网络名称及接入信息"
+        ],
+        [
+          "Could I use an external monitor at the desk?",
+          "这个工位能接外部显示器吗？",
+          "external monitor＝外接显示器"
+        ],
+        [
+          "Is it all right to leave my bag here during lunch?",
+          "午饭时我可以把包留在这里吗？",
+          "all right to＝是否允许"
+        ],
+        [
+          "What time do I need to leave by?",
+          "我最晚几点要离开？",
+          "by＝不晚于"
+        ],
+        [
+          "Thanks, that sounds suitable for today.",
+          "谢谢，今天用这个很合适。",
+          "suitable＝符合需要"
+        ]
+      ]
+    }
+  ]
+}
