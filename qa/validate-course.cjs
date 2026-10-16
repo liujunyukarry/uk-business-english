@@ -40,7 +40,7 @@ for(let day=53;day<=plan.length;day++){
  for(let i=0;i<talks.length;i++){
   const v=talks[i],nt=count(v,/class="turn"/g);
   if(nt<2||nt>3)fail(day,'bad dialogue turn count '+nt);
-  if(count(v,/<b>[^<]+<\/b>/g)!==nt)fail(day,'missing dialogue speaker');
+  if(count(v,/<div class="turn"><b>[^<]+<\/b>/g)!==nt)fail(day,'missing dialogue speaker');
   if(count(v,/class="en"/g)!==nt||count(v,/class="ipa"/g)!==nt||count(v,/class="zh"/g)!==nt||count(v,/data-say=/g)!==nt)fail(day,'dialogue fields missing');
  }
  const en=match(html,/<p class="en"[^>]*>([^<]*)<\/p>/g).map(decode);
