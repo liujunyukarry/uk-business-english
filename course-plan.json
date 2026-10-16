@@ -1,7 +1,7 @@
 {
-  "version": "ukbe-balanced-natural-20261001-v3",
+  "version": "ukbe-balanced-natural-20261016-v4",
   "startDate": "2026-08-25",
-  "updated": "2026-10-01",
+  "updated": "2026-10-16",
   "targetMix": {
     "daily": "50%",
     "work": "50%",
@@ -551,6 +551,14 @@
       "title": "确认下次会议与后续跟进",
       "english": "Agreeing the Next Meeting and Follow-up",
       "path": "day68.html"
+    },
+    {
+      "day": 69,
+      "date": "2026-11-01",
+      "category": "日常",
+      "title": "电话订餐与确认人数",
+      "english": "Booking a Table by Phone",
+      "path": "day69.html"
     }
   ]
 }
