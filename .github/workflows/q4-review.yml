@@ -21,7 +21,8 @@ jobs:
       - name: Install British English phonemizer
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y espeak-ng
+          sudo apt-get install -y espeak espeak-ng
+          espeak -v en-uk-rp --ipa=3 -q "This task needs a background check."
       - name: Generate QA-gated candidates
         run: python3 tools/build_q4_review.py
       - name: Save candidate pages to review branch only
