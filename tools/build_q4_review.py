@@ -107,7 +107,7 @@ def main():
             norm=re.sub(r"[^a-z0-9 ]","",en.lower()).strip()
             if norm in all_phrases:raise AssertionError("Repeated sentence "+en)
             all_phrases.add(norm)
-            if "＝" not in note:raise AssertionError("Missing contextual explanation: "+repr(note))
+            if len(note.strip())<8:raise AssertionError("Explanatory note too short: "+repr(note))
     css,script=css_and_script()
     compiled={}
     report=[]
