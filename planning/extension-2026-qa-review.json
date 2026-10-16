@@ -23,7 +23,7 @@
       "sample_ipa": [
         [
           "Could you give me a bit of background on this task?",
-          "/kʊd juː ɡɪv miː ə bɪt ɒv ˈbakɡraʊnd ɒn ðɪs task/"
+          "/kʊd juː ɡɪv miː ə bɪt ɒv ˈbækɡraʊnd ɒn ðɪs tɑːsk/"
         ],
         [
           "What's the most important outcome we're aiming for?",
@@ -73,11 +73,11 @@
       "sample_ipa": [
         [
           "Can we go over the priorities for this week?",
-          "/kan wiː ɡəʊ ˌəʊvə ðə praɪˈɒrɪtiz fɔː ðɪs wiːk/"
+          "/kæn wiː ɡəʊ ˌəʊvə ðə praɪˈɒrɪtiz fɔː ðɪs wiːk/"
         ],
         [
           "Does that mean we should pause the smaller task?",
-          "/dʌz ðat miːn wiː ʃʊd pɔːz ðə ˈsmɔːlə task/"
+          "/dʌz ðæt miːn wiː ʃʊd pɔːz ðə ˈsmɔːlə tɑːsk/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -127,7 +127,7 @@
         ],
         [
           "Could you give me an example of the expected result?",
-          "/kʊd juː ɡɪv miː ən eɡzˈampəl ɒvðɪ ekspˈektɪd rɪzˈʌlt/"
+          "/kʊd juː ɡɪv miː ən eɡzˈɑːmpəl ɒvðɪ ekspˈektɪd rɪzˈʌlt/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -148,7 +148,7 @@
       "sample_ipa": [
         [
           "Hello, I'm expecting a parcel at reception.",
-          "/həlˈəʊ aɪm ekspˈektɪŋ ə ˈpɑːsəl at rɪsˈepʃən/"
+          "/həlˈəʊ aɪm ekspˈektɪŋ ə ˈpɑːsəl æt rɪsˈepʃən/"
         ],
         [
           "It's under Chen, room three twelve.",
@@ -177,7 +177,7 @@
         ],
         [
           "What are we giving up with that approach?",
-          "/wɒt ɑː wiː ˈɡɪvɪŋ ʌp wɪð ðat əprˈəʊtʃ/"
+          "/wɒt ɑː wiː ˈɡɪvɪŋ ʌp wɪð ðæt əprˈəʊtʃ/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -202,7 +202,7 @@
         ],
         [
           "I had it when I came in this morning.",
-          "/aɪ hˌadɪt wen aɪ keɪm ɪn ðɪs ˈmɔːnɪŋ/"
+          "/aɪ hˌædɪt wen aɪ keɪm ɪn ðɪs ˈmɔːnɪŋ/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -227,7 +227,7 @@
         ],
         [
           "Does it happen every time or only occasionally?",
-          "/dʌz ɪt ˈhapən ˈevrɪ taɪm ɔːr ˈəʊnli əkˈeɪʒənəli/"
+          "/dʌz ɪt ˈhæpən ˈevri taɪm ɔːr ˈəʊnli əkˈeɪʒənəli/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -248,11 +248,11 @@
       "sample_ipa": [
         [
           "Do we need to book a time slot in advance?",
-          "/duː wiː niːd tə bʊk ə taɪm slɒt ɪn ədvˈans/"
+          "/duː wiː niːd tə bʊk ə taɪm slɒt ɪn ədvˈæns/"
         ],
         [
           "Are there any tickets left for this afternoon?",
-          "/ɑː ðeər ˌeni ˈtɪkɪts left fɔː ðɪs ˌaftənˈuːn/"
+          "/ɑː ðeər ˌeni ˈtɪkɪts left fɔː ðɪs ˌɑːftənˈuːn/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -277,7 +277,7 @@
         ],
         [
           "Who owns that part of the integration?",
-          "/huː əʊnz ðat pɑːt ɒvðɪ ˌɪntɪɡrˈeɪʃən/"
+          "/huː əʊnz ðæt pɑːt ɒvðɪ ˌɪntɪɡrˈeɪʃən/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -302,7 +302,7 @@
         ],
         [
           "Could I have this shirt washed by tomorrow?",
-          "/kʊd aɪ hav ðɪs ʃɜːt wɒʃt baɪ təmˈɒrəʊ/"
+          "/kʊd aɪ hæv ðɪs ʃɜːt wɒʃt baɪ təmˈɒrəʊ/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -348,11 +348,11 @@
       "sample_ipa": [
         [
           "Excuse me, does this bus still stop at the station?",
-          "/ekskjˈuːs miː dʌz ðɪs bʌs stɪl stɒp at ðə ˈsteɪʃən/"
+          "/ekskjˈuːs miː dʌz ðɪs bʌs stɪl stɒp æt ðə ˈsteɪʃən/"
         ],
         [
           "Where's the temporary stop, please?",
-          "/weəz ðə ˈtemprəri stɒp pliːz/"
+          "/weəz ðə ˈtemprərˌi stɒp pliːz/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -373,11 +373,11 @@
       "sample_ipa": [
         [
           "Could I raise a blocker that needs a decision?",
-          "/kʊd aɪ reɪz ə ˈblɒkə ðat niːdz ə dɪsˈɪʒən/"
+          "/kʊd aɪ reɪz ə ˈblɒkə ðæt niːdz ə dɪsˈɪʒən/"
         ],
         [
           "We're still waiting for access to the test system.",
-          "/wiə stɪl ˈweɪtɪŋ fɔːr ˈakses tə ðə test ˈsɪstəm/"
+          "/wiə stɪl ˈweɪtɪŋ fɔːr ˈækses tə ðə test ˈsɪstəm/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -402,7 +402,7 @@
         ],
         [
           "Could you read the postcode back to me?",
-          "/kʊd juː riːd ðə ˈpəʊstkəʊd bak tə miː/"
+          "/kʊd juː riːd ðə ˈpəʊstkəʊd bæk tə miː/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -423,11 +423,11 @@
       "sample_ipa": [
         [
           "Can we walk through the release plan together?",
-          "/kan wiː wɔːk θruː ðə rɪlˈiːs plan təɡˈeðə/"
+          "/kæn wiː wɔːk θruː ðə rɪlˈiːs plæn təɡˈeðə/"
         ],
         [
           "How long is the planned maintenance window?",
-          "/haʊ lɒŋ ɪz ðə pland ˈmeɪntənəns ˈwɪndəʊ/"
+          "/haʊ lɒŋ ɪz ðə plænd ˈmeɪntənəns ˈwɪndəʊ/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -448,7 +448,7 @@
       "sample_ipa": [
         [
           "What's the forecast looking like for this afternoon?",
-          "/wɒts ðə ˈfɔːkast ˈlʊkɪŋ laɪk fɔː ðɪs ˌaftənˈuːn/"
+          "/wɒts ðə ˈfɔːkɑːst ˈlʊkɪŋ laɪk fɔː ðɪs ˌɑːftənˈuːn/"
         ],
         [
           "Would you take a coat or just an umbrella?",
@@ -473,7 +473,7 @@
       "sample_ipa": [
         [
           "Could you run me through what's been handed over?",
-          "/kʊd juː rʌn miː θruː wɒts biːn ˈhandɪd ˈəʊvə/"
+          "/kʊd juː rʌn miː θruː wɒts biːn ˈhændɪd ˈəʊvə/"
         ],
         [
           "Who should respond if the customer reports an issue?",
@@ -498,11 +498,11 @@
       "sample_ipa": [
         [
           "Excuse me, is there a cash machine nearby?",
-          "/ekskjˈuːs miː ɪz ðeər ə kaʃ məʃˈiːn niəbˈaɪ/"
+          "/ekskjˈuːs miː ɪz ðeər ə kæʃ məʃˈiːn niəbˈaɪ/"
         ],
         [
           "Does this machine charge a withdrawal fee?",
-          "/dʌz ðɪs məʃˈiːn tʃɑːdʒ ə wɪθdrˈɔːl fiː/"
+          "/dʌz ðɪs məʃˈiːn tʃɑːdʒ ə wɪðdrˈɔːl fiː/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -548,11 +548,11 @@
       "sample_ipa": [
         [
           "Hello, do you offer a day pass for visitors?",
-          "/həlˈəʊ duː juː ˈɒfər ə deɪ pas fɔː ˈvɪzɪtəz/"
+          "/həlˈəʊ duː juː ˈɒfər ə deɪ pɑːs fɔː ˈvɪzɪtəz/"
         ],
         [
           "Does the pass include the swimming pool?",
-          "/dʌz ðə pas ɪŋklˈuːd ðə ˈswɪmɪŋ puːl/"
+          "/dʌz ðə pɑːs ɪnklˈuːd ðə ˈswɪmɪŋ puːl/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -573,7 +573,7 @@
       "sample_ipa": [
         [
           "I've noticed some gaps in yesterday's data.",
-          "/aɪv ˈnəʊtɪst sʌm ɡaps ɪn ˈjestədˌeɪz ˈdeɪtə/"
+          "/aɪv ˈnəʊtɪst sʌm ɡæps ɪn ˈjestədˌeɪz ˈdeɪtə/"
         ],
         [
           "It seems to be limited to one source system.",
@@ -623,11 +623,11 @@
       "sample_ipa": [
         [
           "Can we go through the feedback from the pilot?",
-          "/kan wiː ɡəʊ θruː ðə ˈfiːdbak frʌmðə ˈpaɪlət/"
+          "/kæn wiː ɡəʊ θruː ðə ˈfiːdbæk frʌmðə ˈpaɪlət/"
         ],
         [
           "Which problems came up more than once?",
-          "/wɪtʃ ˈprɒbləmz keɪm ʌp mɔː ðən wʌns/"
+          "/wɪtʃ ˈprɒbləmz keɪm ʌp mɔː ðən wɒns/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -648,7 +648,7 @@
       "sample_ipa": [
         [
           "Would it be possible to split the bill, please?",
-          "/wʊd ɪt biː ˈpɒsɪbəl tə splɪt ðə bɪl pliːz/"
+          "/wʊd ɪt biː ˈpɒsəbəl tə splɪt ðə bɪl pliːz/"
         ],
         [
           "Could we each pay for what we ordered?",
@@ -698,7 +698,7 @@
       "sample_ipa": [
         [
           "Could you help me understand the directions on this label?",
-          "/kʊd juː help miː ˌʌndəstˈand ðə daɪrˈekʃənz ɒn ðɪs ˈleɪbəl/"
+          "/kʊd juː help miː ˌʌndəstˈænd ðə daɪrˈekʃənz ɒn ðɪs ˈleɪbəl/"
         ],
         [
           "Does it say to take this with food?",
@@ -723,7 +723,7 @@
       "sample_ipa": [
         [
           "Are we getting a response from the API at all?",
-          "/ɑː wiː ɡˌetɪŋ ə rɪspˈɒns frʌmðɪ ˌeɪpˌiːˈaɪ at ɔːl/"
+          "/ɑː wiː ɡˌetɪŋ ə rɪspˈɒns frʌmðɪ ˌeɪpˌiːˈaɪ æt ɔːl/"
         ],
         [
           "Could you share the request you used for testing?",
@@ -748,7 +748,7 @@
       "sample_ipa": [
         [
           "Hello, have you got any appointments this afternoon?",
-          "/həlˈəʊ hav juː ɡɒt ˌeni əpˈɔɪntmənts ðɪs ˌaftənˈuːn/"
+          "/həlˈəʊ hæv juː ɡɒt ˌeni əpˈɔɪntmənts ðɪs ˌɑːftənˈuːn/"
         ],
         [
           "How long does a basic haircut usually take?",
@@ -798,7 +798,7 @@
       "sample_ipa": [
         [
           "Is breakfast included in my room rate?",
-          "/ɪz ˈbrekfəst ɪŋklˈuːdɪd ɪn maɪ ruːm reɪt/"
+          "/ɪz ˈbrekfəst ɪnklˈuːdɪd ɪn maɪ ruːm reɪt/"
         ],
         [
           "What time does breakfast finish on weekdays?",
@@ -823,7 +823,7 @@
       "sample_ipa": [
         [
           "Thanks for joining today's workshop.",
-          "/θaŋks fɔː ˈdʒɔɪnɪŋ tədˈeɪz ˈwɜːkʃɒp/"
+          "/θæŋks fɔː ˈdʒɔɪnɪŋ tədˈeɪz ˈwɜːkʃɒp/"
         ],
         [
           "We'd like to leave with a clear technical direction.",
@@ -848,7 +848,7 @@
       "sample_ipa": [
         [
           "Have you got two seats for the evening showing?",
-          "/hav juː ɡɒt tuː siːts fəðɪ ˈiːvnɪŋ ʃəʊɪŋ/"
+          "/hæv juː ɡɒt tuː siːts fəðɪ ˈiːvnɪŋ ʃəʊɪŋ/"
         ],
         [
           "Are those seats next to each other?",
@@ -873,7 +873,7 @@
       "sample_ipa": [
         [
           "Could we recap the decisions before we finish?",
-          "/kʊd wiː rɪkˈap ðə dɪsˈɪʒənz bɪfˌɔː wiː ˈfɪnɪʃ/"
+          "/kʊd wiː rɪkˈæp ðə dɪsˈɪʒənz bɪfˌɔː wiː ˈfɪnɪʃ/"
         ],
         [
           "What still needs a decision from the customer?",
@@ -973,11 +973,11 @@
       "sample_ipa": [
         [
           "Could we find a meeting time that works for both teams?",
-          "/kʊd wiː faɪnd ə ˈmiːtɪŋ taɪm ðat wɜːks fɔː bəʊθ tiːmz/"
+          "/kʊd wiː faɪnd ə ˈmiːtɪŋ taɪm ðæt wɜːks fɔː bəʊθ tiːmz/"
         ],
         [
           "Would an earlier start be manageable for you?",
-          "/wʊd ən ˈɜːlɪə stɑːt biː ˈmanɪdʒəbəl fɔː juː/"
+          "/wʊd ən ˈɜːlɪə stɑːt biː ˈmænɪdʒəbəl fɔː juː/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -998,7 +998,7 @@
       "sample_ipa": [
         [
           "Do you have a desk available for just one day?",
-          "/duː juː hav ə desk əvˈeɪləbəl fɔː dʒʌst wɒn deɪ/"
+          "/duː juː hæv ə desk əvˈeɪləbəl fɔː dʒʌst wɒn deɪ/"
         ],
         [
           "Is there somewhere quiet to take a video call?",
@@ -1023,7 +1023,7 @@
       "sample_ipa": [
         [
           "Could you tell me how to request access to this system?",
-          "/kʊd juː tel miː haʊ tə rɪkwˈest ˈakses tə ðɪs ˈsɪstəm/"
+          "/kʊd juː tel miː haʊ tə rɪkwˈest ˈækses tə ðɪs ˈsɪstəm/"
         ],
         [
           "Who needs to approve the request?",
@@ -1048,11 +1048,11 @@
       "sample_ipa": [
         [
           "Excuse me, are these decorations handmade?",
-          "/ekskjˈuːs miː ɑː ðiːz dˌekərˈeɪʃənz ˈhandmeɪd/"
+          "/ekskjˈuːs miː ɑː ðiːz dˌekərˈeɪʃənz ˈhændmeɪd/"
         ],
         [
           "Could I have a closer look at this one?",
-          "/kʊd aɪ hav ə ˈkləʊsə lʊk at ˈðɪswˌɒn/"
+          "/kʊd aɪ hæv ə ˈkləʊsə lʊk æt ˈðɪswˌɒn/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -1073,7 +1073,7 @@
       "sample_ipa": [
         [
           "Can you give us a brief update on the incident?",
-          "/kan juː ɡɪv ʌs ə briːf ˈʌpdeɪt ɒnðɪ ˈɪnsɪdənt/"
+          "/kæn juː ɡɪv ʌs ə briːf ˈʌpdeɪt ɒnðɪ ˈɪnsɪdənt/"
         ],
         [
           "Do we know whether customers are affected?",
@@ -1098,11 +1098,11 @@
       "sample_ipa": [
         [
           "Hello, I'd like to ask about a refund for this ticket.",
-          "/həlˈəʊ aɪd laɪk tʊ ask əbˌaʊt ə ˈriːfʌnd fɔː ðɪs ˈtɪkɪt/"
+          "/həlˈəʊ aɪd laɪk tʊ ɑːsk əbˌaʊt ə ˈriːfʌnd fɔː ðɪs ˈtɪkɪt/"
         ],
         [
           "The service was cancelled this morning.",
-          "/ðə ˈsɜːvɪs wɒz ˈkansəld ðɪs ˈmɔːnɪŋ/"
+          "/ðə ˈsɜːvɪs wɒz ˈkænsəld ðɪs ˈmɔːnɪŋ/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -1127,7 +1127,7 @@
         ],
         [
           "Who can sign off on the change?",
-          "/huː kan saɪn ɒf ɒnðə tʃeɪndʒ/"
+          "/huː kæn saɪn ɒf ɒnðə tʃeɪndʒ/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -1148,7 +1148,7 @@
       "sample_ipa": [
         [
           "Excuse me, have you run out of this kind of bread?",
-          "/ekskjˈuːs miː hav juː rʌn ˌaʊtəv ðɪs kaɪnd ɒv bred/"
+          "/ekskjˈuːs miː hæv juː rʌn ˌaʊtəv ðɪs kaɪnd ɒv bred/"
         ],
         [
           "Is there something similar you could recommend?",
@@ -1173,11 +1173,11 @@
       "sample_ipa": [
         [
           "Can we check how the release has performed so far?",
-          "/kan wiː tʃek haʊ ðə rɪlˈiːs həz pəfˈɔːmd səʊ fɑː/"
+          "/kæn wiː tʃek haʊ ðə rɪlˈiːs həz pəfˈɔːmd səʊ fɑː/"
         ],
         [
           "Have any customers reported unexpected behaviour?",
-          "/hav ˌeni ˈkʌstəməz rɪpˈɔːtɪd ˌʌnekspˈektɪd bɪhˈeɪvjə/"
+          "/hæv ˌeni ˈkʌstəməz rɪpˈɔːtɪd ˌʌnekspˈektɪd bɪhˈeɪvjə/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -1202,7 +1202,7 @@
         ],
         [
           "I hope you have a lovely break.",
-          "/aɪ həʊp juː hav ə ˈlʌvli breɪk/"
+          "/aɪ həʊp juː hæv ə ˈlʌvli breɪk/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -1227,7 +1227,7 @@
         ],
         [
           "Does the new client support that version?",
-          "/dʌz ðə njuː klaɪənt səpˈɔːt ðat ˈvɜːʃən/"
+          "/dʌz ðə njuː klaɪənt səpˈɔːt ðæt ˈvɜːʃən/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -1248,11 +1248,11 @@
       "sample_ipa": [
         [
           "Have you been waiting long?",
-          "/hav juː biːn ˈweɪtɪŋ lɒŋ/"
+          "/hæv juː biːn ˈweɪtɪŋ lɒŋ/"
         ],
         [
           "Shall we order before we sit down?",
-          "/ʃal wiː ˈɔːdə bɪfˌɔː wiː sɪt daʊn/"
+          "/ʃæl wiː ˈɔːdə bɪfˌɔː wiː sɪt daʊn/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -1273,7 +1273,7 @@
       "sample_ipa": [
         [
           "Could you walk us through the architecture diagram?",
-          "/kʊd juː wɔːk ʌs θruː ðɪ ˈɑːkɪtˌektʃə ˈdaɪəɡrˌam/"
+          "/kʊd juː wɔːk ʌs θruː ðɪ ˈɑːkɪtˌektʃə ˈdaɪəɡrˌæm/"
         ],
         [
           "Where does the user request enter the system?",
@@ -1298,11 +1298,11 @@
       "sample_ipa": [
         [
           "Hello, I'd like to ask about returning this gift.",
-          "/həlˈəʊ aɪd laɪk tʊ ask əbˌaʊt rɪtˈɜːnɪŋ ðɪs ɡɪft/"
+          "/həlˈəʊ aɪd laɪk tʊ ɑːsk əbˌaʊt rɪtˈɜːnɪŋ ðɪs ɡɪft/"
         ],
         [
           "I have a gift receipt, but I didn't buy it myself.",
-          "/aɪ hav ə ɡɪft rɪsˈiːt bʌt aɪ dɪdnt baɪ ɪt maɪsˈelf/"
+          "/aɪ hæv ə ɡɪft rɪsˈiːt bʌt aɪ dɪdnt baɪ ɪt maɪsˈelf/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -1323,7 +1323,7 @@
       "sample_ipa": [
         [
           "Can we check whether this document is confidential?",
-          "/kan wiː tʃek ˈweðə ðɪs ˈdɒkjuːmənt ɪz kˌɒnfɪdˈenʃəl/"
+          "/kæn wiː tʃek ˈweðə ðɪs ˈdɒkjuːmənt ɪz kˌɒnfɪdˈenʃəl/"
         ],
         [
           "Should we avoid putting those figures on the shared screen?",
@@ -1348,11 +1348,11 @@
       "sample_ipa": [
         [
           "My flight has been delayed, so I may need another night.",
-          "/maɪ flaɪt ˈhazbiːn dɪlˈeɪd səʊ aɪ meɪ niːd ənˈʌðə naɪt/"
+          "/maɪ flaɪt həzbɪn dɪlˈeɪd səʊ aɪ meɪ niːd ənˈʌðə naɪt/"
         ],
         [
           "Could I stay in the same room if possible?",
-          "/kʊd aɪ steɪ ɪnðə seɪm ruːm ɪf ˈpɒsɪbəl/"
+          "/kʊd aɪ steɪ ɪnðə seɪm ruːm ɪf ˈpɒsəbəl/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -1377,7 +1377,7 @@
         ],
         [
           "What's the biggest risk we should address first?",
-          "/wɒts ðə ˈbɪɡɪst rɪsk wiː ʃʊd ədrˈes fɜːst/"
+          "/wɒts ðə ˈbɪɡəst rɪsk wiː ʃʊd ədrˈes fɜːst/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -1398,7 +1398,7 @@
       "sample_ipa": [
         [
           "Excuse me, are you open over the bank holiday?",
-          "/ekskjˈuːs miː ɑː juː ˈəʊpən ˌəʊvə ðə baŋk ˈhɒlɪdˌeɪ/"
+          "/ekskjˈuːs miː ɑː juː ˈəʊpən ˌəʊvə ðə bæŋk ˈhɒlɪdˌeɪ/"
         ],
         [
           "What time do you close tomorrow?",
@@ -1423,11 +1423,11 @@
       "sample_ipa": [
         [
           "Could we go over the open tasks before I take leave?",
-          "/kʊd wiː ɡəʊ ˌəʊvə ðɪ ˈəʊpən tasks bɪfˌɔːr aɪ teɪk liːv/"
+          "/kʊd wiː ɡəʊ ˌəʊvə ðɪ ˈəʊpən tɑːsks bɪfˌɔːr aɪ teɪk liːv/"
         ],
         [
           "Who can cover urgent customer questions while I'm away?",
-          "/huː kan ˈkʌvər ˈɜːdʒənt ˈkʌstəmə ˈkwestʃənz waɪl aɪm əwˈeɪ/"
+          "/huː kæn ˈkʌvər ˈɜːdʒənt ˈkʌstəmə ˈkwestʃənz waɪl aɪm əwˈeɪ/"
         ]
       ],
       "needs_editorial_ipa_review": true
@@ -1448,7 +1448,7 @@
       "sample_ipa": [
         [
           "Hello, we have a booking for two under Chen.",
-          "/həlˈəʊ wiː hav ə ˈbʊkɪŋ fɔː tuː ˌʌndə tʃen/"
+          "/həlˈəʊ wiː hæv ə ˈbʊkɪŋ fɔː tuː ˌʌndə tʃen/"
         ],
         [
           "Do you know roughly how long we'll need to wait?",
@@ -1498,11 +1498,11 @@
       "sample_ipa": [
         [
           "What's the easiest way to get to the airport from here?",
-          "/wɒts ðɪ ˈiːziɪst weɪ tə ɡet tə ðɪ ˈeəpɔːt frɒm hiə/"
+          "/wɒts ðɪ ˈiːzɪəst weɪ tə ɡet tə ðɪ ˈeəpɔːt frɒm hiə/"
         ],
         [
           "How early should I leave for a morning flight?",
-          "/haʊ ˈɜːlɪ ʃʊd aɪ liːv fərə ˈmɔːnɪŋ flaɪt/"
+          "/haʊ ˈɜːli ʃʊd aɪ liːv fərə ˈmɔːnɪŋ flaɪt/"
         ]
       ],
       "needs_editorial_ipa_review": true
