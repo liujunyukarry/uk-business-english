@@ -1,0 +1,35 @@
+name: Build UK English Q4 review candidates
+on:
+  push:
+    branches: [ukbe-2026-q4-review]
+    paths:
+      - "tools/build_q4_review.py"
+      - "planning/extension-2026-days*-draft.json"
+      - ".github/workflows/q4-review.yml"
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out review branch
+        uses: actions/checkout@v4
+        with:
+          ref: ukbe-2026-q4-review
+          persist-credentials: true
+      - name: Install British English phonemizer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y espeak-ng
+      - name: Generate QA-gated candidates
+        run: python3 tools/build_q4_review.py
+      - name: Save candidate pages to review branch only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add day*.html course-plan.json planning/extension-2026-qa-review.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Generate 60 candidate days (QA review required before release)"
+            git push origin HEAD:ukbe-2026-q4-review
+          fi
