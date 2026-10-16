@@ -1,5 +1,5 @@
 {
-  "version": "ukbe-balanced-natural-20261016-v4",
+  "version": "ukbe-q4-review-only-20261016",
   "startDate": "2026-08-25",
   "updated": "2026-10-16",
   "targetMix": {
@@ -559,6 +559,486 @@
       "title": "电话订餐与确认人数",
       "english": "Booking a Table by Phone",
       "path": "day69.html"
+    },
+    {
+      "day": 70,
+      "date": "2026-11-02",
+      "category": "工作",
+      "title": "接手新任务前确认背景",
+      "english": "Clarifying Task Context",
+      "path": "day70.html"
+    },
+    {
+      "day": 71,
+      "date": "2026-11-03",
+      "category": "日常",
+      "title": "火车晚点与替代路线",
+      "english": "Train Delays and Alternatives",
+      "path": "day71.html"
+    },
+    {
+      "day": 72,
+      "date": "2026-11-04",
+      "category": "工作",
+      "title": "一周工作优先级",
+      "english": "Prioritising This Week",
+      "path": "day72.html"
+    },
+    {
+      "day": 73,
+      "date": "2026-11-05",
+      "category": "日常",
+      "title": "询问食物过敏原",
+      "english": "Asking About Allergens",
+      "path": "day73.html"
+    },
+    {
+      "day": 74,
+      "date": "2026-11-06",
+      "category": "工作",
+      "title": "明确验收标准",
+      "english": "Agreeing Acceptance Criteria",
+      "path": "day74.html"
+    },
+    {
+      "day": 75,
+      "date": "2026-11-07",
+      "category": "日常",
+      "title": "酒店代收包裹",
+      "english": "Collecting a Hotel Parcel",
+      "path": "day75.html"
+    },
+    {
+      "day": 76,
+      "date": "2026-11-08",
+      "category": "工作",
+      "title": "比较两个方案",
+      "english": "Comparing Options",
+      "path": "day76.html"
+    },
+    {
+      "day": 77,
+      "date": "2026-11-09",
+      "category": "日常",
+      "title": "遗失物品求助",
+      "english": "Asking About Lost Property",
+      "path": "day77.html"
+    },
+    {
+      "day": 78,
+      "date": "2026-11-10",
+      "category": "工作",
+      "title": "复现与汇报缺陷",
+      "english": "Reproducing a Bug",
+      "path": "day78.html"
+    },
+    {
+      "day": 79,
+      "date": "2026-11-11",
+      "category": "日常",
+      "title": "参观博物馆与预约",
+      "english": "Booking a Museum Visit",
+      "path": "day79.html"
+    },
+    {
+      "day": 80,
+      "date": "2026-11-12",
+      "category": "工作",
+      "title": "跨团队依赖沟通",
+      "english": "Cross-Team Dependencies",
+      "path": "day80.html"
+    },
+    {
+      "day": 81,
+      "date": "2026-11-13",
+      "category": "日常",
+      "title": "酒店洗衣服务",
+      "english": "Using a Laundry Service",
+      "path": "day81.html"
+    },
+    {
+      "day": 82,
+      "date": "2026-11-14",
+      "category": "工作",
+      "title": "复盘中表达改进建议",
+      "english": "Giving Retrospective Feedback",
+      "path": "day82.html"
+    },
+    {
+      "day": 83,
+      "date": "2026-11-15",
+      "category": "日常",
+      "title": "公交改线与临时站点",
+      "english": "Bus Diversions",
+      "path": "day83.html"
+    },
+    {
+      "day": 84,
+      "date": "2026-11-16",
+      "category": "工作",
+      "title": "礼貌升级阻塞问题",
+      "english": "Escalating a Blocker",
+      "path": "day84.html"
+    },
+    {
+      "day": 85,
+      "date": "2026-11-17",
+      "category": "日常",
+      "title": "叫外卖与核对地址",
+      "english": "Ordering Delivery",
+      "path": "day85.html"
+    },
+    {
+      "day": 86,
+      "date": "2026-11-18",
+      "category": "工作",
+      "title": "发布安排与风险沟通",
+      "english": "Explaining a Release Plan",
+      "path": "day86.html"
+    },
+    {
+      "day": 87,
+      "date": "2026-11-19",
+      "category": "日常",
+      "title": "出门前查看天气",
+      "english": "Talking About the Weather",
+      "path": "day87.html"
+    },
+    {
+      "day": 88,
+      "date": "2026-11-20",
+      "category": "工作",
+      "title": "工作交接与责任分工",
+      "english": "Handover and Ownership",
+      "path": "day88.html"
+    },
+    {
+      "day": 89,
+      "date": "2026-11-21",
+      "category": "日常",
+      "title": "取现与ATM求助",
+      "english": "Using a Cash Machine",
+      "path": "day89.html"
+    },
+    {
+      "day": 90,
+      "date": "2026-11-22",
+      "category": "工作",
+      "title": "展示原型并收集意见",
+      "english": "Showing a Prototype",
+      "path": "day90.html"
+    },
+    {
+      "day": 91,
+      "date": "2026-11-23",
+      "category": "日常",
+      "title": "健身房咨询单次入场",
+      "english": "Asking About a Gym Day Pass",
+      "path": "day91.html"
+    },
+    {
+      "day": 92,
+      "date": "2026-11-24",
+      "category": "工作",
+      "title": "发现数据质量问题",
+      "english": "Discussing Data Quality",
+      "path": "day92.html"
+    },
+    {
+      "day": 93,
+      "date": "2026-11-25",
+      "category": "日常",
+      "title": "周末城市步行游览",
+      "english": "Planning a Walking Tour",
+      "path": "day93.html"
+    },
+    {
+      "day": 94,
+      "date": "2026-11-26",
+      "category": "工作",
+      "title": "整理客户反馈",
+      "english": "Summarising Customer Feedback",
+      "path": "day94.html"
+    },
+    {
+      "day": 95,
+      "date": "2026-11-27",
+      "category": "日常",
+      "title": "餐厅分开结账",
+      "english": "Splitting the Bill",
+      "path": "day95.html"
+    },
+    {
+      "day": 96,
+      "date": "2026-11-28",
+      "category": "工作",
+      "title": "协商可交付时间",
+      "english": "Negotiating Delivery Dates",
+      "path": "day96.html"
+    },
+    {
+      "day": 97,
+      "date": "2026-11-29",
+      "category": "日常",
+      "title": "药店咨询用药说明",
+      "english": "Clarifying Pharmacy Instructions",
+      "path": "day97.html"
+    },
+    {
+      "day": 98,
+      "date": "2026-11-30",
+      "category": "工作",
+      "title": "排查API对接问题",
+      "english": "Troubleshooting an API",
+      "path": "day98.html"
+    },
+    {
+      "day": 99,
+      "date": "2026-12-01",
+      "category": "日常",
+      "title": "理发预约与沟通",
+      "english": "Booking a Haircut",
+      "path": "day99.html"
+    },
+    {
+      "day": 100,
+      "date": "2026-12-02",
+      "category": "工作",
+      "title": "讨论技术债优先级",
+      "english": "Prioritising Technical Debt",
+      "path": "day100.html"
+    },
+    {
+      "day": 101,
+      "date": "2026-12-03",
+      "category": "日常",
+      "title": "酒店早餐时间与选择",
+      "english": "Asking About Breakfast",
+      "path": "day101.html"
+    },
+    {
+      "day": 102,
+      "date": "2026-12-04",
+      "category": "工作",
+      "title": "主持技术讨论工作坊",
+      "english": "Opening a Workshop",
+      "path": "day102.html"
+    },
+    {
+      "day": 103,
+      "date": "2026-12-05",
+      "category": "日常",
+      "title": "电影院买票与选座",
+      "english": "Booking Cinema Tickets",
+      "path": "day103.html"
+    },
+    {
+      "day": 104,
+      "date": "2026-12-06",
+      "category": "工作",
+      "title": "总结研讨会结论",
+      "english": "Closing a Workshop",
+      "path": "day104.html"
+    },
+    {
+      "day": 105,
+      "date": "2026-12-07",
+      "category": "日常",
+      "title": "航班登机口变化",
+      "english": "Handling a Gate Change",
+      "path": "day105.html"
+    },
+    {
+      "day": 106,
+      "date": "2026-12-08",
+      "category": "工作",
+      "title": "讨论测试覆盖范围",
+      "english": "Discussing Test Coverage",
+      "path": "day106.html"
+    },
+    {
+      "day": 107,
+      "date": "2026-12-09",
+      "category": "日常",
+      "title": "挑选礼物与退换政策",
+      "english": "Buying a Gift",
+      "path": "day107.html"
+    },
+    {
+      "day": 108,
+      "date": "2026-12-10",
+      "category": "工作",
+      "title": "跨时区远程协作",
+      "english": "Coordinating Across Time Zones",
+      "path": "day108.html"
+    },
+    {
+      "day": 109,
+      "date": "2026-12-11",
+      "category": "日常",
+      "title": "临时共享办公空间",
+      "english": "Booking a Workspace",
+      "path": "day109.html"
+    },
+    {
+      "day": 110,
+      "date": "2026-12-12",
+      "category": "工作",
+      "title": "申请系统访问权限",
+      "english": "Requesting System Access",
+      "path": "day110.html"
+    },
+    {
+      "day": 111,
+      "date": "2026-12-13",
+      "category": "日常",
+      "title": "圣诞集市购物交流",
+      "english": "At a Christmas Market",
+      "path": "day111.html"
+    },
+    {
+      "day": 112,
+      "date": "2026-12-14",
+      "category": "工作",
+      "title": "线上故障信息同步",
+      "english": "Updating an Incident",
+      "path": "day112.html"
+    },
+    {
+      "day": 113,
+      "date": "2026-12-15",
+      "category": "日常",
+      "title": "火车票退票咨询",
+      "english": "Asking for a Train Refund",
+      "path": "day113.html"
+    },
+    {
+      "day": 114,
+      "date": "2026-12-16",
+      "category": "工作",
+      "title": "变更审批流程",
+      "english": "Requesting Change Approval",
+      "path": "day114.html"
+    },
+    {
+      "day": 115,
+      "date": "2026-12-17",
+      "category": "日常",
+      "title": "超市缺货时替换商品",
+      "english": "Finding Alternatives in a Shop",
+      "path": "day115.html"
+    },
+    {
+      "day": 116,
+      "date": "2026-12-18",
+      "category": "工作",
+      "title": "发布后回顾效果",
+      "english": "Reviewing a Release",
+      "path": "day116.html"
+    },
+    {
+      "day": 117,
+      "date": "2026-12-19",
+      "category": "日常",
+      "title": "圣诞节节日问候",
+      "english": "Seasonal Greetings",
+      "path": "day117.html"
+    },
+    {
+      "day": 118,
+      "date": "2026-12-20",
+      "category": "工作",
+      "title": "确认软件版本兼容",
+      "english": "Checking Version Compatibility",
+      "path": "day118.html"
+    },
+    {
+      "day": 119,
+      "date": "2026-12-21",
+      "category": "日常",
+      "title": "咖啡馆接待朋友",
+      "english": "Meeting a Friend for Coffee",
+      "path": "day119.html"
+    },
+    {
+      "day": 120,
+      "date": "2026-12-22",
+      "category": "工作",
+      "title": "讲解系统架构图",
+      "english": "Walking Through a Diagram",
+      "path": "day120.html"
+    },
+    {
+      "day": 121,
+      "date": "2026-12-23",
+      "category": "日常",
+      "title": "节礼日退换商品",
+      "english": "Returns After Christmas",
+      "path": "day121.html"
+    },
+    {
+      "day": 122,
+      "date": "2026-12-24",
+      "category": "工作",
+      "title": "会议中处理敏感信息",
+      "english": "Handling Confidential Details",
+      "path": "day122.html"
+    },
+    {
+      "day": 123,
+      "date": "2026-12-25",
+      "category": "日常",
+      "title": "航班延误后延住酒店",
+      "english": "Extending a Hotel Stay",
+      "path": "day123.html"
+    },
+    {
+      "day": 124,
+      "date": "2026-12-26",
+      "category": "工作",
+      "title": "制定新年目标与计划",
+      "english": "Planning the New Year",
+      "path": "day124.html"
+    },
+    {
+      "day": 125,
+      "date": "2026-12-27",
+      "category": "日常",
+      "title": "节假日期间确认营业",
+      "english": "Checking Holiday Opening",
+      "path": "day125.html"
+    },
+    {
+      "day": 126,
+      "date": "2026-12-28",
+      "category": "工作",
+      "title": "请假前交接工作",
+      "english": "Handover Before Leave",
+      "path": "day126.html"
+    },
+    {
+      "day": 127,
+      "date": "2026-12-29",
+      "category": "日常",
+      "title": "等待预订餐桌",
+      "english": "Waiting for a Table",
+      "path": "day127.html"
+    },
+    {
+      "day": 128,
+      "date": "2026-12-30",
+      "category": "工作",
+      "title": "回顾年度经验教训",
+      "english": "Summarising Lessons Learned",
+      "path": "day128.html"
+    },
+    {
+      "day": 129,
+      "date": "2026-12-31",
+      "category": "日常",
+      "title": "规划返程交通",
+      "english": "Planning the Journey Home",
+      "path": "day129.html"
     }
   ]
 }
