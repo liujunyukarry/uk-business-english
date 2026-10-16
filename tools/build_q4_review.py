@@ -14,7 +14,7 @@ DRAFTS=[
 def ipa_of(sentence):
     exe=shutil.which("espeak-ng") or shutil.which("espeak")
     if not exe: raise RuntimeError("espeak-ng/espeak unavailable; stop rather than omit IPA")
-    result=subprocess.run([exe,"-v","en-gb","--ipa=3","-q",sentence],capture_output=True,text=True,check=True).stdout
+    result=subprocess.run([exe,"-v","en-uk-rp","--ipa=3","-q",sentence],capture_output=True,text=True,check=True).stdout
     # Convert the raw eSpeak pronunciation alphabet to broad English-learning notation.
     # Draft must still receive a separate human phonetic review before merging to main.
     result=" ".join(result.split())
