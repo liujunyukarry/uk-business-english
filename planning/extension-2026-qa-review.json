@@ -1,0 +1,1511 @@
+{
+  "status": "AUTOMATED CHECKS PASSED — MANUAL IPA AND SEMANTIC REVIEW REQUIRED BEFORE PUBLISHING",
+  "pages": 60,
+  "main_sentences": 600,
+  "daily": 30,
+  "work": 30,
+  "first_date": "2026-11-02",
+  "last_date": "2026-12-31",
+  "per_page": [
+    {
+      "day": 70,
+      "date": "2026-11-02",
+      "title": "接手新任务前确认背景",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Could you give me a bit of background on this task?",
+          "/kʊd juː ɡɪv miː ə bɪt ɒv ˈbakɡraʊnd ɒn ðɪs task/"
+        ],
+        [
+          "What's the most important outcome we're aiming for?",
+          "/wɒts ðə məʊst ɪmpˈɔːtənt ˈaʊtkʌm wiər ˈeɪmɪŋ fɔː/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 71,
+      "date": "2026-11-03",
+      "title": "火车晚点与替代路线",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Excuse me, is the train to Oxford delayed?",
+          "/ekskjˈuːs miː ɪz ðə treɪn tʊ ˈɒksfəd dɪlˈeɪd/"
+        ],
+        [
+          "Is there another service I could take?",
+          "/ɪz ðeər ənˈʌðə ˈsɜːvɪs aɪ kʊd teɪk/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 72,
+      "date": "2026-11-04",
+      "title": "一周工作优先级",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Can we go over the priorities for this week?",
+          "/kan wiː ɡəʊ ˌəʊvə ðə praɪˈɒrɪtiz fɔː ðɪs wiːk/"
+        ],
+        [
+          "Does that mean we should pause the smaller task?",
+          "/dʌz ðat miːn wiː ʃʊd pɔːz ðə ˈsmɔːlə task/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 73,
+      "date": "2026-11-05",
+      "title": "询问食物过敏原",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Could you tell me if this dish contains nuts?",
+          "/kʊd juː tel miː ɪf ðɪs dɪʃ kəntˈeɪnz nʌts/"
+        ],
+        [
+          "Is the sauce served separately?",
+          "/ɪz ðə sɔːs sɜːvd ˈseprətli/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 74,
+      "date": "2026-11-06",
+      "title": "明确验收标准",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "How will we know when this feature is finished?",
+          "/haʊ wɪl wiː nəʊ wen ðɪs ˈfiːtʃər ɪz ˈfɪnɪʃt/"
+        ],
+        [
+          "Could you give me an example of the expected result?",
+          "/kʊd juː ɡɪv miː ən eɡzˈampəl ɒvðɪ ekspˈektɪd rɪzˈʌlt/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 75,
+      "date": "2026-11-07",
+      "title": "酒店代收包裹",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Hello, I'm expecting a parcel at reception.",
+          "/həlˈəʊ aɪm ekspˈektɪŋ ə ˈpɑːsəl at rɪsˈepʃən/"
+        ],
+        [
+          "It's under Chen, room three twelve.",
+          "/ɪts ˌʌndə tʃen ruːm θriː twelv/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 76,
+      "date": "2026-11-08",
+      "title": "比较两个方案",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Could we compare the two options side by side?",
+          "/kʊd wiː kəmpˈeə ðə tuː ˈɒpʃənz saɪd baɪ saɪd/"
+        ],
+        [
+          "What are we giving up with that approach?",
+          "/wɒt ɑː wiː ˈɡɪvɪŋ ʌp wɪð ðat əprˈəʊtʃ/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 77,
+      "date": "2026-11-09",
+      "title": "遗失物品求助",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Excuse me, I think I've left my umbrella here.",
+          "/ekskjˈuːs miː aɪ θɪŋk aɪv left maɪ ʌmbrˈelə hiə/"
+        ],
+        [
+          "I had it when I came in this morning.",
+          "/aɪ hˌadɪt wen aɪ keɪm ɪn ðɪs ˈmɔːnɪŋ/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 78,
+      "date": "2026-11-10",
+      "title": "复现与汇报缺陷",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Could you show me how to reproduce the issue?",
+          "/kʊd juː ʃəʊ miː haʊ tə rɪprədjˈuːs ðɪ ˈɪʃuː/"
+        ],
+        [
+          "Does it happen every time or only occasionally?",
+          "/dʌz ɪt ˈhapən ˈevrɪ taɪm ɔːr ˈəʊnli əkˈeɪʒənəli/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 79,
+      "date": "2026-11-11",
+      "title": "参观博物馆与预约",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Do we need to book a time slot in advance?",
+          "/duː wiː niːd tə bʊk ə taɪm slɒt ɪn ədvˈans/"
+        ],
+        [
+          "Are there any tickets left for this afternoon?",
+          "/ɑː ðeər ˌeni ˈtɪkɪts left fɔː ðɪs ˌaftənˈuːn/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 80,
+      "date": "2026-11-12",
+      "title": "跨团队依赖沟通",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Are we waiting on another team for this change?",
+          "/ɑː wiː ˈweɪtɪŋ ɒn ənˈʌðə tiːm fɔː ðɪs tʃeɪndʒ/"
+        ],
+        [
+          "Who owns that part of the integration?",
+          "/huː əʊnz ðat pɑːt ɒvðɪ ˌɪntɪɡrˈeɪʃən/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 81,
+      "date": "2026-11-13",
+      "title": "酒店洗衣服务",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Does the hotel offer a laundry service?",
+          "/dʌz ðə həʊtˈel ˈɒfər ə ˈlɔːndri ˈsɜːvɪs/"
+        ],
+        [
+          "Could I have this shirt washed by tomorrow?",
+          "/kʊd aɪ hav ðɪs ʃɜːt wɒʃt baɪ təmˈɒrəʊ/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 82,
+      "date": "2026-11-14",
+      "title": "复盘中表达改进建议",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Could we start with what went well?",
+          "/kʊd wiː stɑːt wɪð wɒt went wel/"
+        ],
+        [
+          "What caused the delays near the end?",
+          "/wɒt kɔːzd ðə dɪlˈeɪz niə ðɪ end/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 83,
+      "date": "2026-11-15",
+      "title": "公交改线与临时站点",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Excuse me, does this bus still stop at the station?",
+          "/ekskjˈuːs miː dʌz ðɪs bʌs stɪl stɒp at ðə ˈsteɪʃən/"
+        ],
+        [
+          "Where's the temporary stop, please?",
+          "/weəz ðə ˈtemprəri stɒp pliːz/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 84,
+      "date": "2026-11-16",
+      "title": "礼貌升级阻塞问题",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Could I raise a blocker that needs a decision?",
+          "/kʊd aɪ reɪz ə ˈblɒkə ðat niːdz ə dɪsˈɪʒən/"
+        ],
+        [
+          "We're still waiting for access to the test system.",
+          "/wiə stɪl ˈweɪtɪŋ fɔːr ˈakses tə ðə test ˈsɪstəm/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 85,
+      "date": "2026-11-17",
+      "title": "叫外卖与核对地址",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Could I place an order for delivery, please?",
+          "/kʊd aɪ pleɪs ən ˈɔːdə fɔː dɪlˈɪvəri pliːz/"
+        ],
+        [
+          "Could you read the postcode back to me?",
+          "/kʊd juː riːd ðə ˈpəʊstkəʊd bak tə miː/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 86,
+      "date": "2026-11-18",
+      "title": "发布安排与风险沟通",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Can we walk through the release plan together?",
+          "/kan wiː wɔːk θruː ðə rɪlˈiːs plan təɡˈeðə/"
+        ],
+        [
+          "How long is the planned maintenance window?",
+          "/haʊ lɒŋ ɪz ðə pland ˈmeɪntənəns ˈwɪndəʊ/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 87,
+      "date": "2026-11-19",
+      "title": "出门前查看天气",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "What's the forecast looking like for this afternoon?",
+          "/wɒts ðə ˈfɔːkast ˈlʊkɪŋ laɪk fɔː ðɪs ˌaftənˈuːn/"
+        ],
+        [
+          "Would you take a coat or just an umbrella?",
+          "/wʊd juː teɪk ə kəʊt ɔː dʒʌst ən ʌmbrˈelə/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 88,
+      "date": "2026-11-20",
+      "title": "工作交接与责任分工",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Could you run me through what's been handed over?",
+          "/kʊd juː rʌn miː θruː wɒts biːn ˈhandɪd ˈəʊvə/"
+        ],
+        [
+          "Who should respond if the customer reports an issue?",
+          "/huː ʃʊd rɪspˈɒnd ɪf ðə ˈkʌstəmə rɪpˈɔːts ən ˈɪʃuː/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 89,
+      "date": "2026-11-21",
+      "title": "取现与ATM求助",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Excuse me, is there a cash machine nearby?",
+          "/ekskjˈuːs miː ɪz ðeər ə kaʃ məʃˈiːn niəbˈaɪ/"
+        ],
+        [
+          "Does this machine charge a withdrawal fee?",
+          "/dʌz ðɪs məʃˈiːn tʃɑːdʒ ə wɪθdrˈɔːl fiː/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 90,
+      "date": "2026-11-22",
+      "title": "展示原型并收集意见",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Could I show you a quick prototype of the new screen?",
+          "/kʊd aɪ ʃəʊ juː ə kwɪk ˈprəʊtəʊtˌaɪp ɒvðə njuː skriːn/"
+        ],
+        [
+          "What's the first thing a user would do here?",
+          "/wɒts ðə fɜːst θɪŋ ə ˈjuːzə wʊd duː hiə/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 91,
+      "date": "2026-11-23",
+      "title": "健身房咨询单次入场",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Hello, do you offer a day pass for visitors?",
+          "/həlˈəʊ duː juː ˈɒfər ə deɪ pas fɔː ˈvɪzɪtəz/"
+        ],
+        [
+          "Does the pass include the swimming pool?",
+          "/dʌz ðə pas ɪŋklˈuːd ðə ˈswɪmɪŋ puːl/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 92,
+      "date": "2026-11-24",
+      "title": "发现数据质量问题",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "I've noticed some gaps in yesterday's data.",
+          "/aɪv ˈnəʊtɪst sʌm ɡaps ɪn ˈjestədˌeɪz ˈdeɪtə/"
+        ],
+        [
+          "It seems to be limited to one source system.",
+          "/ɪt siːmz təbi ˈlɪmɪtɪd tə wɒn sɔːs ˈsɪstəm/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 93,
+      "date": "2026-11-25",
+      "title": "周末城市步行游览",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Is this area easy to explore on foot?",
+          "/ɪz ðɪs ˈeəriər ˈiːzi tʊ eksplˈɔːr ɒn fʊt/"
+        ],
+        [
+          "How long would the whole walk take?",
+          "/haʊ lɒŋ wʊd ðə həʊl wɔːk teɪk/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 94,
+      "date": "2026-11-26",
+      "title": "整理客户反馈",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Can we go through the feedback from the pilot?",
+          "/kan wiː ɡəʊ θruː ðə ˈfiːdbak frʌmðə ˈpaɪlət/"
+        ],
+        [
+          "Which problems came up more than once?",
+          "/wɪtʃ ˈprɒbləmz keɪm ʌp mɔː ðən wʌns/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 95,
+      "date": "2026-11-27",
+      "title": "餐厅分开结账",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Would it be possible to split the bill, please?",
+          "/wʊd ɪt biː ˈpɒsɪbəl tə splɪt ðə bɪl pliːz/"
+        ],
+        [
+          "Could we each pay for what we ordered?",
+          "/kʊd wiː iːtʃ peɪ fɔː wɒt wiː ˈɔːdəd/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 96,
+      "date": "2026-11-28",
+      "title": "协商可交付时间",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Could we review the proposed delivery date?",
+          "/kʊd wiː rɪvjˈuː ðə prəpˈəʊzd dɪlˈɪvəri deɪt/"
+        ],
+        [
+          "The customer wants to test it before the weekend.",
+          "/ðə ˈkʌstəmə wɒnts tə test ɪt bɪfˌɔː ðə wiːkˈend/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 97,
+      "date": "2026-11-29",
+      "title": "药店咨询用药说明",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Could you help me understand the directions on this label?",
+          "/kʊd juː help miː ˌʌndəstˈand ðə daɪrˈekʃənz ɒn ðɪs ˈleɪbəl/"
+        ],
+        [
+          "Does it say to take this with food?",
+          "/dʌz ɪt seɪ tə teɪk ðɪs wɪð fuːd/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 98,
+      "date": "2026-11-30",
+      "title": "排查API对接问题",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Are we getting a response from the API at all?",
+          "/ɑː wiː ɡˌetɪŋ ə rɪspˈɒns frʌmðɪ ˌeɪpˌiːˈaɪ at ɔːl/"
+        ],
+        [
+          "Could you share the request you used for testing?",
+          "/kʊd juː ʃeə ðə rɪkwˈest juː juːzd fɔː ˈtestɪŋ/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 99,
+      "date": "2026-12-01",
+      "title": "理发预约与沟通",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Hello, have you got any appointments this afternoon?",
+          "/həlˈəʊ hav juː ɡɒt ˌeni əpˈɔɪntmənts ðɪs ˌaftənˈuːn/"
+        ],
+        [
+          "How long does a basic haircut usually take?",
+          "/haʊ lɒŋ dʌz ə ˈbeɪsɪk ˈheəkʌt ˈjuːʒuːəli teɪk/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 100,
+      "date": "2026-12-02",
+      "title": "讨论技术债优先级",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Should we set aside time for the old module?",
+          "/ʃʊd wiː set əsˈaɪd taɪm fəðɪ əʊld ˈmɒdjuːl/"
+        ],
+        [
+          "It's making simple changes take much longer.",
+          "/ɪts mˌeɪkɪŋ ˈsɪmpəl ˈtʃeɪndʒɪz teɪk mʌtʃ ˈlɒŋɡə/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 101,
+      "date": "2026-12-03",
+      "title": "酒店早餐时间与选择",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Is breakfast included in my room rate?",
+          "/ɪz ˈbrekfəst ɪŋklˈuːdɪd ɪn maɪ ruːm reɪt/"
+        ],
+        [
+          "What time does breakfast finish on weekdays?",
+          "/wɒt taɪm dʌz ˈbrekfəst ˈfɪnɪʃ ɒn ˈwiːkdeɪz/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 102,
+      "date": "2026-12-04",
+      "title": "主持技术讨论工作坊",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Thanks for joining today's workshop.",
+          "/θaŋks fɔː ˈdʒɔɪnɪŋ tədˈeɪz ˈwɜːkʃɒp/"
+        ],
+        [
+          "We'd like to leave with a clear technical direction.",
+          "/wiːd laɪk tə liːv wɪð ə kliə ˈteknɪkəl daɪrˈekʃən/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 103,
+      "date": "2026-12-05",
+      "title": "电影院买票与选座",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Have you got two seats for the evening showing?",
+          "/hav juː ɡɒt tuː siːts fəðɪ ˈiːvnɪŋ ʃəʊɪŋ/"
+        ],
+        [
+          "Are those seats next to each other?",
+          "/ɑː ðəʊz siːts nekst tʊ iːtʃ ˈʌðə/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 104,
+      "date": "2026-12-06",
+      "title": "总结研讨会结论",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Could we recap the decisions before we finish?",
+          "/kʊd wiː rɪkˈap ðə dɪsˈɪʒənz bɪfˌɔː wiː ˈfɪnɪʃ/"
+        ],
+        [
+          "What still needs a decision from the customer?",
+          "/wɒt stɪl niːdz ə dɪsˈɪʒən frʌmðə ˈkʌstəmə/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 105,
+      "date": "2026-12-07",
+      "title": "航班登机口变化",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Excuse me, has the gate for this flight changed?",
+          "/ekskjˈuːs miː həz ðə ɡeɪt fɔː ðɪs flaɪt tʃeɪndʒd/"
+        ],
+        [
+          "Is it far from here?",
+          "/ɪz ɪt fɑː frɒm hiə/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 106,
+      "date": "2026-12-08",
+      "title": "讨论测试覆盖范围",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Which parts of the feature are covered by tests?",
+          "/wɪtʃ pɑːts ɒvðə ˈfiːtʃər ɑː ˈkʌvəd baɪ tests/"
+        ],
+        [
+          "What about cases where the external service times out?",
+          "/wɒt əbˌaʊt ˈkeɪsɪz weə ðɪ ekstˈɜːnəl ˈsɜːvɪs taɪmz aʊt/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 107,
+      "date": "2026-12-09",
+      "title": "挑选礼物与退换政策",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "I'm looking for a small gift for a colleague.",
+          "/aɪm ˈlʊkɪŋ fərə smɔːl ɡɪft fərə ˈkɒliːɡ/"
+        ],
+        [
+          "Something local would be nice, but not too expensive.",
+          "/ˈsʌmθɪŋ ˈləʊkəl wʊd biː naɪs bʌt nɒt tuː ekspˈensɪv/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 108,
+      "date": "2026-12-10",
+      "title": "跨时区远程协作",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Could we find a meeting time that works for both teams?",
+          "/kʊd wiː faɪnd ə ˈmiːtɪŋ taɪm ðat wɜːks fɔː bəʊθ tiːmz/"
+        ],
+        [
+          "Would an earlier start be manageable for you?",
+          "/wʊd ən ˈɜːlɪə stɑːt biː ˈmanɪdʒəbəl fɔː juː/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 109,
+      "date": "2026-12-11",
+      "title": "临时共享办公空间",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Do you have a desk available for just one day?",
+          "/duː juː hav ə desk əvˈeɪləbəl fɔː dʒʌst wɒn deɪ/"
+        ],
+        [
+          "Is there somewhere quiet to take a video call?",
+          "/ɪz ðeə ˈsʌmweə kwaɪət tə teɪk ə ˈvɪdɪəʊ kɔːl/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 110,
+      "date": "2026-12-12",
+      "title": "申请系统访问权限",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Could you tell me how to request access to this system?",
+          "/kʊd juː tel miː haʊ tə rɪkwˈest ˈakses tə ðɪs ˈsɪstəm/"
+        ],
+        [
+          "Who needs to approve the request?",
+          "/huː niːdz tʊ əprˈuːv ðə rɪkwˈest/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 111,
+      "date": "2026-12-13",
+      "title": "圣诞集市购物交流",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Excuse me, are these decorations handmade?",
+          "/ekskjˈuːs miː ɑː ðiːz dˌekərˈeɪʃənz ˈhandmeɪd/"
+        ],
+        [
+          "Could I have a closer look at this one?",
+          "/kʊd aɪ hav ə ˈkləʊsə lʊk at ˈðɪswˌɒn/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 112,
+      "date": "2026-12-14",
+      "title": "线上故障信息同步",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Can you give us a brief update on the incident?",
+          "/kan juː ɡɪv ʌs ə briːf ˈʌpdeɪt ɒnðɪ ˈɪnsɪdənt/"
+        ],
+        [
+          "Do we know whether customers are affected?",
+          "/duː wiː nəʊ ˈweðə ˈkʌstəməz ɑːr əfˈektɪd/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 113,
+      "date": "2026-12-15",
+      "title": "火车票退票咨询",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Hello, I'd like to ask about a refund for this ticket.",
+          "/həlˈəʊ aɪd laɪk tʊ ask əbˌaʊt ə ˈriːfʌnd fɔː ðɪs ˈtɪkɪt/"
+        ],
+        [
+          "The service was cancelled this morning.",
+          "/ðə ˈsɜːvɪs wɒz ˈkansəld ðɪs ˈmɔːnɪŋ/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 114,
+      "date": "2026-12-16",
+      "title": "变更审批流程",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Could we confirm whether this change needs approval?",
+          "/kʊd wiː kənfˈɜːm ˈweðə ðɪs tʃeɪndʒ niːdz əprˈuːvəl/"
+        ],
+        [
+          "Who can sign off on the change?",
+          "/huː kan saɪn ɒf ɒnðə tʃeɪndʒ/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 115,
+      "date": "2026-12-17",
+      "title": "超市缺货时替换商品",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Excuse me, have you run out of this kind of bread?",
+          "/ekskjˈuːs miː hav juː rʌn ˌaʊtəv ðɪs kaɪnd ɒv bred/"
+        ],
+        [
+          "Is there something similar you could recommend?",
+          "/ɪz ðeə ˈsʌmθɪŋ ˈsɪmɪlə juː kʊd rˌekəmˈend/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 116,
+      "date": "2026-12-18",
+      "title": "发布后回顾效果",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Can we check how the release has performed so far?",
+          "/kan wiː tʃek haʊ ðə rɪlˈiːs həz pəfˈɔːmd səʊ fɑː/"
+        ],
+        [
+          "Have any customers reported unexpected behaviour?",
+          "/hav ˌeni ˈkʌstəməz rɪpˈɔːtɪd ˌʌnekspˈektɪd bɪhˈeɪvjə/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 117,
+      "date": "2026-12-19",
+      "title": "圣诞节节日问候",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Are you taking a few days off over Christmas?",
+          "/ɑː juː ˈteɪkɪŋ ə fjuː deɪz ɒf ˌəʊvə ˈkrɪsməs/"
+        ],
+        [
+          "I hope you have a lovely break.",
+          "/aɪ həʊp juː hav ə ˈlʌvli breɪk/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 118,
+      "date": "2026-12-20",
+      "title": "确认软件版本兼容",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Which version of the library are we using?",
+          "/wɪtʃ ˈvɜːʃən ɒvðə ˈlaɪbrəri ɑː wiː ˈjuːzɪŋ/"
+        ],
+        [
+          "Does the new client support that version?",
+          "/dʌz ðə njuː klaɪənt səpˈɔːt ðat ˈvɜːʃən/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 119,
+      "date": "2026-12-21",
+      "title": "咖啡馆接待朋友",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Have you been waiting long?",
+          "/hav juː biːn ˈweɪtɪŋ lɒŋ/"
+        ],
+        [
+          "Shall we order before we sit down?",
+          "/ʃal wiː ˈɔːdə bɪfˌɔː wiː sɪt daʊn/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 120,
+      "date": "2026-12-22",
+      "title": "讲解系统架构图",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Could you walk us through the architecture diagram?",
+          "/kʊd juː wɔːk ʌs θruː ðɪ ˈɑːkɪtˌektʃə ˈdaɪəɡrˌam/"
+        ],
+        [
+          "Where does the user request enter the system?",
+          "/weə dʌz ðə ˈjuːzə rɪkwˈest ˈentə ðə ˈsɪstəm/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 121,
+      "date": "2026-12-23",
+      "title": "节礼日退换商品",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Hello, I'd like to ask about returning this gift.",
+          "/həlˈəʊ aɪd laɪk tʊ ask əbˌaʊt rɪtˈɜːnɪŋ ðɪs ɡɪft/"
+        ],
+        [
+          "I have a gift receipt, but I didn't buy it myself.",
+          "/aɪ hav ə ɡɪft rɪsˈiːt bʌt aɪ dɪdnt baɪ ɪt maɪsˈelf/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 122,
+      "date": "2026-12-24",
+      "title": "会议中处理敏感信息",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Can we check whether this document is confidential?",
+          "/kan wiː tʃek ˈweðə ðɪs ˈdɒkjuːmənt ɪz kˌɒnfɪdˈenʃəl/"
+        ],
+        [
+          "Should we avoid putting those figures on the shared screen?",
+          "/ʃʊd wiː əvˈɔɪd ˈpʊtɪŋ ðəʊz ˈfɪɡəz ɒnðə ʃeəd skriːn/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 123,
+      "date": "2026-12-25",
+      "title": "航班延误后延住酒店",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "My flight has been delayed, so I may need another night.",
+          "/maɪ flaɪt ˈhazbiːn dɪlˈeɪd səʊ aɪ meɪ niːd ənˈʌðə naɪt/"
+        ],
+        [
+          "Could I stay in the same room if possible?",
+          "/kʊd aɪ steɪ ɪnðə seɪm ruːm ɪf ˈpɒsɪbəl/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 124,
+      "date": "2026-12-26",
+      "title": "制定新年目标与计划",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Could we discuss the main goals for next quarter?",
+          "/kʊd wiː dɪskˈʌs ðə meɪn ɡəʊlz fɔː nekst ˈkwɔːtə/"
+        ],
+        [
+          "What's the biggest risk we should address first?",
+          "/wɒts ðə ˈbɪɡɪst rɪsk wiː ʃʊd ədrˈes fɜːst/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 125,
+      "date": "2026-12-27",
+      "title": "节假日期间确认营业",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Excuse me, are you open over the bank holiday?",
+          "/ekskjˈuːs miː ɑː juː ˈəʊpən ˌəʊvə ðə baŋk ˈhɒlɪdˌeɪ/"
+        ],
+        [
+          "What time do you close tomorrow?",
+          "/wɒt taɪm duː juː kləʊz təmˈɒrəʊ/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 126,
+      "date": "2026-12-28",
+      "title": "请假前交接工作",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Could we go over the open tasks before I take leave?",
+          "/kʊd wiː ɡəʊ ˌəʊvə ðɪ ˈəʊpən tasks bɪfˌɔːr aɪ teɪk liːv/"
+        ],
+        [
+          "Who can cover urgent customer questions while I'm away?",
+          "/huː kan ˈkʌvər ˈɜːdʒənt ˈkʌstəmə ˈkwestʃənz waɪl aɪm əwˈeɪ/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 127,
+      "date": "2026-12-29",
+      "title": "等待预订餐桌",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Hello, we have a booking for two under Chen.",
+          "/həlˈəʊ wiː hav ə ˈbʊkɪŋ fɔː tuː ˌʌndə tʃen/"
+        ],
+        [
+          "Do you know roughly how long we'll need to wait?",
+          "/duː juː nəʊ ˈrʌfli haʊ lɒŋ wiːl niːd tə weɪt/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 128,
+      "date": "2026-12-30",
+      "title": "回顾年度经验教训",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "Could we finish the year by reviewing what we've learned?",
+          "/kʊd wiː ˈfɪnɪʃ ðə jiə baɪ rɪvjˈuːɪŋ wɒt wiːv lɜːnd/"
+        ],
+        [
+          "What worked better than we expected?",
+          "/wɒt wɜːkt ˈbetə ðən wiː ekspˈektɪd/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    },
+    {
+      "day": 129,
+      "date": "2026-12-31",
+      "title": "规划返程交通",
+      "checks": {
+        "item": 10,
+        "star": 3,
+        "dialogue": 3,
+        "turn": 6,
+        "ipa": 16,
+        "tts": 16,
+        "zh": 16
+      },
+      "sample_ipa": [
+        [
+          "What's the easiest way to get to the airport from here?",
+          "/wɒts ðɪ ˈiːziɪst weɪ tə ɡet tə ðɪ ˈeəpɔːt frɒm hiə/"
+        ],
+        [
+          "How early should I leave for a morning flight?",
+          "/haʊ ˈɜːlɪ ʃʊd aɪ liːv fərə ˈmɔːnɪŋ flaɪt/"
+        ]
+      ],
+      "needs_editorial_ipa_review": true
+    }
+  ]
+}
