@@ -1,0 +1,25 @@
+name: UK English course QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - "day*.html"
+      - "course-plan.json"
+      - "qa/validate-course.cjs"
+      - ".github/workflows/course-qa.yml"
+  pull_request:
+    paths:
+      - "day*.html"
+      - "course-plan.json"
+      - "qa/validate-course.cjs"
+
+jobs:
+  validate-lessons:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate all lessons from Day53 onward
+        run: node qa/validate-course.cjs
