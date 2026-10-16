@@ -6,12 +6,14 @@ on:
       - "day*.html"
       - "course-plan.json"
       - "qa/validate-course.cjs"
+      - "qa/test-tts.cjs"
       - ".github/workflows/course-qa.yml"
   pull_request:
     paths:
       - "day*.html"
       - "course-plan.json"
       - "qa/validate-course.cjs"
+      - "qa/test-tts.cjs"
 
 jobs:
   validate-lessons:
@@ -23,3 +25,5 @@ jobs:
           node-version: '22'
       - name: Validate all lessons from Day53 onward
         run: node qa/validate-course.cjs
+      - name: Simulate all TTS button interactions
+        run: node qa/test-tts.cjs
