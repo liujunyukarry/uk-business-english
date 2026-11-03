@@ -15,6 +15,7 @@ import {
   label,
 } from "./art.js";
 import { KartAudio } from "./audio.js";
+import { bindTouchControls, CONTROLS } from "./input.js";
 import { SoftwareRenderer } from "./software-renderer.js";
 const $ = (id) => document.getElementById(id),
   show = (id, on) => $(id).classList.toggle("hidden", !on),
@@ -129,7 +130,6 @@ let world = null,
   resumeTimer = 0,
   look = new T.Vector3(),
   cameraReady = false;
-const touchPointers = new Map();
 const keys = new Set(),
   touch = { left: false, right: false, drift: false, gas: false };
 const audio = new KartAudio();
@@ -180,9 +180,8 @@ function timeText(t) {
 }
 function inputClear() {
   keys.clear();
-  touchPointers.clear();
+  controls.clear(); // also clears the .pressed visuals
   for (const k in touch) touch[k] = false;
-  document.querySelectorAll("[data-control]").forEach((b) => b.classList.remove("pressed"));
 }
 function updateHome() {
   document.querySelectorAll("[data-character]").forEach((b) => {
@@ -627,30 +626,19 @@ function useItem() {
     updateHUD();
   }
 }
-$("item-button").onclick = useItem;
-for (const b of document.querySelectorAll("[data-control]")) {
-  const key = b.dataset.control;
-  const refresh = () => {
-    touch[key] = [...touchPointers.values()].includes(key);
-    b.classList.toggle("pressed", touch[key]);
-  };
-  b.addEventListener("pointerdown", (e) => {
-    if (mode !== "race") return;
-    e.preventDefault();
-    b.setPointerCapture(e.pointerId);
-    touchPointers.set(e.pointerId, key);
-    $("hud").dataset.lastControl = key;
-    refresh();
-  });
-  const stop = (e) => {
-    touchPointers.delete(e.pointerId);
-    refresh();
-  };
-  b.addEventListener("pointerup", stop);
-  b.addEventListener("pointercancel", stop);
-  b.addEventListener("lostpointercapture", stop);
-  b.addEventListener("contextmenu", (e) => e.preventDefault());
-}
+const controls = bindTouchControls({
+  root: $("touch-controls"),
+  buttons: Object.fromEntries(
+    [...document.querySelectorAll("[data-control]")].map((b) => [b.dataset.control, b]),
+  ),
+  isActive: () => mode === "race",
+  onChange: (s) => {
+    Object.assign(touch, s);
+    $("hud").dataset.touch = CONTROLS.filter((k) => s[k]).join(" ");
+  },
+  itemButton: $("item-button"),
+  onItem: useItem,
+});
 addEventListener("keydown", (e) => {
   if (
     ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Space", "ShiftLeft", "ShiftRight"].includes(
@@ -671,12 +659,15 @@ addEventListener("keydown", (e) => {
   if (e.code === "Space" && !e.repeat) useItem();
 });
 addEventListener("keyup", (e) => keys.delete(e.code));
-addEventListener("blur", () => {
+// Leaving the page in any way releases every key and finger.
+function leave() {
   inputClear();
   if (mode === "race") pause();
-});
+}
+addEventListener("blur", leave);
+addEventListener("pagehide", leave);
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden && mode === "race") pause();
+  if (document.hidden) leave();
 });
 $("scene").addEventListener("pointerdown", (e) => {
   if (mode === "home") {
