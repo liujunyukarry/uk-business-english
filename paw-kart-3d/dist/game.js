@@ -358,18 +358,29 @@ scene.add(particleMesh);
 particleMesh.count = 0;
 const dummy = new T.Object3D(),
   color = new T.Color();
-function burst(position, n = 15, col = 0xffdd88) {
-  for (let i = 0; i < n && particles.length < 140; i++)
+// Particles spawned from a moving kart inherit its velocity (`carry`) and
+// then slow down with air drag. V2 left them standing in world space, so at
+// race speed they shot back past the chase camera as large blobs.
+function burst(position, n = 15, col = 0xffdd88, carry = null) {
+  for (let i = 0; i < n && particles.length < 140; i++) {
+    const v = new T.Vector3((Math.random() - 0.5) * 7, 2 + Math.random() * 6, (Math.random() - 0.5) * 7);
+    if (carry) v.add(carry);
     particles.push({
       p: position.clone(),
-      v: new T.Vector3((Math.random() - 0.5) * 7, 2 + Math.random() * 6, (Math.random() - 0.5) * 7),
+      v,
       life: 0.5 + Math.random() * 0.6,
       max: 1,
       size: 0.06 + Math.random() * 0.11,
       color: col,
     });
+  }
+}
+function kartVelocity(r) {
+  const s = race.track.sample(r.distance);
+  return s.t.clone().multiplyScalar(r.speed * 0.92);
 }
 function particleUpdate(dt) {
+  const drag = Math.exp(-dt * 2.2);
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
     p.life -= dt;
@@ -377,6 +388,7 @@ function particleUpdate(dt) {
       particles.splice(i, 1);
       continue;
     }
+    p.v.multiplyScalar(drag);
     p.v.y -= dt * 10;
     p.p.addScaledVector(p.v, dt);
   }
@@ -710,18 +722,18 @@ function processEvents() {
       if (e.type === "pickup") notify("获得道具！空格 / 点击右侧释放", 1.6);
       if (e.type === "item") {
         notify(ITEMS[e.item].icon + " " + ITEMS[e.item].name + "！", 1.3);
-        if (e.item === "bolt") burst(cars[0].position.clone().add(new T.Vector3(0, 2, 0)), 25, 0xffec8c);
+        if (e.item === "bolt") burst(cars[0].position.clone().add(new T.Vector3(0, 2, 0)), 25, 0xffec8c, kartVelocity(race.player));
       }
       if (e.type === "wall") notify("碰到护栏，松开方向调整一下", 1.1);
       if (e.type === "rescue") notify("正在返回赛道…", 1.2);
       if (e.type === "hit") {
         notify("打滑啦！短暂无敌保护中", 1.7);
-        burst(cars[0].position.clone().add(new T.Vector3(0, 1, 0)), 18, 0xffbf80);
+        burst(cars[0].position.clone().add(new T.Vector3(0, 1, 0)), 18, 0xffbf80, kartVelocity(race.player));
       }
       if (e.type === "block") notify("泡泡护盾挡住了攻击！", 1.8);
       if (e.type === "drift") {
         notify(["", "蓝色漂移 · 加速！", "超级漂移 · 加速！", "完美漂移 · 全速冲刺！"][e.level], 1.2);
-        burst(cars[0].position, 16, [0, 0x91e4ff, 0xffc170, 0xf1a4e0][e.level]);
+        burst(cars[0].position, 16, [0, 0x91e4ff, 0xffc170, 0xf1a4e0][e.level], kartVelocity(race.player));
       }
       if (e.type === "lap")
         banner(
@@ -731,7 +743,7 @@ function processEvents() {
         );
       if (e.type === "finish") {
         banner("第 " + e.rank + " 名 · 冲线！", "等待其他伙伴抵达终点", 3);
-        burst(cars[0].position.clone().add(new T.Vector3(0, 2, 0)), 70, 0xffdc7b);
+        burst(cars[0].position.clone().add(new T.Vector3(0, 2, 0)), 70, 0xffdc7b, kartVelocity(race.player));
       }
     }
     if (e.type === "end") showResult();
@@ -814,7 +826,7 @@ function showResult() {
           TRACKS[cup.round + 1].name +
           "</p>"
         : "") +
-      '<div class="dialog-actions"><button id="next-race" class="primary">' +
+      '<div class="dialog-actions sticky-actions"><button id="next-race" class="primary">' +
       (cup && !finalCup ? "下一站 · 继续争冠" : "再来一场") +
       '</button><button id="back-home" class="secondary">返回车库</button></div>',
   );
@@ -1019,9 +1031,10 @@ scene.add(nitroLight);
 let lastPlayerBoost = false;
 const wheelWorld = new T.Vector3(),
   sparkVelocity = new T.Vector3();
-function spark(at, colour, side) {
+function spark(at, colour, side, carry) {
   if (particles.length >= 140) return;
   sparkVelocity.set((Math.random() - 0.5) * 2.5 + side * 1.5, 1.2 + Math.random() * 2.2, (Math.random() - 0.5) * 2.5);
+  if (carry) sparkVelocity.add(carry);
   particles.push({ p: at.clone(), v: sparkVelocity.clone(), life: 0.22 + Math.random() * 0.2, max: 1, size: 0.05 + Math.random() * 0.05, color: colour });
 }
 function renderRace(dt) {
@@ -1044,7 +1057,7 @@ function renderRace(dt) {
         if (!w.front && Math.random() < dt * (r.id === 0 ? 32 : 12) * (0.4 + level * 0.35)) {
           w.mesh.getWorldPosition(wheelWorld);
           wheelWorld.y = s.p.y + 0.12;
-          spark(wheelWorld, colour, w.mesh.position.x > 0 ? 1 : -1);
+          spark(wheelWorld, colour, w.mesh.position.x > 0 ? 1 : -1, s.t.clone().multiplyScalar(r.speed * 0.9));
         }
     }
   });
@@ -1053,9 +1066,11 @@ function renderRace(dt) {
     boosting = (p.boost > 0 || p.star > 0) && p.rescue <= 0;
   if (boosting && !lastPlayerBoost && dt > 0) {
     audio.cue("boost");
+    const carry = kartVelocity(p),
+      colour = NITRO[p.star > 0 ? "star" : p.boostKind || "item"].outer;
     for (const f of playerKart.userData.exhaust) {
       f.nozzle.getWorldPosition(wheelWorld);
-      burst(wheelWorld, 7, NITRO[p.star > 0 ? "star" : p.boostKind || "item"].outer);
+      for (let j = 0; j < 5; j++) spark(wheelWorld, colour, f.nozzle.position.x > 0 ? 1 : -1, carry);
     }
   }
   lastPlayerBoost = boosting;

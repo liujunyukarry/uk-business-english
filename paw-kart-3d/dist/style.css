@@ -1839,3 +1839,29 @@ button {
     right: max(16px, env(safe-area-inset-right));
   }
 }
+
+/* Result actions stay reachable: on a landscape phone the results are taller
+   than the screen, and V2 left "next race / back to garage" below the fold. */
+.sticky-actions {
+  position: sticky;
+  bottom: -30px;
+  z-index: 2;
+  margin: 18px -30px -30px;
+  padding: 18px 30px 22px;
+  background: linear-gradient(#faf9ef00, #faf9ef 38%);
+}
+/* Match the dialog's own padding at each breakpoint. */
+@media (max-width: 900px) and (min-height: 521px) {
+  .sticky-actions {
+    bottom: -24px;
+    margin: 14px -20px -24px;
+    padding: 14px 20px max(18px, env(safe-area-inset-bottom));
+  }
+}
+@media (max-height: 520px) {
+  .sticky-actions {
+    bottom: -22px;
+    margin: 12px -22px -22px;
+    padding: 12px 22px max(14px, env(safe-area-inset-bottom));
+  }
+}
