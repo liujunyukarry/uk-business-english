@@ -129,7 +129,7 @@
   }
   function missionValue(m){return m.type==='bones'?bones:m.type==='distance'?dist:m.type==='dash'?dashes:maxStreak;}
   function missionProgress(m){return Math.min(m.goal,Math.floor(missionValue(m)))+'/'+m.goal;}
-  async function shareRun(){const url=new URL('https://neon-stride-karry.junyuliukarry.chatgpt.site');url.searchParams.set('challenge',Math.floor(score));const text='我和'+(save.character==='gold'?'小金毛':'小白')+'跑了 '+Math.floor(dist)+' 米，拿到 '+Math.floor(score)+' 分！来挑战我的成绩。';
+  async function shareRun(){const url=new URL(location.origin+location.pathname);url.searchParams.set('challenge',Math.floor(score));const text='我和'+(save.character==='gold'?'小金毛':'小白')+'跑了 '+Math.floor(dist)+' 米，拿到 '+Math.floor(score)+' 分！来挑战我的成绩。';
     if(navigator.share){try{await navigator.share({title:'小金毛 × 小白 · 默契出逃',text,url:url.href});return;}catch(e){if(e.name==='AbortError')return;}}
     try{await navigator.clipboard.writeText(text+' '+url.href);$('shareRun').textContent='链接已复制，发给朋友吧';}catch{$('shareFallback').innerHTML='<p>长按复制下面的挑战链接</p><input class="share-link" aria-label="挑战链接" readonly>';const input=$('shareFallback').querySelector('input');input.value=url.href;input.select();}
   }
