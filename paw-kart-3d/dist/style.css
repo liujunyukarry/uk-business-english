@@ -1892,3 +1892,54 @@ button {
     opacity: 0;
   }
 }
+
+/* Touch targets and fit, from the v2.1 UI audit at 375-932 px wide. */
+@media (pointer: coarse), (max-width: 900px), (max-height: 520px) {
+  .segmented button {
+    min-height: 44px;
+    padding-left: 12px;
+    padding-right: 12px;
+    font-size: 11px;
+  }
+  .setup select {
+    min-height: 44px;
+    padding: 8px 6px;
+    font-size: 11px;
+  }
+  .setting input[type="range"] {
+    width: 170px;
+    height: 44px;
+  }
+  .setting select {
+    min-height: 44px;
+  }
+  .setting input[type="checkbox"] {
+    width: 24px;
+    height: 24px;
+  }
+}
+/* Small landscape phones: keep the drift meter clear of the speed readout. */
+@media (max-height: 520px) and (max-width: 760px) {
+  .drift-meter {
+    width: 160px;
+    left: calc(50% + 34px);
+  }
+}
+/* Landscape results and settings: tighter, so everything fits or nearly. */
+@media (max-height: 520px) {
+  .setting {
+    margin: 4px 0;
+  }
+  .setting small {
+    margin-top: 2px;
+  }
+  #dialog-content > p:last-of-type:not(.cup-summary) {
+    display: none;
+  }
+  .result-top .trophy {
+    font-size: 30px;
+  }
+  .result-top h2 {
+    margin: 4px 0;
+  }
+}
