@@ -1,0 +1,121 @@
+// On-screen motion regressions for "the kart behind suddenly appears in front
+// of me and the whole picture shakes". Uses the real game loop in Chrome with
+// deliberately uneven frame pacing (frames are dropped at random, as on a busy
+// phone) and measures what the player sees.
+import test, { after, before } from "node:test";
+import assert from "node:assert/strict";
+import { launch, openRace, serve } from "./browser.js";
+
+let server, browser;
+before(async () => {
+  server = await serve();
+  browser = await launch();
+});
+after(async () => {
+  await browser?.close();
+  server?.close();
+});
+
+// Drop roughly one frame in three so dt alternates between 1x, 2x and 3x.
+const unevenFrames = () => {
+  const raf = window.requestAnimationFrame.bind(window);
+  let n = 0;
+  window.requestAnimationFrame = (cb) =>
+    raf(function tick(t) {
+      if (++n % 3 === 0 || Math.random() < 0.15) return raf(tick);
+      cb(t);
+    });
+};
+
+async function record(page, seconds) {
+  return page.evaluate(
+    (seconds) =>
+      new Promise((done) => {
+        const { camera, cars, race } = window.__pk,
+          samples = [],
+          v = cars[0].position.clone(),
+          start = performance.now();
+        let lastClock = -1;
+        const tick = () => {
+          // Sample only frames the game actually drew (the sampler's own frame
+          // callbacks are dropped independently).
+          if (window.__pk.clock === lastClock) return requestAnimationFrame(tick);
+          lastClock = window.__pk.clock;
+          v.copy(cars[0].position).project(camera);
+          samples.push({
+            x: v.x,
+            y: v.y,
+            visible: cars.map((k) => k.visible),
+            invincible: race.racers.map((r) => r.invincible > 0 && r.star <= 0 && r.stun <= 0),
+            near: race.racers.map((r) => Math.abs(race.gap(r.distance, race.player.distance)) < 15),
+            // A real rail or kart impact is supposed to be felt; exclude it.
+            impact:
+              race.player.wallCooldown > 0.4 ||
+              race.player.bump > 0 ||
+              race.player.rescue > 0 ||
+              race.player.stun > 0,
+          });
+          if (performance.now() - start < seconds * 1000) requestAnimationFrame(tick);
+          else done(samples);
+        };
+        requestAnimationFrame(tick);
+      }),
+    seconds,
+  );
+}
+
+test("nearby karts never vanish and pop back in", async (t) => {
+  const { ctx, page } = await openRace(browser, server.url, { init: unevenFrames });
+  t.after(() => ctx.close());
+  await page.waitForFunction(() => window.__pk.race.phase === "racing", null, { timeout: 30000 });
+  // Pack the field just behind the player, in its lane, so karts close in and
+  // pass: exactly where V2 hid them (0.8–11 m behind) and then showed them.
+  await page.evaluate(() => {
+    const r = window.__pk.race,
+      p = r.player;
+    r.racers.slice(1).forEach((x, i) => {
+      x.distance = p.distance - 3 - i * 2.2;
+      x.lane = p.lane + (i % 2 ? 0.4 : -0.4);
+      x.speed = p.speed + 6;
+      x.boost = 2;
+    });
+  });
+  const samples = await record(page, 8);
+  let pops = 0;
+  for (let i = 1; i < samples.length; i++)
+    for (let k = 1; k < 8; k++)
+      if (!samples[i - 1].visible[k] && samples[i].visible[k] && samples[i].near[k] && !samples[i].invincible[k])
+        pops++;
+  assert.equal(pops, 0, `${pops} pop-ins of karts within 15 m`);
+});
+
+test("the player kart holds still on screen when frames are dropped", async (t) => {
+  const { ctx, page } = await openRace(browser, server.url, { init: unevenFrames });
+  t.after(() => ctx.close());
+  await page.waitForFunction(() => window.__pk.race.phase === "racing", null, { timeout: 30000 });
+  await page.waitForTimeout(2500); // up to speed
+  await page.evaluate(() => {
+    const r = window.__pk.race; // clear road: measure the camera, not traffic
+    r.racers.slice(1).forEach((x, i) => {
+      x.distance = r.player.distance - 400 - i * 20;
+      x.item = null; // no lightning or shells from the far-away field
+      x.aiItem = 1e9;
+    });
+    r.hazards.length = r.projectiles.length = 0;
+  });
+  const samples = await record(page, 6);
+  const jumps = [];
+  for (let i = 2; i < samples.length; i++) {
+    if (samples.slice(Math.max(0, i - 4), i + 1).some((x) => x.impact)) continue;
+    // Second difference: how much the kart's screen position jerks frame to frame.
+    const ax = samples[i].x - 2 * samples[i - 1].x + samples[i - 2].x,
+      ay = samples[i].y - 2 * samples[i - 1].y + samples[i - 2].y;
+    jumps.push(Math.hypot(ax, ay));
+  }
+  jumps.sort((a, b) => a - b);
+  const p95 = jumps[Math.floor(jumps.length * 0.95)],
+    worst = jumps[jumps.length - 1];
+  console.log(`screen jerk p95=${p95.toFixed(4)} worst=${worst.toFixed(4)} over ${jumps.length} frames`);
+  assert(p95 < 0.003, `p95 screen jerk ${p95.toFixed(4)} (NDC units)`);
+  assert(worst < 0.01, `worst screen jerk ${worst.toFixed(4)}`);
+});
