@@ -471,8 +471,6 @@ function fitLimbs(space, color, opts = {}) {
     }
   return { arms, space };
 }
-// Body colours of the two Kenney drivers, for their added arms.
-const NATIVE_ARM = { nova: 0xf1c34e, milo: 0xc8b9ee };
 
 export function createKart(kind = "gold", number = 1) {
   const g = new T.Group(),
@@ -497,12 +495,12 @@ export function createKart(kind = "gold", number = 1) {
   }
   // Steering wheel in front of the chest; position depends on the driver's
   // reach (measured in body coordinates).
-  const wheelAt = driver.userData.kartDog
-    ? new T.Vector3(0, 1.06, 0.14)
-    : asset.nativeDriver
-      ? new T.Vector3(0, 1.0, 0.66)
-      : new T.Vector3(0, 0.98, 0.36);
+  const wheelAt = driver.userData.kartDog ? new T.Vector3(0, 0.98, 0.16) : new T.Vector3(0, 0.86, 0.38);
   const wheel = steeringWheel(body, wheelAt, info ? new T.Color(info.color).getHex() : 0xeeae55);
+  // The Kenney figures are modelled with a full-face helmet and no arms; a
+  // wheel cannot sit under the helmet without reading as part of the face,
+  // so they keep their original design.
+  wheel.mount.visible = !asset.nativeDriver;
   if (driver.userData.kartDog) {
     // The sculpted arms are short: extend each with a forearm and paw so the
     // paws actually rest on the rim (they ended inside the cowl in V2).
@@ -514,8 +512,7 @@ export function createKart(kind = "gold", number = 1) {
     }));
   }
   if (driver.userData.limbs) limbs = fitLimbs(driver, driver.userData.limbs.color);
-  else if (asset.nativeDriver)
-    limbs = fitLimbs(body, NATIVE_ARM[kind], { shoulder: [0.34, 1.16, 0.2], scale: 0.78, legs: false });
+
   const exhaust = EXHAUST_TIPS.map(() => exhaustFlame(body));
   exhaust.forEach((f, i) => {
     f.nozzle.position.copy(EXHAUST_TIPS[i]);
