@@ -7,7 +7,7 @@
 <script type="module">
 import * as T from "./vendor/three.module.js";
 import { RoomEnvironment } from "./vendor/RoomEnvironment.js";
-import { createKart, animateKart } from "./art.js";
+import { createKart, animateKart, kartMood } from "./art.js";
 const q = new URLSearchParams(location.search);
 const kind = q.get("kind") || "gold", view = q.get("view") || "three";
 const W = innerWidth, H = innerHeight;
@@ -25,11 +25,17 @@ if (q.get("look")) { const [x,y,z] = q.get("look").split(",").map(Number); windo
 const boost = q.get("boost");
 const racer = { id: 0, speed: Number(q.get("speed") ?? (boost ? 40 : 0)), steer: Number(q.get("steer") || 0), drifting: q.get("drift") === "1", driftDirection: Math.sign(Number(q.get("steer") || 1)) || 1, drift: q.get("drift") === "1" ? 2.2 : 0,
   boost: boost && boost !== "star" ? 2 : 0, boostKind: boost && boost !== "star" ? boost : "", star: boost === "star" ? 3 : 0, lateral: 0, shield: 0, invincible: 0, stun: 0, small: 0, bump: 0 };
+// mood=hurt|happy|cheer|focus previews the drivers' expressions.
+const mood = q.get("mood");
+if (mood === "hurt") racer.stun = Number(q.get("stun") || 0.9);
+if (mood === "cheer") racer.finish = 60;
+if (mood === "focus") Object.assign(racer, { drifting: true, drift: 1.6, speed: 30 });
+if (mood === "happy") kartMood(k, "happy", 99);
 const cam = new T.PerspectiveCamera(Number(q.get("fov") || 32), W / H, 0.1, 200);
 const views = { front: [0, 1.3, 8], side: [8, 1.3, 0], rear: [0, 1.6, -8], three: [5.2, 3, 6], top: [0, 9, 0.01], chase: [0, 3.3, -7.2], back3: [-4.5, 2.6, -6] };
 cam.position.set(...(q.get("pos") ? q.get("pos").split(",").map(Number) : views[view])); cam.lookAt(window.__look || new T.Vector3(0, view === "chase" ? 1.2 : 0.95, view === "chase" ? 6 : 0));
 let t = 0;
-for (let i = 0; i < 40; i++) { t += 1 / 60; animateKart(k, t, racer, 1 / 60, !boost && !q.get("drift"), { curve: 0, camera: cam }); }
+for (let i = 0; i < 40; i++) { t += 1 / 60; animateKart(k, t, racer, 1 / 60, !boost && !q.get("drift") && !mood, { curve: 0, camera: cam }); }
 r.render(s, cam);
 document.documentElement.dataset.ready = "true";
 </script></body></html>
