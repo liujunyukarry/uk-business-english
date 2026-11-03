@@ -1,6 +1,6 @@
 import * as T from "./vendor/three.module.js";
 import { RoomEnvironment } from "./vendor/RoomEnvironment.js";
-import { Race, Track, TRACKS, CHARACTERS, ITEMS, clamp } from "./race.js?v=11982f8f";
+import { Race, Track, TRACKS, CHARACTERS, ITEMS, clamp } from "./race.js?v=bf2094ff";
 import {
   createKart,
   animateKart,
@@ -16,10 +16,10 @@ import {
   box,
   mat,
   label,
-} from "./art.js?v=11982f8f";
-import { KartAudio } from "./audio.js?v=11982f8f";
-import { bindTouchControls, CONTROLS } from "./input.js?v=11982f8f";
-import { SoftwareRenderer } from "./software-renderer.js?v=11982f8f";
+} from "./art.js?v=bf2094ff";
+import { KartAudio } from "./audio.js?v=bf2094ff";
+import { bindTouchControls, CONTROLS } from "./input.js?v=bf2094ff";
+import { SoftwareRenderer } from "./software-renderer.js?v=bf2094ff";
 // Build id stamped by tools/stamp.mjs; shown in the pause and help dialogs so
 // a tester can tell exactly which version is running.
 const BUILD = document.querySelector('meta[name="paw-build"]')?.content || "dev";
@@ -468,6 +468,7 @@ function startRace(trackIndex = save.track) {
       s = race.track.sample(b.distance, b.lane);
     mesh.position.copy(s.p);
     mesh.position.y += 1.6;
+    mesh.userData.baseY = mesh.position.y;
     raceGroup.add(mesh);
     return mesh;
   });
@@ -978,37 +979,43 @@ function updateHUD() {
   $("hud").dataset.itemsUsed = String(p.itemsUsed);
   $("hud").dataset.drifts = String(p.drifts);
 }
+// The track outline and its fit to the minimap are fixed for a race: build
+// them once instead of rescanning 1200 points ten times a second.
+let mapCache = null;
 function drawMap() {
   const c = $("minimap"),
-    ctx = c.getContext("2d"),
-    pts = race.track.points,
-    xs = pts.map((p) => p.x),
-    zs = pts.map((p) => p.z),
-    minX = Math.min(...xs),
-    maxX = Math.max(...xs),
-    minZ = Math.min(...zs),
-    maxZ = Math.max(...zs);
-  const scale = Math.min(230 / (maxX - minX), 205 / (maxZ - minZ)),
-    tx = (280 - (maxX + minX) * scale) / 2,
-    tz = (250 - (maxZ + minZ) * scale) / 2,
-    point = (p) => [tx + p.x * scale, tz + p.z * scale];
+    ctx = c.getContext("2d");
+  if (!mapCache || mapCache.track !== race.track) {
+    const pts = race.track.points,
+      xs = pts.map((p) => p.x),
+      zs = pts.map((p) => p.z),
+      minX = Math.min(...xs),
+      maxX = Math.max(...xs),
+      minZ = Math.min(...zs),
+      maxZ = Math.max(...zs),
+      scale = Math.min(230 / (maxX - minX), 205 / (maxZ - minZ)),
+      tx = (280 - (maxX + minX) * scale) / 2,
+      tz = (250 - (maxZ + minZ) * scale) / 2,
+      point = (p) => [tx + p.x * scale, tz + p.z * scale],
+      outline = new Path2D();
+    pts.forEach((p, i) => {
+      const [x, y] = point(p);
+      i ? outline.lineTo(x, y) : outline.moveTo(x, y);
+    });
+    outline.closePath();
+    mapCache = { track: race.track, point, outline, start: point(pts[0]) };
+  }
+  const { point, outline, start } = mapCache;
   ctx.clearRect(0, 0, 280, 260);
-  ctx.beginPath();
-  pts.forEach((p, i) => {
-    const [x, y] = point(p);
-    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
-  });
-  ctx.closePath();
+  ctx.lineJoin = "round";
   ctx.strokeStyle = "#edf6df90";
   ctx.lineWidth = 12;
-  ctx.lineJoin = "round";
-  ctx.stroke();
+  ctx.stroke(outline);
   ctx.strokeStyle = "#4e7562";
   ctx.lineWidth = 6;
-  ctx.stroke();
-  const st = point(pts[0]);
+  ctx.stroke(outline);
   ctx.fillStyle = "#fff6c7";
-  ctx.fillRect(st[0] - 5, st[1] - 5, 10, 10);
+  ctx.fillRect(start[0] - 5, start[1] - 5, 10, 10);
   [...race.racers].reverse().forEach((r) => {
     const [x, y] = point(race.track.sample(r.distance).p);
     ctx.beginPath();
@@ -1143,7 +1150,7 @@ function renderRace(dt) {
     m.visible = race.boxes[i].cooldown <= 0;
     m.rotation.y = clock * 0.8 + i;
     m.rotation.z = Math.sin(clock * 1.3 + i) * 0.12;
-    m.position.y = race.track.sample(race.boxes[i].distance).p.y + 1.6 + Math.sin(clock * 2 + i) * 0.15;
+    m.position.y = m.userData.baseY + Math.sin(clock * 2 + i) * 0.15;
   });
   coinMeshes.forEach((m, i) => {
     m.visible = race.coins[i].cooldown <= 0;

@@ -83,3 +83,27 @@ Found and fixed during play: on a landscape phone the result dialog was taller t
 
 - AIs now avoid the player and only mini-turbo in real corners; in the scripted runs the player won some 100cc races by several seconds. Difficulty may need retuning after human play.
 - The camera framing (distance, height, FOV) was tuned on screenshots, not by hand on a phone.
+
+## v2.1 round 2 — review, six items, UI audit (2026-11-03)
+
+Build `bf2094ff` (shown at the bottom of the pause and help dialogs).
+
+**Review fixes**: only a real rotation pauses (Safari/in-app toolbar resizes no longer pause or snap the camera); every race shader is compiled during the countdown instead of on the first boost; auto quality ignores one-off stalls and needs two slow 4-second windows before dropping to low; pause reacts on touch release while another finger steers; karts stop animating during the resume countdown; item-box bobbing and the minimap outline are cached instead of recomputed every frame.
+
+**Six items** — `tests/items.test.js` (9) and `tests/e2e/items.test.js` (7, through the real item button):
+
+| Item | Checked | Fixed |
+|---|---|---|
+| 🍄 冲刺蘑菇 | used once, slot empties, 2.5 s, orange flames, boost status | — |
+| 🐢 追踪红壳 | targets nearest kart ahead, hits once, warning when incoming | player now told "命中 …" + burst + sound |
+| 🍌 捣蛋香蕉 | dropped behind, spares owner, spins next kart once | AI dodges (≈53 / 78 / 98 % on 50 / 100 / 150cc); burst + hit feedback |
+| 🫧 泡泡护盾 | 6 s, absorbs exactly one hit | — |
+| ⭐ 无敌星星 | 5 s immunity, clears stun/shrink, rams knock karts over | hit feedback for rams |
+| ⚡ 惊喜闪电 | shrinks/stuns karts ahead 3 s, shields block, spares those behind | screen flash + zap; shrink/regrow animate |
+| ? 道具箱 | swept pickup at 60 m/s, roulette, 3 s respawn | box bursts when taken |
+
+**UI audit** at 375×667, 390×844, 430×932 in both orientations (overlap / off-screen / touch-target / clipped-text checks + screenshots of home, help, settings, countdown, race HUD, pause, results). Fixed: home mode tabs and difficulty picker 25–32 px → 44 px; help/settings primary button below the fold in landscape → sticky; 44 px volume slider and quality picker, larger checkboxes, compact landscape settings; drift meter overlapping the speed on small landscape phones; compact landscape results. Accepted: landscape settings need a small scroll to reach 画面质量; landscape results scroll for the full standings (buttons stay on screen); checkboxes sit in full-row labels, so the tap target is the whole row.
+
+**Cache-safe build**: `npm run stamp` stamps every local module and the stylesheet with a content hash; `tests/build.test.js` fails if it is stale.
+
+**Totals**: `npm test` 36/36, `npm run test:e2e` 17/17. Normal-speed playthroughs through the real touch UI on this build: 844×390 桃桃兔 蜜桃糖果海湾 (3rd, 14 drift boosts, 12 items), 390×844 小金毛 花田晴空环线 (3rd, 13 boosts, 8 items), full cup with 泡泡探险家 (2nd / 6th / 4th → cup 3rd); 0 pop-ins, no held key after the last lift, result buttons on screen, back to garage, no application errors.
