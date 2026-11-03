@@ -14,6 +14,9 @@ const ready = (opts = {}) => {
     x.item = null;
     x.aiItem = 1e9;
   });
+  // ...and keep it from collecting items on its own: boxes are per racer, so
+  // the parked field would otherwise pick some up and use them.
+  r.boxes.forEach((b) => b.taken.fill(1e9, 1));
   return r;
 };
 const run = (r, seconds, input = { assist: true }) => {
@@ -25,8 +28,8 @@ const run = (r, seconds, input = { assist: true }) => {
   return all;
 };
 
-test("six items exist with names, icons and descriptions", () => {
-  assert.deepEqual(Object.keys(ITEMS), ["boost", "shell", "banana", "shield", "star", "bolt"]);
+test("seven items exist with names, icons and descriptions", () => {
+  assert.deepEqual(Object.keys(ITEMS), ["boost", "shell", "banana", "shield", "star", "bolt", "rocket"]);
   for (const v of Object.values(ITEMS)) assert(v.name && v.icon && v.desc);
 });
 
@@ -152,7 +155,7 @@ test("item box: picked up at speed, slot fills after the roulette, box respawns"
   run(r, 0.8);
   assert.equal(p.roulette, 0);
   assert(Object.keys(ITEMS).includes(p.item));
-  assert(b.cooldown > 0 && b.cooldown <= 3);
+  assert(b.taken[0] > 0 && b.taken[0] <= 4, "gone for the player, respawns");
 });
 
 test("AI usually steers round a banana in its line", () => {

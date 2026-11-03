@@ -137,6 +137,18 @@ test("lightning: screen flash, karts ahead shrink, player unaffected", async () 
   assert.equal(p, 0);
 });
 
+test("rocket: banner, status line and big flames", async () => {
+  const slot = await useItem("rocket");
+  assert.match(slot, /火箭冲刺/);
+  await r.page.waitForTimeout(400);
+  const s = await state();
+  assert.match(s.status, /火箭/);
+  assert(s.nitro > 0.5, `flames at ${s.nitro}`);
+  assert.match(await r.page.$eval("#banner", (e) => e.textContent), /火箭冲刺/);
+  await r.page.evaluate(() => (window.__pk.race.player.rocket = 0.01)); // end it for the next test
+  await r.page.waitForTimeout(300);
+});
+
 test("empty slot: tapping tells the player how to get an item", async () => {
   await r.page.evaluate(() => {
     const race = window.__pk.race,

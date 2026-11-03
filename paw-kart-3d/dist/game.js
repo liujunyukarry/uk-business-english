@@ -1,6 +1,6 @@
 import * as T from "./vendor/three.module.js";
 import { RoomEnvironment } from "./vendor/RoomEnvironment.js";
-import { Race, Track, TRACKS, CHARACTERS, ITEMS, clamp } from "./race.js?v=bf2094ff";
+import { Race, Track, TRACKS, CHARACTERS, ITEMS, DRIFT, driftLevel, clamp } from "./race.js?v=da391d9a";
 import {
   createKart,
   animateKart,
@@ -10,16 +10,18 @@ import {
   makeCoin,
   makeBanana,
   makeShell,
+  updateBoxShimmer,
+  kartMood,
   setKartFade,
   setCompatibilityMode,
   NITRO,
   box,
   mat,
   label,
-} from "./art.js?v=bf2094ff";
-import { KartAudio } from "./audio.js?v=bf2094ff";
-import { bindTouchControls, CONTROLS } from "./input.js?v=bf2094ff";
-import { SoftwareRenderer } from "./software-renderer.js?v=bf2094ff";
+} from "./art.js?v=da391d9a";
+import { KartAudio } from "./audio.js?v=da391d9a";
+import { bindTouchControls, CONTROLS } from "./input.js?v=da391d9a";
+import { SoftwareRenderer } from "./software-renderer.js?v=da391d9a";
 // Build id stamped by tools/stamp.mjs; shown in the pause and help dialogs so
 // a tester can tell exactly which version is running.
 const BUILD = document.querySelector('meta[name="paw-build"]')?.content || "dev";
@@ -33,6 +35,7 @@ const defaults = {
   difficulty: "normal",
   assist: true,
   autoGas: true,
+  autoDrift: matchMedia("(pointer:coarse)").matches,
   muted: false,
   volume: 0.45,
   quality: "auto",
@@ -140,6 +143,11 @@ let world = null,
   cameraReady = false;
 const keys = new Set(),
   touch = { left: false, right: false, drift: false, gas: false };
+// Drift tier colours (none / blue / orange / purple), as in Mario Kart.
+const DRIFT_COLOURS = ["#fff1c9", "#7fdcff", "#ffa64a", "#f47be0"],
+  DRIFT_SPARKS = [0xfff1c9, 0x7fdcff, 0xffa64a, 0xf47be0];
+let lastRank = 0,
+  lastPassCue = 0;
 const audio = new KartAudio();
 audio.muted = save.muted;
 audio.volume = save.volume;
@@ -404,7 +412,10 @@ function particleUpdate(dt) {
   }
   particles.forEach((p, i) => {
     dummy.position.copy(p.p);
-    dummy.scale.setScalar(p.size * Math.min(1, p.life * 4));
+    // Shrink sparks that drift right up to the lens instead of letting them
+    // fill the screen as big blobs as the camera passes them.
+    const lens = clamp((p.p.distanceTo(camera.position) - 2.5) / 3, 0, 1);
+    dummy.scale.setScalar(p.size * Math.min(1, p.life * 4) * lens);
     dummy.updateMatrix();
     particleMesh.setMatrixAt(i, dummy.matrix);
     particleMesh.setColorAt(i, color.set(p.color));
@@ -454,6 +465,9 @@ function startRace(trackIndex = save.track) {
   cam.ready = false;
   camStep(STEP);
   lastPlayerBoost = false;
+  lastRank = 0;
+  lastPassCue = 0;
+  audio.startRace(trackIndex);
   world = createWorld(race.track);
   scene.add(world.group);
   raceGroup = new T.Group();
@@ -546,6 +560,7 @@ function goHome() {
   sun.target.position.set(0, 0, 0);
   cameraReady = false;
   camera.fov = 40;
+  audio.menu();
   updateHome();
 }
 $("start").onclick = () => {
@@ -564,7 +579,7 @@ function pause() {
   inputClear();
   show("countdown", false);
   modal(
-    '<span class="dialog-eyebrow">A LITTLE PIT STOP</span><h2>进站，歇一会儿。</h2><p>比赛已暂停。准备好了，继续向终点出发。</p><div class="dialog-actions"><button class="primary" id="resume">继续比赛</button><button class="secondary" id="restart">重新开始</button></div><div class="dialog-actions"><button class="secondary" id="race-settings">驾驶设置</button><button class="secondary" id="home">返回车库</button></div><div class="modal-footer">版本 2.1 · ' + BUILD + '</div>',
+    '<span class="dialog-eyebrow">A LITTLE PIT STOP</span><h2>进站，歇一会儿。</h2><p>比赛已暂停。准备好了，继续向终点出发。</p><div class="dialog-actions"><button class="primary" id="resume">继续比赛</button><button class="secondary" id="restart">重新开始</button></div><div class="dialog-actions"><button class="secondary" id="race-settings">驾驶设置</button><button class="secondary" id="home">返回车库</button></div><div class="modal-footer">版本 2.2 · ' + BUILD + '</div>',
   );
   $("resume").onclick = resume;
   $("restart").onclick = () => startRace(race.track.index);
@@ -589,11 +604,11 @@ $("pause").addEventListener("pointerup", (e) => {
 function help() {
   if (mode === "race") pause();
   modal(
-    '<button class="dialog-close" id="close-dialog" aria-label="关闭">×</button><span class="dialog-eyebrow">YOUR FIRST LAP</span><h2>快乐超车，从这里开始。</h2><p>默认自动油门，专心转向和使用道具。跑完三圈即冲线，杯赛累积三站积分。</p><div class="help-grid"><div><b>01 / 转向</b><p>键盘 ← → 或 A / D。手机按住左下方向键。草地会减速，辅助转向会帮你留在赛道附近。</p></div><div><b>02 / 漂移</b><p>转向时按住 Shift / 漂移键。蓄力变蓝、橙、粉后松手，获得不同强度的冲刺。</p></div><div><b>03 / 道具</b><p>撞进问号箱，抽取道具。空格 / 点击道具槽释放。排名靠后更容易获得追赶道具。</p></div><div><b>04 / 抢先一步</b><p>金币略微提高极速，上限 10 枚。踩金色加速带冲刺。每次受击后有短暂无敌保护。</p></div></div><div class="help-items">' +
+    '<button class="dialog-close" id="close-dialog" aria-label="关闭">×</button><span class="dialog-eyebrow">YOUR FIRST LAP</span><h2>快乐超车，从这里开始。</h2><p>默认自动油门，专心转向和使用道具。跑完三圈即冲线，杯赛累积三站积分。</p><div class="help-grid"><div><b>01 / 转向</b><p>手机：按住屏幕左半边左转，右半边右转，两边都按时以后按的为准。键盘 ← → 或 A / D。</p></div><div><b>02 / 漂移</b><p>手机：弯道里按住方向会自动漂移，火花变蓝、橙、紫后松开，冲刺一次比一次猛。也可以按住漂移键手动漂移；键盘用 Shift。</p></div><div><b>03 / 道具</b><p>撞进问号箱抽道具，点道具框（键盘空格）使用。问号箱每人一份，前面的车吃过你照样能吃；越落后道具越强，最后几名还可能抽到火箭。</p></div><div><b>04 / 起步与加速</b><p>倒计时到「1」时按住漂移键，起步加速。金币略微提高极速，踩加速带冲刺，受击后有短暂无敌保护。</p></div></div><div class="help-items">' +
       Object.entries(ITEMS)
         .map(([k, v]) => "<div><span>" + v.icon + "</span><b>" + v.name + "</b>" + v.desc + "</div>")
         .join("") +
-      '</div><p>关闭自动油门后：W / ↑ 或屏幕油门键加速，S / ↓ 刹车。P / Esc 暂停；切换应用会自动暂停。</p><div class="dialog-actions sticky-actions"><button id="got-it" class="primary">准备好啦</button></div><div class="modal-footer">非官方同人作品 · 角色造型参考，原创赛道与音乐 · 版本 2.1 · ' + BUILD + '</div>',
+      '</div><p>关闭自动油门后：W / ↑ 或屏幕油门键加速，S / ↓ 刹车。P / Esc 暂停；切换应用会自动暂停。</p><div class="dialog-actions sticky-actions"><button id="got-it" class="primary">准备好啦</button></div><div class="modal-footer">非官方同人作品 · 角色造型参考，原创赛道与音乐 · 版本 2.2 · ' + BUILD + '</div>',
   );
   $("got-it").onclick = closeModal;
   $("close-dialog").onclick = closeModal;
@@ -609,6 +624,7 @@ function settings() {
     '<button class="dialog-close" id="close-dialog" aria-label="关闭">×</button><span class="dialog-eyebrow">MAKE YOURSELF COMFORTABLE</span><h2>按你的节奏来。</h2>' +
       [
         ["autoGas", "自动油门", "推荐开启，只管转向和漂移"],
+        ["autoDrift", "弯道自动漂移", "弯道里按住方向就会漂移，松手加速"],
         ["assist", "辅助转向", "在赛道边缘轻轻帮你一把"],
         ["reduced", "减少镜头变化", "关闭冲刺镜头拉远和屏幕光效"],
       ]
@@ -630,7 +646,7 @@ function settings() {
       '"></label><label class="setting"><span>画面质量</span><select id="quality"><option value="auto">自动 · 推荐</option><option value="high">精致 · 动态阴影</option><option value="low">流畅 · 节省电量</option></select></label><p>成绩保存在当前浏览器。手机横屏视野更宽，竖屏也可以完整游玩。</p><div class="dialog-actions sticky-actions"><button class="primary" id="done-settings">保存并返回</button></div>',
   );
   $("quality").value = save.quality;
-  for (const k of ["autoGas", "assist", "reduced"])
+  for (const k of ["autoGas", "autoDrift", "assist", "reduced"])
     $("setting-" + k).onchange = (e) => {
       save[k] = e.target.checked;
       persist();
@@ -738,6 +754,15 @@ function getInput() {
     throttle: save.autoGas || touch.gas || keys.has("ArrowUp") || keys.has("KeyW"),
     brake: keys.has("ArrowDown") || keys.has("KeyS"),
     assist: save.assist,
+    autoDrift: save.autoDrift,
+    // Rocket start: drift or gas held when the countdown shows "1".
+    start:
+      touch.drift ||
+      touch.gas ||
+      keys.has("ArrowUp") ||
+      keys.has("KeyW") ||
+      keys.has("ShiftLeft") ||
+      keys.has("ShiftRight"),
   };
 }
 // Short full-screen flash for lightning (skipped with reduced motion).
@@ -751,28 +776,62 @@ function flash() {
   void flashEl.offsetWidth; // restart the transition
   flashEl.classList.add("on");
 }
+// Red edge flash when the player is hit.
+const hitEl = document.createElement("div");
+hitEl.id = "hit-vignette";
+hitEl.setAttribute("aria-hidden", "true");
+document.body.append(hitEl);
+function hitFlash() {
+  hitEl.classList.remove("on");
+  void hitEl.offsetWidth;
+  hitEl.classList.add("on");
+}
 const near = (distance, metres) => Math.abs(race.gap(distance, race.player.distance)) < metres;
 function processEvents() {
   const landed = [];
   for (const e of race.events) {
     if (e.racer === 0 || e.type === "go") {
-      audio.cue(e.type);
-      if (e.type === "pickup") notify("获得道具！空格 / 点击右侧释放", 1.6);
+      audio.cue(e.type, e);
+      if (e.type === "pickup") notify(touchLayout() ? "获得道具！点道具框使用" : "获得道具！按空格使用", 1.6);
       if (e.type === "item") {
         notify(ITEMS[e.item].icon + " " + ITEMS[e.item].name + "！", 1.3);
         if (e.item === "bolt") burst(cars[0].position.clone().add(new T.Vector3(0, 2, 0)), 25, 0xffec8c, kartVelocity(race.player));
       }
-      if (e.type === "wall") notify("碰到护栏，松开方向调整一下", 1.1);
+      if (e.type === "wall") {
+        notify("碰到护栏，松开方向调整一下", 1.1);
+        // Sparks off the wheels on the rail side.
+        const side = Math.sign(race.player.lane) || 1;
+        for (const w of cars[0].userData.wheels) {
+          w.mesh.getWorldPosition(wheelWorld);
+          for (let j = 0; j < 3; j++) spark(wheelWorld, 0xffc36b, side, kartVelocity(race.player));
+        }
+      }
       if (e.type === "rescue") notify("正在返回赛道…", 1.2);
       if (e.type === "hit") {
         notify("打滑啦！短暂无敌保护中", 1.7);
+        cam.shake = save.reduced ? 0 : 1;
+        hitFlash();
         burst(cars[0].position.clone().add(new T.Vector3(0, 1, 0)), 18, 0xffbf80, kartVelocity(race.player));
       }
       if (e.type === "block") notify("泡泡护盾挡住了攻击！", 1.8);
       if (e.type === "drift") {
-        notify(["", "蓝色漂移 · 加速！", "超级漂移 · 加速！", "完美漂移 · 全速冲刺！"][e.level], 1.2);
-        burst(cars[0].position, 16, [0, 0x91e4ff, 0xffc170, 0xf1a4e0][e.level], kartVelocity(race.player));
+        notify(["", "蓝色加速！", "橙色超级加速！", "紫色完美加速！"][e.level], 1.1);
+        burst(cars[0].position, 10 + e.level * 8, DRIFT_SPARKS[e.level], kartVelocity(race.player));
       }
+      if (e.type === "driftLevel") {
+        // The tier changes colour with a pop of sparks from the rear wheels.
+        const carry = kartVelocity(race.player);
+        for (const w of cars[0].userData.wheels)
+          if (!w.front) {
+            w.mesh.getWorldPosition(wheelWorld);
+            for (let j = 0; j < 5 + e.level * 2; j++) spark(wheelWorld, DRIFT_SPARKS[e.level], w.mesh.position.x > 0 ? 1 : -1, carry);
+          }
+      }
+      if (e.type === "go") banner("出发！", "LET THE GOOD TIMES ROLL", 0.8);
+      if (e.type === "rocketStart") banner(e.perfect ? "完美起步！" : "起步加速！", e.perfect ? "PERFECT START" : "NICE START", 1.2);
+      if (e.type === "startEarly") notify("按早啦！倒计时到「1」时再按住漂移键", 1.8);
+      if (e.type === "item" && e.item === "rocket") banner("🚀 火箭冲刺！", "自动驾驶 · 撞开挡路的车", 1.3);
+      if (e.type === "lap" && e.lap === 3) audio.finalLap();
       if (e.type === "lap")
         banner(
           e.lap === 3 ? "最后一圈！" : "第 " + e.lap + " 圈",
@@ -780,6 +839,12 @@ function processEvents() {
           1.9,
         );
       if (e.type === "finish") {
+        audio.finish(e.rank);
+        kartMood(cars[0], "happy", 3);
+        // Confetti in every colour.
+        const at = cars[0].position.clone().add(new T.Vector3(0, 2.4, 0)),
+          carry = kartVelocity(race.player);
+        for (const col of [0xff6b6b, 0xffd166, 0x6bd6ff, 0x8affb0, 0xd38bff]) burst(at, 12, col, carry);
         banner("第 " + e.rank + " 名 · 冲线！", "等待其他伙伴抵达终点", 3);
         burst(cars[0].position.clone().add(new T.Vector3(0, 2, 0)), 70, 0xffdc7b, kartVelocity(race.player));
       }
@@ -794,7 +859,16 @@ function processEvents() {
     }
     if (e.type === "pickup" && e.box != null) {
       const i = race.boxes.findIndex((b) => b.id === e.box);
-      if (i >= 0 && near(race.boxes[i].distance, 60)) burst(pickupMeshes[i].position, e.racer === 0 ? 12 : 6, 0xbff3ff);
+      if (i >= 0 && near(race.boxes[i].distance, 60)) {
+        burst(pickupMeshes[i].position, e.racer === 0 ? 16 : 7, e.racer === 0 ? 0xbff3ff : 0xffffff);
+        // Someone else's pickup: the box pops and regrows at once (it is
+        // still there for you; boxes are per racer).
+        if (e.racer !== 0) pickupMeshes[i].userData.pop = 0;
+      }
+    }
+    if (e.type === "coin" && e.racer !== 0 && e.coin != null) {
+      const i = race.coins.findIndex((c) => c.id === e.coin);
+      if (i >= 0 && near(race.coins[i].distance, 50)) coinMeshes[i].userData.pop = 0;
     }
     if (e.type === "item" && e.item === "bolt") {
       flash();
@@ -805,6 +879,7 @@ function processEvents() {
   if (landed.length) {
     notify("🎯 命中 " + (landed.length > 2 ? landed.length + " 位对手" : landed.join("、")) + "！", 1.5);
     audio.cue("score");
+    kartMood(cars[0], "happy", 0.9);
   }
   race.events = [];
 }
@@ -911,7 +986,8 @@ function updateHUD() {
   $("race-time").textContent = timeText(p.finish ?? race.time);
   $("coins").textContent = String(p.coins).padStart(2, "0");
   $("speed").querySelector("b").textContent = Math.round(p.speed * 3.6);
-  const item = p.roulette > 0 ? Object.keys(ITEMS)[Math.floor(clock * 14) % 6] : p.item;
+  const itemKeys = Object.keys(ITEMS),
+    item = p.roulette > 0 ? itemKeys[Math.floor(clock * 14) % itemKeys.length] : p.item;
   $("item-icon").textContent = item ? ITEMS[item].icon : "?";
   $("item-name").textContent = p.roulette > 0 ? "惊喜抽取中…" : item ? ITEMS[item].name : "寻找道具箱";
   $("item-button").classList.toggle("ready", !!p.item && p.roulette === 0);
@@ -920,15 +996,19 @@ function updateHUD() {
     p.item ? "使用" + ITEMS[p.item].name : "道具槽为空，寻找问号箱",
   );
   const fill = $("drift-fill");
-  fill.style.width = (p.drift / 2.5) * 100 + "%";
-  fill.style.background = p.drift > 2 ? "#f5a3e0" : p.drift > 1.2 ? "#ffc77c" : "#a7f1ff";
+  const level = driftLevel(p.drift);
+  fill.style.width = Math.min(100, (p.drift / DRIFT.levels[3]) * 100) + "%";
+  fill.style.background = DRIFT_COLOURS[level];
+  fill.style.boxShadow = "0 0 9px " + DRIFT_COLOURS[level];
   $("drift-label").textContent =
-    p.drift > 0.65
-      ? "松手！释放" + (p.drift > 2 ? "完美" : p.drift > 1.2 ? "超级" : "蓝色") + "加速"
+    level > 0
+      ? (p.driftAuto ? "松开方向！" : "松手！") + "释放" + ["", "蓝色", "橙色超级", "紫色完美"][level] + "加速"
       : p.drifting
-        ? "保持转向，积攒漂移能量"
+        ? "保持住，火花变色就能加速"
         : touchLayout()
-          ? "按住漂移 + 转向 · 松手加速"
+          ? save.autoDrift
+            ? "弯道里按住方向自动漂移 · 松开加速"
+            : "转向时按住漂移键 · 松手加速"
           : "按住 Shift 转向漂移 · 松手加速";
   const incoming = race.projectiles.some(
     (x) => x.target === 0 && race.gap(p.distance, x.distance) > 0 && race.gap(p.distance, x.distance) < 45,
@@ -936,6 +1016,8 @@ function updateHUD() {
   const effect =
     p.rescue > 0
       ? "正在返回赛道…"
+      : p.rocket > 0
+        ? "🚀 火箭冲刺 " + p.rocket.toFixed(1) + "s"
       : incoming
         ? "⚠ 追踪红壳接近！"
         : p.star > 0
@@ -951,7 +1033,28 @@ function updateHUD() {
                   : "";
   show("status-effect", !!effect);
   $("status-effect").textContent = effect;
-  $("speed-lines").classList.toggle("active", !save.reduced && (p.boost > 0 || p.star > 0));
+  const lines = $("speed-lines");
+  lines.classList.toggle("active", !save.reduced && (p.boost > 0 || p.star > 0 || p.rocket > 0));
+  lines.classList.toggle("strong", !save.reduced && (p.rocket > 0 || (p.boost > 0 && /drift3|item|rocket/.test(p.boostKind))));
+  lines.dataset.kind = p.rocket > 0 ? "rocket" : p.star > 0 ? "star" : p.boostKind || "";
+  // Overtakes, MK style: the position number pops and a cue plays.
+  if (race.phase === "racing" && p.finish === null && lastRank && rank !== lastRank) {
+    const el = $("rank").parentElement;
+    el.classList.remove("up", "down");
+    void el.offsetWidth;
+    el.classList.add(rank < lastRank ? "up" : "down");
+    if (rank < lastRank && clock - lastPassCue > 0.6) {
+      lastPassCue = clock;
+      audio.cue("pass");
+      kartMood(cars[0], "happy", 0.8);
+      if (rank <= 3 || lastRank - rank > 1) notify("超越！第 " + rank + " 名", 1);
+    } else if (rank > lastRank) {
+      // Whoever just passed us glances back with a grin.
+      const by = race.standings()[rank - 2];
+      if (by && by.id !== 0) kartMood(cars[by.id], "happy", 0.8);
+    }
+  }
+  lastRank = rank;
   const sorted = race.standings();
   $("ranking").innerHTML = sorted
     .map(
@@ -971,6 +1074,7 @@ function updateHUD() {
     .join("");
   drawMap();
   $("hud").dataset.phase = race.phase;
+  $("hud").dataset.drifting = p.drifting ? String(level) : "";
   $("hud").dataset.distance = p.distance.toFixed(1);
   $("hud").dataset.drift = p.drift.toFixed(2);
   $("hud").dataset.item = p.item || "";
@@ -1052,14 +1156,33 @@ function shown(r, i) {
 // V2 lerped the camera's world position toward a point on the track, so the
 // camera fell further back as speed rose (about 6.6 m extra during a boost),
 // letting other karts end up between camera and player at full size.
-const cam = { ready: false, heading: 0, lane: 0, y: 0, back: 0, height: 0, fov: 57, orbit: 0, swing: 0 },
+const cam = {
+    ready: false,
+    heading: 0,
+    lane: 0,
+    y: 0,
+    back: 0,
+    height: 0,
+    fov: 57,
+    orbit: 0,
+    swing: 0,
+    // Boost punch (FOV / distance bump) and hit shake, also interpolated.
+    punch: 0,
+    pf: 0,
+    pb: 0,
+    shake: 0,
+    sx: 0,
+    sy: 0,
+    wasBoost: false,
+  },
   camPrev = { ...cam };
 function camStep(dt) {
   const p = race.player,
     s = race.track.sample(p.distance, p.lane),
     portrait = innerHeight > innerWidth,
     finished = p.finish !== null,
-    boost = !save.reduced && (p.boost > 0 || p.star > 0) && p.rescue <= 0,
+    boostOn = (p.boost > 0 || p.star > 0 || p.rocket > 0) && p.rescue <= 0,
+    boost = !save.reduced && boostOn,
     // Heading follows the track tangent plus part of the kart's own slip and
     // drift angle, so the camera swings gently into drifts like KartRider.
     swing =
@@ -1067,9 +1190,26 @@ function camStep(dt) {
       (p.drifting && p.speed > 10 ? (p.driftDirection || 1) * 0.42 : 0);
   const back = (portrait ? 8.4 : 7.0) + (boost ? 0.6 : 0) + Math.min(1, p.speed / 46) * 0.35,
     height = (portrait ? 4.1 : 3.2) + (boost ? -0.12 : 0),
-    fov = (portrait ? 66 : 58) + (boost ? 6 : 0) + Math.min(1, p.speed / 46) * 2;
+    fov = (portrait ? 66 : 58) + (boost ? (p.rocket > 0 ? 11 : 7) : 0) + Math.min(1, p.speed / 46) * 2;
   if (!cam.ready || !cameraReady) {
-    Object.assign(cam, { ready: true, heading: s.yaw, lane: p.lane, y: s.p.y, back, height, fov, orbit: 0, swing: 0 });
+    Object.assign(cam, {
+      ready: true,
+      heading: s.yaw,
+      lane: p.lane,
+      y: s.p.y,
+      back,
+      height,
+      fov,
+      orbit: 0,
+      swing: 0,
+      punch: 0,
+      pf: 0,
+      pb: 0,
+      shake: 0,
+      sx: 0,
+      sy: 0,
+      wasBoost: boostOn,
+    });
     Object.assign(camPrev, cam);
     cameraReady = true;
     return;
@@ -1083,7 +1223,27 @@ function camStep(dt) {
   cam.height = easeTo(cam.height, height, 3, dt);
   cam.fov = easeTo(cam.fov, fov, boost ? 4 : 2.5, dt);
   cam.orbit = angleTo(cam.orbit, finished ? Math.PI * 0.92 : 0, 1.1, dt);
+  // Boost punch: when a boost fires, the view widens and pulls back for a
+  // moment (a half sine over 0.55 s, so it starts and ends smoothly) — the
+  // "push in the back" that sells a mini-turbo.
+  if (boostOn && !cam.wasBoost && !save.reduced) cam.punch = 1e-6;
+  cam.wasBoost = boostOn;
+  if (cam.punch > 0) cam.punch = cam.punch + dt > 0.55 ? 0 : cam.punch + dt;
+  const k = cam.punch > 0 ? Math.sin((Math.PI * cam.punch) / 0.55) : 0,
+    big = p.rocket > 0 || p.boostKind === "drift3" || p.boostKind === "item" ? 1.35 : 1;
+  cam.pf = k * 6 * big;
+  cam.pb = k * 0.75 * big;
+  // Hit shake: short and decaying, computed per physics step.
+  if (cam.shake > 0) {
+    cam.shake = Math.max(0, cam.shake - dt / 0.45);
+    const t = (1 - cam.shake) * 0.45,
+      a = cam.shake * cam.shake * 0.2;
+    cam.sx = Math.sin(t * 61) * a;
+    cam.sy = Math.cos(t * 47) * a * 0.7;
+  } else cam.sx = cam.sy = 0;
 }
+// Ease-out with a small overshoot, for things that pop into view.
+const backOut = (t) => 1 + 2.70158 * (t - 1) ** 3 + 1.70158 * (t - 1) ** 2;
 const camTarget = new T.Vector3(),
   camAim = new T.Vector3(),
   camFwd = new T.Vector3();
@@ -1101,6 +1261,22 @@ function spark(at, colour, side, carry) {
   if (carry) sparkVelocity.add(carry);
   particles.push({ p: at.clone(), v: sparkVelocity.clone(), life: 0.22 + Math.random() * 0.2, max: 1, size: 0.05 + Math.random() * 0.05, color: colour });
 }
+// Which side a rival is on when one is right alongside (-1 left .. 1 right),
+// so drivers glance at each other while racing wheel to wheel.
+function rivalSide(r) {
+  let best = 0,
+    bestGap = 4.5;
+  for (const o of race.racers) {
+    if (o === r || o.finish !== null) continue;
+    const g = Math.abs(race.gap(o.distance, r.distance)),
+      side = o.lane - r.lane;
+    if (g < bestGap && Math.abs(side) < 4 && Math.abs(side) > 0.6) {
+      bestGap = g;
+      best = Math.sign(side) * (1 - g / 4.5);
+    }
+  }
+  return best;
+}
 function renderRace(dt) {
   const p = race.player;
   race.racers.forEach((r, i) => {
@@ -1112,13 +1288,21 @@ function renderRace(dt) {
     k.rotation.set(-Math.asin(s.t.y), s.yaw, 0, "YXZ");
     // Invincibility blink, as before; karts are never hidden for being close.
     k.visible = r.id === 0 || (r.invincible > 0 && r.star <= 0 && r.stun <= 0 ? Math.floor(clock * 10) % 5 !== 0 : true);
-    animateKart(k, clock + i, r, dt, false, { curve: race.track.curvature(at.d), camera });
+    animateKart(k, clock + i, r, dt, false, { curve: race.track.curvature(at.d), camera, look: rivalSide(r) });
+    // Grass / sand thrown up when a kart runs wide off the road.
+    if (dt > 0 && Math.abs(r.lane) > race.track.width / 2 - 0.2 && r.speed > 8 && k.position.distanceToSquared(camera.position) < 700)
+      for (const w of k.userData.wheels)
+        if (!w.front && Math.random() < dt * 14) {
+          w.mesh.getWorldPosition(wheelWorld);
+          wheelWorld.y = s.p.y + 0.15;
+          spark(wheelWorld, race.track.index === 1 ? 0xf3d9c4 : race.track.index === 2 ? 0x8a93c8 : 0x9bc46e, 0, s.t.clone().multiplyScalar(r.speed * 0.7));
+        }
     // Drift sparks from the rear wheels, coloured by charge.
     if (dt > 0 && r.drifting && r.speed > 14 && k.position.distanceToSquared(camera.position) < 900) {
-      const level = r.drift > 2 ? 3 : r.drift > 1.2 ? 2 : r.drift > 0.65 ? 1 : 0,
-        colour = [0xfff1c9, 0x7fdcff, 0xffa64a, 0xf47be0][level];
+      const level = driftLevel(r.drift),
+        colour = DRIFT_SPARKS[level];
       for (const w of k.userData.wheels)
-        if (!w.front && Math.random() < dt * (r.id === 0 ? 32 : 12) * (0.4 + level * 0.35)) {
+        if (!w.front && Math.random() < dt * (r.id === 0 ? 40 : 12) * (0.35 + level * 0.45)) {
           w.mesh.getWorldPosition(wheelWorld);
           wheelWorld.y = s.p.y + 0.12;
           spark(wheelWorld, colour, w.mesh.position.x > 0 ? 1 : -1, s.t.clone().multiplyScalar(r.speed * 0.9));
@@ -1127,7 +1311,7 @@ function renderRace(dt) {
   });
   // Player boost: ignition burst, exhaust light, whoosh.
   const playerKart = cars[0],
-    boosting = (p.boost > 0 || p.star > 0) && p.rescue <= 0;
+    boosting = (p.boost > 0 || p.star > 0 || p.rocket > 0) && p.rescue <= 0;
   if (boosting && !lastPlayerBoost && dt > 0) {
     audio.cue("boost");
     const carry = kartVelocity(p),
@@ -1146,14 +1330,34 @@ function renderRace(dt) {
     nitroLight.position.lerp(playerKart.userData.exhaust[1].nozzle.getWorldPosition(wheelWorld), 0.5);
     nitroLight.color.setHex(NITRO[playerKart.userData.vis.kind]?.outer || 0x38c4ff);
   }
+  // Boxes and coins are per racer: what you see is what you can still take.
+  // One you just took regrows when it respawns for you; one another kart
+  // took pops and regrows at once (it is still yours to take).
   pickupMeshes.forEach((m, i) => {
-    m.visible = race.boxes[i].cooldown <= 0;
+    const b = race.boxes[i],
+      u = m.userData,
+      mine = b.cooldown <= 0 && !(b.taken[0] > 0);
+    if (mine && u.mine === false) u.pop = 0;
+    u.mine = mine;
+    if (dt > 0) u.pop = Math.min(1, (u.pop ?? 1) + dt * 2.4);
+    const grow = mine ? backOut(u.pop) : 0;
+    m.visible = grow > 0.02;
+    m.scale.setScalar(Math.max(0.02, grow));
     m.rotation.y = clock * 0.8 + i;
     m.rotation.z = Math.sin(clock * 1.3 + i) * 0.12;
-    m.position.y = m.userData.baseY + Math.sin(clock * 2 + i) * 0.15;
+    m.position.y = u.baseY + Math.sin(clock * 2 + i) * 0.15;
   });
+  updateBoxShimmer(clock);
   coinMeshes.forEach((m, i) => {
-    m.visible = race.coins[i].cooldown <= 0;
+    const c = race.coins[i],
+      u = m.userData,
+      mine = c.cooldown <= 0 && !(c.taken[0] > 0);
+    if (mine && u.mine === false) u.pop = 0;
+    u.mine = mine;
+    if (dt > 0) u.pop = Math.min(1, (u.pop ?? 1) + dt * 3);
+    const grow = mine ? backOut(u.pop) : 0;
+    m.visible = grow > 0.02;
+    m.scale.setScalar(Math.max(0.02, grow));
     m.rotation.y = clock * 2 + i;
   });
   const live = new Set();
@@ -1180,6 +1384,10 @@ function renderRace(dt) {
   world.moving.forEach((o) => {
     if (o.type === "mill") o.mesh.rotation.z = clock * 0.22;
     else if (o.type === "halo") o.mesh.rotation.y = clock * 0.3;
+    else if (o.type === "balloon") {
+      o.mesh.position.y = o.y + Math.sin(clock * 1.1 + o.phase) * 0.45;
+      o.mesh.rotation.z = Math.sin(clock * 0.9 + o.phase) * 0.08;
+    }
   });
   // --- Camera ---------------------------------------------------------------
   // Smoothed in the fixed physics step (camStep) and interpolated here, so the
@@ -1194,14 +1402,17 @@ function renderRace(dt) {
     finished = p.finish !== null,
     s = race.track.sample(at.d, at.l);
   camFwd.set(Math.sin(yaw), 0, Math.cos(yaw));
-  camTarget.copy(anchor).addScaledVector(camFwd, -mix("back"));
-  camTarget.y = mix("y") + mix("height");
+  camTarget.copy(anchor).addScaledVector(camFwd, -(mix("back") + mix("pb")));
+  camTarget.y = mix("y") + mix("height") + mix("sy");
+  camTarget.x += Math.cos(yaw) * mix("sx");
+  camTarget.z -= Math.sin(yaw) * mix("sx");
   camAim.copy(anchor).addScaledVector(camFwd, finished ? 0 : 6.5);
   camAim.y = mix("y") + (finished ? 1.3 : 1.25);
   camera.position.copy(camTarget);
   camera.lookAt(camAim);
-  camera.fov = mix("fov");
+  camera.fov = mix("fov") + mix("pf");
   camera.updateProjectionMatrix();
+  world.sky.position.copy(camera.position);
   // --- Near-camera fade -----------------------------------------------------
   // Instead of V2's hide-then-pop (karts 0.8–11 m behind the player were made
   // invisible, then reappeared beside you), a kart fades only while it is
@@ -1303,10 +1514,7 @@ function frame(now) {
             lastCount = count;
           }
         } else {
-          if (lastCount !== -1) {
-            lastCount = -1;
-            banner("出发！", "LET THE GOOD TIMES ROLL", 0.8);
-          }
+          lastCount = -1; // the "go" event shows the banner (see processEvents)
           show("countdown", false);
         }
       }
@@ -1319,9 +1527,22 @@ function frame(now) {
     }
   }
   particleUpdate(mode === "paused" ? 0 : dt);
-  audio.update(race?.player.speed || 0, mode === "race" && race.phase === "racing" && resumeTimer <= 0);
+  const pl = race?.player;
+  audio.update(pl?.speed || 0, mode === "race" && race.phase === "racing" && resumeTimer <= 0, {
+    boost: !!pl && (pl.boost > 0 || pl.star > 0 || pl.rocket > 0),
+    drift: pl?.drifting && pl.finish === null ? driftLevel(pl.drift) : -1,
+    paused: mode === "paused",
+  });
   renderer.render(scene, camera);
 }
+// Garage music starts with the first tap or key press (browsers only allow
+// sound after a user gesture).
+audio.menu();
+const firstGesture = () => {
+  audio.unlock();
+  for (const type of ["pointerup", "touchend", "keydown"]) removeEventListener(type, firstGesture, true);
+};
+for (const type of ["pointerup", "touchend", "keydown"]) addEventListener(type, firstGesture, true);
 show("loading", false);
 $("start").disabled = false;
 document.documentElement.dataset.ready = "true";

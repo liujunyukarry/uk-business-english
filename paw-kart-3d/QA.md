@@ -107,3 +107,44 @@ Build `bf2094ff` (shown at the bottom of the pause and help dialogs).
 **Cache-safe build**: `npm run stamp` stamps every local module and the stylesheet with a content hash; `tests/build.test.js` fails if it is stale.
 
 **Totals**: `npm test` 36/36, `npm run test:e2e` 17/17. Normal-speed playthroughs through the real touch UI on this build: 844×390 桃桃兔 蜜桃糖果海湾 (3rd, 14 drift boosts, 12 items), 390×844 小金毛 花田晴空环线 (3rd, 13 boosts, 8 items), full cup with 泡泡探险家 (2nd / 6th / 4th → cup 3rd); 0 pop-ins, no held key after the last lift, result buttons on screen, back to garage, no application errors.
+
+# v2.2 Verification — 2026-11-03
+
+Build id is shown at the bottom of the pause and help dialogs ("版本 2.2 · <id>"). Same container environment as v2.1 (headless Chrome; no phone).
+
+## What changed and how it was checked
+
+| Area | Change | Evidence |
+|---|---|---|
+| Touch steering | Left / right halves of the screen steer; newest touch wins when both are held; drift and item are separate big buttons; countdown / banners no longer swallow touches | `tests/input.test.js` (5), `tests/e2e/controls.test.js` (13: any point on a half, both halves, drift never steers, slide off / back / across, lost lift, cancel, pause, background, rotation, mouse) |
+| Lost-lift watchdog | A touch no event has mentioned for 4 s is released; a finger that is really still down re-attaches on its next move | e2e: lost lift with no other touch → released after 4 s; still finger → steering again on the next move |
+| Item boxes | 6 rows × 5 boxes span the road; per-racer availability; odds weighted by distance behind; rocket only far behind | `tests/v22.test.js`: every line from lane −7.5 to 7.5 collects; a box the kart ahead took is still there; leader vs far-behind odds. Simulation (45 races, 100cc): 18 pickups per race for the player (every row) |
+| AI items | AI hold items 3–9 s | Simulation with a banana-dodging bot, 15 races: player hit 2.67 times per race (4.00 before this tuning) |
+| Drift boost | Tiers 1/2/3: kick 3.5 / 5 / 7 m/s, boost 1.0 / 1.6 / 2.3 s, glide back after; charge faster when steering in; MK-style committed drift line | `tests/v22.test.js`: each tier's kick and duration, one cue per tier, still +4 m/s over a non-boosted twin 0.5 s after the boost ends |
+| Auto-drift | Holding one direction ≥ 0.28 s in a bend (curvature > 0.008) drifts; letting go boosts; off on straights, against the bend, or when disabled | `tests/v22.test.js` (both directions, straight, opposite, off) |
+| Rocket start | Hold drift / gas when "1" shows: ≤ 0.45 s perfect, ≤ 1.0 s good, earlier = no boost | `tests/v22.test.js` (perfect / good / early / none / re-press) |
+| Rocket item | Autopilot to the middle, 1.62× speed, immune, knocks karts aside without being slowed | `tests/v22.test.js`, `tests/e2e/items.test.js` (banner, status, flames) |
+| Contact | Star / rocket plough through (no positional correction or speed exchange) | `tests/continuity.test.js` unchanged limits (no jumps; plain rear-ends < 60 steps) |
+| Privacy | Generic guard: e-mails, phone numbers, tokens, home paths, personal-site and account links, image/video metadata | `tests/privacy.test.js` (2); planted fake data was caught, then removed |
+
+Totals: `npm test` 49/49, `npm run test:e2e` 23/23 (screen jerk p95 ≈ 0.0013, worst ≈ 0.0025; 0 pop-ins).
+
+## Normal-speed play through the real touch UI (compatibility renderer, real time)
+
+Bot steering only by touching the screen halves, using every item through the item button, rocket start by holding the drift button:
+
+| Viewport | Track / class | Start | Items | Drift boosts | Hit | Result |
+|---|---|---|---|---|---|---|
+| 844×390 | 花田晴空环线 100cc | good start | 18 | 14 | 2 | 1st, 59.7 s |
+| 390×844 | 蜜桃糖果海湾 100cc | perfect start | 18 | 16 | 4 | 1st, 65.5 s |
+| 844×390 | 星光云端公路 150cc | (pressed late) | 18 | 15 | 2 | 4th, 60.6 s |
+
+Result dialog reached every time; no page errors.
+
+## Visual checks (WebGL, SwiftShader)
+
+`docs/qa-2.2/`: controls coaching in portrait, purple drift sparks and flames, boost with the rainbow item row, driver expressions (neutral / happy / dizzy / focused / cheering) and dizzy stars after a hit. Screenshots keep the two licensed-character karts out of frame.
+
+## Not verified — needs an iPhone
+
+Real touch feel of the half-screen steering and the watchdog inside the in-app browser; music and effect mix on the phone speaker (the synthesis was only checked to run without errors); frame rate and heat with the new sky, ranges, crowd and road texture.

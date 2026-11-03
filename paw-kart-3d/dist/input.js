@@ -1,4 +1,10 @@
-// Touch / mouse control state for the on-screen driving buttons.
+// Touch / mouse control state for the on-screen driving controls.
+//
+// Layout (v2.2): the left and right halves of the screen are the steering
+// controls ("zones"): touch anywhere on the left half to steer left, on the
+// right half to steer right. Drift (and gas, when auto-gas is off) are
+// ordinary buttons placed over the zones; a touch that starts on a button is
+// that button, never steering.
 //
 // Design rules (each one closes a way V2 could leave a key "stuck"):
 // 1. A control is pressed if and only if some live contact currently holds it.
@@ -7,31 +13,45 @@
 // 2. Every touch event carries the browser's list of fingers still on the
 //    screen (TouchEvent.touches). Any contact that is not in that list is a
 //    ghost (its touchend was swallowed by the OS / host app) and is dropped.
-// 3. A contact follows the finger: sliding from ‹ to › switches direction,
-//    sliding off a button releases it, sliding back re-engages it.
+// 3. A contact follows the finger: sliding from the left half to the right
+//    half switches direction, sliding off a button releases it, sliding back
+//    re-engages it.
 // 4. Pause, blur, backgrounding and rotation clear every contact. A finger
 //    that is still down afterwards must be lifted and pressed again.
+// 5. Last resort for in-app browsers: a contact that no touch event has
+//    mentioned for `staleMs` is set aside (released). A finger that really is
+//    still down reports itself with its next tiny movement and is re-attached
+//    at once, so a false release lasts a frame; a true ghost cannot outlive
+//    the timeout even if no other touch ever arrives.
+// 6. Holding both halves steers toward the half touched most recently, so a
+//    quick tap on the other side corrects without lifting the first thumb.
 
 export const CONTROLS = ["left", "right", "drift", "gas"];
 const GROUP = { left: "steer", right: "steer", drift: "drift", gas: "gas" };
 
 export class ControlState {
   constructor() {
-    this.contacts = new Map(); // id -> { control, group, kind }
+    this.contacts = new Map(); // id -> { control, group, kind } in press order
   }
   press(id, control, kind = "touch") {
     if (!GROUP[control]) return false;
+    this.contacts.delete(id); // re-insert: the newest press is last
     this.contacts.set(id, { control, group: GROUP[control], kind });
     return true;
   }
   // Re-target an existing contact. `control` may be null (finger is off every
-  // button of its group); the contact stays tracked so sliding back works.
+  // control of its group); the contact stays tracked so sliding back works.
   move(id, control) {
     const c = this.contacts.get(id);
     if (!c) return false;
     const next = control && GROUP[control] === c.group ? control : null;
     if (next === c.control) return false;
     c.control = next;
+    if (next) {
+      // Moving onto a control counts as the newest press of its group.
+      this.contacts.delete(id);
+      this.contacts.set(id, c);
+    }
     return true;
   }
   release(id) {
@@ -52,7 +72,13 @@ export class ControlState {
     this.contacts.clear();
     return had;
   }
+  // Steering reports only the newest held direction; other groups report any.
   pressed(control) {
+    if (GROUP[control] === "steer") {
+      let last = null;
+      for (const c of this.contacts.values()) if (c.group === "steer" && c.control) last = c.control;
+      return last === control;
+    }
     for (const c of this.contacts.values()) if (c.control === control) return true;
     return false;
   }
@@ -63,37 +89,53 @@ export class ControlState {
   }
 }
 
-// Pick the control under (x, y). Rects are DOMRect-like {left,top,right,bottom}.
-// The finger may drift `margin` px outside a button and still hold it; when two
-// steering buttons both qualify, the nearer centre wins.
-export function hitControl(rects, x, y, group = null, margin = 18) {
+// Pick the control under (x, y). Rects are {left, top, right, bottom, zone}.
+// Buttons win over zones: a button counts while the finger is within
+// `margin` px of it (a little more for drift / gas), and the nearest button
+// centre wins; zones (the steering halves) count only strictly inside.
+export function hitControl(rects, x, y, group = null, margin = 12) {
   let best = null,
     bestDistance = Infinity;
   for (const [control, r] of Object.entries(rects)) {
-    if (!r || (group && GROUP[control] !== group)) continue;
-    const m = GROUP[control] === "steer" ? margin : margin + 10;
+    if (!r || r.zone || (group && GROUP[control] !== group)) continue;
+    const m = GROUP[control] === "steer" ? margin : margin + 14;
     if (x < r.left - m || x > r.right + m || y < r.top - m || y > r.bottom + m) continue;
-    const cx = (r.left + r.right) / 2,
-      cy = (r.top + r.bottom) / 2,
-      d = (x - cx) ** 2 + (y - cy) ** 2;
+    const d = (x - (r.left + r.right) / 2) ** 2 + (y - (r.top + r.bottom) / 2) ** 2;
     if (d < bestDistance) {
       best = control;
       bestDistance = d;
     }
   }
-  return best;
+  if (best) return best;
+  for (const [control, r] of Object.entries(rects)) {
+    if (!r || !r.zone || (group && GROUP[control] !== group)) continue;
+    if (x >= r.left && x < r.right && y >= r.top && y < r.bottom) return control;
+  }
+  return null;
 }
 
-// Wire the state to the DOM. `buttons` maps control -> element.
-export function bindTouchControls({ root, buttons, isActive, onChange, onItem, itemButton, win = window }) {
+// Wire the state to the DOM. `buttons` maps control -> element; elements with
+// the class "zone" are steering zones.
+export function bindTouchControls({
+  root,
+  buttons,
+  isActive,
+  onChange,
+  onItem,
+  itemButton,
+  win = window,
+  staleMs = 4000,
+}) {
   const state = new ControlState();
   const doc = win.document;
   const hasTouchEvents = "ontouchstart" in win;
+  const now = () => win.performance.now();
   const rects = () => {
     const out = {};
     for (const [k, el] of Object.entries(buttons)) {
-      if (!el || el.offsetParent === null) continue; // hidden buttons cannot be hit
-      out[k] = el.getBoundingClientRect();
+      if (!el || el.offsetParent === null) continue; // hidden controls cannot be hit
+      const b = el.getBoundingClientRect();
+      out[k] = { left: b.left, top: b.top, right: b.right, bottom: b.bottom, zone: el.classList.contains("zone") };
     }
     return out;
   };
@@ -104,11 +146,24 @@ export function bindTouchControls({ root, buttons, isActive, onChange, onItem, i
   const changed = (did) => {
     if (did) sync();
   };
-  const liveTouchIds = (e) => new Set([...e.touches].map((t) => "t" + t.identifier));
+  const seen = new Map(), // touch id -> last time any touch event listed it
+    dormant = new Map(); // touch id -> group, set aside by the watchdog
+  const liveTouchIds = (e) => {
+    const ids = new Set(),
+      t = now();
+    for (const touch of e.touches) {
+      const id = "t" + touch.identifier;
+      ids.add(id);
+      seen.set(id, t);
+    }
+    for (const id of dormant.keys()) if (!ids.has(id)) dormant.delete(id);
+    for (const id of seen.keys()) if (!ids.has(id) && !state.contacts.has(id)) seen.delete(id);
+    return ids;
+  };
   const controlRoot = root || doc.body;
 
   if (hasTouchEvents) {
-    // Fingers that begin on a driving button.
+    // Fingers that begin on a driving control.
     controlRoot.addEventListener(
       "touchstart",
       (e) => {
@@ -121,6 +176,7 @@ export function bindTouchControls({ root, buttons, isActive, onChange, onItem, i
           // preventDefault stops scrolling, zoom, callouts and the synthetic
           // mouse/click sequence that iOS would otherwise send afterwards.
           if (e.cancelable) e.preventDefault();
+          dormant.delete("t" + t.identifier);
           did = state.press("t" + t.identifier, control, "touch") || did;
         }
         changed(did);
@@ -133,11 +189,17 @@ export function bindTouchControls({ root, buttons, isActive, onChange, onItem, i
       "touchmove",
       (e) => {
         let did = state.reconcile("touch", liveTouchIds(e));
-        if (state.contacts.size) {
-          const r = rects();
-          for (const t of e.changedTouches) {
-            const c = state.contacts.get("t" + t.identifier);
-            if (c) did = state.move("t" + t.identifier, hitControl(r, t.clientX, t.clientY, c.group)) || did;
+        const r = state.contacts.size || dormant.size ? rects() : null;
+        for (const t of e.changedTouches) {
+          const id = "t" + t.identifier,
+            c = state.contacts.get(id);
+          if (c) did = state.move(id, hitControl(r, t.clientX, t.clientY, c.group)) || did;
+          else if (dormant.has(id) && isActive()) {
+            // A finger the watchdog set aside is still down: re-attach it.
+            const group = dormant.get(id),
+              control = hitControl(r, t.clientX, t.clientY, group);
+            dormant.delete(id);
+            if (control) did = state.press(id, control, "touch") || did;
           }
         }
         changed(did);
@@ -146,7 +208,10 @@ export function bindTouchControls({ root, buttons, isActive, onChange, onItem, i
     );
     const end = (e) => {
       let did = false;
-      for (const t of e.changedTouches) did = state.release("t" + t.identifier) || did;
+      for (const t of e.changedTouches) {
+        did = state.release("t" + t.identifier) || did;
+        dormant.delete("t" + t.identifier);
+      }
       did = state.reconcile("touch", liveTouchIds(e)) || did;
       changed(did);
     };
@@ -157,6 +222,18 @@ export function bindTouchControls({ root, buttons, isActive, onChange, onItem, i
       passive: true,
       capture: true,
     });
+    // Watchdog (rule 5).
+    win.setInterval(() => {
+      const t = now();
+      let did = false;
+      for (const [id, c] of state.contacts)
+        if (c.kind === "touch" && t - (seen.get(id) ?? t) > staleMs) {
+          state.release(id);
+          dormant.set(id, c.group);
+          did = true;
+        }
+      changed(did);
+    }, 250);
   }
 
   // Mouse / pen (and touch on browsers without Touch Events).
@@ -187,14 +264,14 @@ export function bindTouchControls({ root, buttons, isActive, onChange, onItem, i
     const fast = (e) => {
       if (e.type === "pointerdown" && e.pointerType === "touch" && hasTouchEvents) return;
       if (e.cancelable) e.preventDefault();
-      lastFast = performance.now();
+      lastFast = now();
       onItem?.();
     };
     if (hasTouchEvents) itemButton.addEventListener("touchstart", fast, { passive: false });
     itemButton.addEventListener("pointerdown", fast);
     // Keyboard activation (Enter / Space on the focused button) still works.
     itemButton.addEventListener("click", () => {
-      if (performance.now() - lastFast > 700) onItem?.();
+      if (now() - lastFast > 700) onItem?.();
     });
   }
 
@@ -202,6 +279,7 @@ export function bindTouchControls({ root, buttons, isActive, onChange, onItem, i
     state,
     clear() {
       state.clear();
+      dormant.clear();
       sync();
     },
     sync,

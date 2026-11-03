@@ -67,7 +67,9 @@ test("AI karts race around the player instead of pushing into it", () => {
             dy = p.lane - o.lane;
           if ((dx / 2.65) ** 2 + (dy / 1.95) ** 2 < 1.02) {
             contact++;
-            if (dx > 0.25 && Math.abs(dy) <= 0.25) rammed++;
+            // A star or rocket ploughing into the player is an attack, not
+            // racecraft; only count ordinary rear-ends.
+            if (dx > 0.25 && Math.abs(dy) <= 0.25 && !(o.star > 0 || o.rocket > 0)) rammed++;
           }
         }
       });

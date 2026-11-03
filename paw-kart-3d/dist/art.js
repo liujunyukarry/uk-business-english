@@ -1,7 +1,7 @@
 import * as T from "./vendor/three.module.js";
-import { kartAsset } from "./kart-assets.js?v=bf2094ff";
-import { dog, animateDog, material, ellipsoid, roundedBox } from "./models.js?v=bf2094ff";
-import { CHARACTERS, seeded } from "./race.js?v=bf2094ff";
+import { kartAsset } from "./kart-assets.js?v=da391d9a";
+import { dog, animateDog, reactDog, material, ellipsoid, roundedBox, star as starMesh } from "./models.js?v=da391d9a";
+import { CHARACTERS, seeded } from "./race.js?v=da391d9a";
 const scenerySphere = new T.SphereGeometry(1, 12, 8);
 const sphere = new T.SphereGeometry(1, 24, 18),
   unitBox = new T.BoxGeometry(1, 1, 1),
@@ -76,6 +76,42 @@ function eyes(g, y, z, x = 0.23, size = 0.065) {
     ball(e, 0xffffff, [-0.28, 0.28, 0.8], [0.23, 0.23, 0.2]);
     return e;
   });
+}
+// Expression set for the bunny and the bear, matching the dogs' face rig:
+// happy "^ ^" eyes, dizzy "x x" eyes, focused brows, and a grin / "o" mouth.
+function expressions(head, eyeList, smile) {
+  const dark = 0x2a2d36,
+    happy = [],
+    hurt = [],
+    brows = [];
+  for (const e of eyeList) {
+    const x = e.position.x,
+      y = e.position.y,
+      z = e.position.z + 0.02;
+    const arc = new T.Mesh(new T.TorusGeometry(0.055, 0.016, 6, 14, Math.PI), mat(dark));
+    arc.position.set(x, y - 0.02, z);
+    arc.visible = false;
+    head.add(arc);
+    happy.push(arc);
+    const cross = new T.Group();
+    cross.position.set(x, y, z);
+    for (const a of [Math.PI / 4, -Math.PI / 4]) {
+      const bar = box(cross, dark, [0, 0, 0], [0.13, 0.024, 0.02]);
+      bar.rotation.z = a;
+    }
+    cross.visible = false;
+    head.add(cross);
+    hurt.push(cross);
+    const brow = box(head, dark, [x, y + 0.13, z - 0.01], [0.12, 0.026, 0.02]);
+    brow.rotation.z = (x > 0 ? 1 : -1) * 0.38; // inner ends down: determined
+    brow.visible = false;
+    brows.push(brow);
+  }
+  const grin = ball(head, 0x4a2b2e, [0, -0.25, 0.54], [0.12, 0.07, 0.03]);
+  grin.visible = false;
+  const oh = ball(head, 0x4a2b2e, [0, -0.26, 0.545], [0.05, 0.065, 0.03]);
+  oh.visible = false;
+  return { eyes: eyeList, happy, hurt, brows, smile, grin, oh };
 }
 function character(kind) {
   if (kind === "gold" || kind === "white") {
@@ -225,7 +261,7 @@ function character(kind) {
     }
     eyeList.push(...eyes(head, 0.04, 0.52, 0.23, 0.052));
     ball(head, 0x4e4a43, [0, -0.13, 0.58], [0.065, 0.045, 0.04]);
-    line(
+    const smile = line(
       head,
       [
         [-0.12, -0.23, 0.53],
@@ -234,12 +270,13 @@ function character(kind) {
       ],
       0.018,
     );
+    root.userData.face = expressions(head, eyeList, smile);
     const band = new T.Mesh(new T.TorusGeometry(0.37, 0.07, 8, 28), mat(bunny ? 0xd8819f : 0xffdc6c));
     band.rotation.x = Math.PI / 2;
     band.position.y = 1.29;
     root.add(band);
   }
-  root.userData = { head, eyes: eyeList, ears };
+  root.userData = { ...root.userData, head, eyes: eyeList, ears };
   if (kind === "bunny" || kind === "bear") root.userData.limbs = { color: kind === "bunny" ? 0xffe4e7 : 0x9dd4bf };
   return root;
 }
@@ -263,6 +300,7 @@ export const NITRO = {
   item: { outer: 0xff5410, core: 0xffe39a, len: 1.7 },
   pad: { outer: 0x12c9ff, core: 0xeaffff, len: 1.3 },
   star: { outer: 0xffc21a, core: 0xffffff, len: 1.45 },
+  rocket: { outer: 0xff6a1a, core: 0xfff7d6, len: 2.3 },
 };
 let compatibility = false;
 // The CPU fallback renderer has no blending or texture alpha: flames there are
@@ -513,6 +551,25 @@ export function createKart(kind = "gold", number = 1) {
   }
   if (driver.userData.limbs) limbs = fitLimbs(driver, driver.userData.limbs.color);
 
+  // Antenna pennant in the driver's colour and a race-number plate, so each
+  // kart reads as its driver's at a glance (the five Kenney karts are shared
+  // between the eight racers).
+  const accent = info ? new T.Color(info.color).getHex() : 0xeeae55,
+    antenna = new T.Group();
+  antenna.position.set(-0.62, 1.05, -1.0);
+  body.add(antenna);
+  cyl(antenna, 0x4a4f55, [0, 0.62, 0], [0.024, 1.25, 0.024]);
+  ball(antenna, accent, [0, 1.27, 0], [0.065, 0.065, 0.065]);
+  const flag = new T.Mesh(pennantGeo, new T.MeshStandardMaterial({ color: accent, roughness: 0.55, side: T.DoubleSide }));
+  flag.position.y = 1.2;
+  flag.castShadow = true;
+  antenna.add(flag);
+  const plate = new T.Mesh(
+    new T.PlaneGeometry(0.46, 0.28),
+    new T.MeshBasicMaterial({ map: label(String(number), { bg: "#fffaf0", fg: info?.color || "#2f4a40", w: 256, h: 156 }) }),
+  );
+  plate.position.set(0, 0.62, 1.715);
+  body.add(plate);
   const exhaust = EXHAUST_TIPS.map(() => exhaustFlame(body));
   exhaust.forEach((f, i) => {
     f.nozzle.position.copy(EXHAUST_TIPS[i]);
@@ -553,6 +610,17 @@ export function createKart(kind = "gold", number = 1) {
   }
   g.add(protection);
   protection.visible = false;
+  // Dizzy stars circling the driver's head after a hit.
+  const dizzy = new T.Group();
+  dizzy.position.y = driver.userData.kartDog ? 2.45 : 2.3;
+  for (let i = 0; i < 3; i++) {
+    const st = starMesh();
+    st.scale.setScalar(0.42);
+    st.position.set(Math.cos((i * Math.PI * 2) / 3) * 0.55, 0, Math.sin((i * Math.PI * 2) / 3) * 0.55);
+    dizzy.add(st);
+  }
+  dizzy.visible = false;
+  g.add(dizzy);
   const marker = new T.Mesh(new T.ConeGeometry(0.19, 0.38, 4), new T.MeshBasicMaterial({ color: 0x7df5ff }));
   marker.rotation.z = Math.PI;
   marker.position.y = 3.05;
@@ -569,9 +637,29 @@ export function createKart(kind = "gold", number = 1) {
     shield,
     protection,
     marker,
+    dizzy,
+    flag,
     kind,
     // Smoothed visual pose (heading slip, drift yaw, lean, pitch, nitro).
-    vis: { slip: 0, drift: 0, roll: 0, pitch: 0, wheel: 0, speed: 0, accel: 0, nitro: 0, kick: 0, active: false, kind: "item" },
+    vis: {
+      slip: 0,
+      drift: 0,
+      roll: 0,
+      pitch: 0,
+      wheel: 0,
+      speed: 0,
+      accel: 0,
+      nitro: 0,
+      kick: 0,
+      active: false,
+      kind: "item",
+      hop: 0, // drift-start hop, 1 -> 0
+      wasDrifting: false,
+      mood: "", // timed mood set from the game (overtake, landed a hit)
+      moodTime: 0,
+      look: 0, // head turn toward a rival alongside
+      cheer: 0,
+    },
     fade: 1,
   };
   return g;
@@ -622,6 +710,14 @@ const tmpGrip = new T.Vector3(),
   tmpQ = new T.Quaternion(),
   tmpM = new T.Matrix4();
 
+// A short-lived mood from a game event: "happy" after an overtake or a hit
+// landed (the dogs also glance back), for `seconds`.
+export function kartMood(g, mood, seconds = 0.9) {
+  const v = g.userData.vis;
+  v.mood = mood;
+  v.moodTime = seconds;
+  v.faceMood = null; // re-apply the face next frame
+}
 export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
   const d = g.userData,
     driver = d.driver,
@@ -638,6 +734,30 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
   // Drift: KartRider-style angle into the corner, modulated by steering.
   const driftTarget = drifting ? (r.driftDirection || Math.sign(steer) || 1) * (0.42 + steer * (r.driftDirection || 1) * 0.12) : 0;
   v.drift = ease(v.drift, driftTarget, drifting ? 7 : 5, dt);
+  // Drift hop: a little jump as a drift starts, as in Mario Kart.
+  if (drifting && !v.wasDrifting && !showcase) v.hop = 1;
+  v.wasDrifting = drifting;
+  v.hop = Math.max(0, v.hop - dt * 4);
+  const hop = v.hop > 0 ? Math.sin((1 - v.hop) * Math.PI) * 0.3 : 0;
+  // Mood drives the faces: dizzy after a hit, cheering past the line, happy
+  // while boosting or after an overtake / a hit landed, focused deep in a
+  // drift. Timed moods come from kartMood().
+  v.moodTime = Math.max(0, v.moodTime - dt);
+  const mood = showcase
+    ? ""
+    : r?.stun > 0
+      ? "hurt"
+      : r && r.finish !== null && r.finish !== undefined
+        ? "cheer"
+        : v.moodTime > 0
+          ? v.mood
+          : r?.rocket > 0 || r?.star > 0 || (v.active && v.kick > 0.2)
+            ? "happy"
+            : drifting && (r?.drift ?? 0) >= 1.25
+              ? "focus"
+              : "";
+  v.cheer = ease(v.cheer, mood === "cheer" ? 1 : 0, 3, dt);
+  v.look = ease(v.look, ctx.look || 0, 4, dt);
   // Lean into turns (driver weight) and squat/lift with acceleration.
   const accel = dt > 0 ? (speed - v.speed) / dt : 0;
   v.speed = speed;
@@ -649,10 +769,12 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
     wobble = bump > 0 ? Math.sin((0.35 - bump) * 38) * bump * 0.5 : 0;
   d.body.position.y =
     Math.sin(t * (showcase ? 2 : 14)) * (showcase ? 0.025 : 0.015) * Math.min(1, 0.2 + speed / 25) +
-    Math.abs(wobble) * 0.15;
+    Math.abs(wobble) * 0.15 +
+    hop +
+    Math.abs(Math.sin(t * 6)) * 0.14 * v.cheer;
   d.body.position.x = wobble * (r?.bumpSide || 0) * 0.35;
   d.body.rotation.set(
-    v.pitch,
+    v.pitch - v.kick * 0.1 - hop * 0.15, // nose lifts at ignition and on the hop
     -v.slip - v.drift + (r?.stun > 0 ? (1 - r.stun / 1.1) * Math.PI * 4 : 0),
     v.roll + wobble * (r?.bumpSide || 0) * 0.5,
     "YXZ",
@@ -669,8 +791,23 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
   // --- Driver -------------------------------------------------------------
   if (!d.nativeDriver) driver.rotation.z = -steer * 0.06 - v.drift * 0.05;
   if (driver.userData.kartDog) {
-    animateDog(driver, t, "idle", { dt, turn: steer });
     const u = driver.userData;
+    // Faces: the dogs' own rig (^ ^ happy eyes and blush, x x when hurt,
+    // raised brows for focus). A timed happy mood also makes them glance
+    // back over the shoulder, as Mario Kart drivers do after a pass.
+    if (mood !== v.faceMood) {
+      v.faceMood = mood;
+      const timed = v.moodTime > 0 && mood === v.mood;
+      reactDog(
+        driver,
+        mood === "hurt" ? "hurt" : mood === "happy" || mood === "cheer" ? "happy" : mood === "focus" ? "surprise" : "normal",
+        timed ? v.moodTime : 99,
+      );
+    }
+    u.head.rotation.y -= v.lookApplied || 0;
+    animateDog(driver, t, mood === "cheer" ? "cheer" : "idle", { dt, turn: steer });
+    v.lookApplied = showcase ? 0 : v.look * 0.45;
+    u.head.rotation.y += v.lookApplied;
     u.legs.forEach((a) => (a.rotation.x = -1.25)); // seated: thighs forward
     u.head.rotation.y = showcase ? Math.sin(t * 0.8) * 0.13 : -steer * 0.18;
     u.ears.forEach((e, i) => {
@@ -679,9 +816,12 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
     u.tail.rotation.z = Math.sin(t * 10) * 0.5;
     // Aim each arm bone at its grip on the rim, so paws stay on the wheel as
     // it turns. Rest direction of the sculpted arm is down and slightly out.
+    // Past the finish line the paws leave the wheel for the cheer pose.
+    const cheering = mood === "cheer";
+    u.kartPaws.forEach((p) => (p.fore.visible = p.paw.visible = !cheering));
     driver.updateMatrixWorld(true);
     tmpM.copy(u.rig.matrixWorld).invert();
-    u.arms.forEach((a, i) => {
+    if (!cheering) u.arms.forEach((a, i) => {
       const side = i ? 1 : -1;
       gripPoint(d.wheel, side, v.wheel, tmpGrip);
       tmpLocal.copy(tmpGrip).applyMatrix4(d.body.matrixWorld).applyMatrix4(tmpM).sub(a.position);
@@ -698,11 +838,24 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
   } else if (!d.nativeDriver) {
     const u = driver.userData;
     u.head.rotation.z = Math.sin(t * 2) * 0.035;
-    u.head.rotation.y = showcase ? Math.sin(t * 0.75) * 0.12 : steer * 0.2;
+    u.head.rotation.y = showcase ? Math.sin(t * 0.75) * 0.12 : steer * 0.2 + (u.face ? v.look * 0.45 : 0);
+    if (u.face) {
+      const f = u.face,
+        happy = mood === "happy" || mood === "cheer",
+        hurt = mood === "hurt";
+      f.eyes.forEach((e) => (e.visible = !happy && !hurt));
+      f.happy.forEach((e) => (e.visible = happy));
+      f.hurt.forEach((e) => (e.visible = hurt));
+      f.brows.forEach((e) => (e.visible = mood === "focus"));
+      f.smile.visible = !happy && !hurt;
+      f.grin.visible = happy;
+      f.oh.visible = hurt;
+    }
     u.eyes.forEach(
       (e) =>
         (e.scale.y =
           (t % 4.6 > 4.43 ? 0.1 : 1) *
+          (u.face && mood === "focus" ? 0.55 : 1) *
           (g.userData.kind === "mario" ? 0.06 : g.userData.kind === "dora" ? 0.08 : 0.0702)),
     );
     u.ears.forEach((e, i) => (e.rotation.z = Math.sin(t * 3 + i) * 0.06));
@@ -718,6 +871,13 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
     for (const arm of d.limbs.arms) {
       gripPoint(d.wheel, arm.side, v.wheel, tmpGrip);
       arm.target.copy(tmpGrip).applyMatrix4(tmpM);
+      if (v.cheer > 0.01) {
+        // Cheer: hands up and waving, blended from the wheel grip.
+        const reach = (arm.lengths[0] + arm.lengths[1]) * 0.92;
+        tmpDir.set(arm.side * 0.45, 1, 0.25 + Math.sin(t * 8 + arm.side) * 0.12).normalize();
+        tmpRest.copy(arm.shoulder).addScaledVector(tmpDir, reach);
+        arm.target.lerp(tmpRest, v.cheer);
+      }
       elbow(arm.shoulder, arm.target, arm.side, arm.lengths[0], arm.lengths[1], arm.elbow);
       placeSegment(arm.upper, arm.shoulder, arm.elbow);
       placeSegment(arm.fore, arm.elbow, arm.target);
@@ -775,6 +935,17 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
   d.protection.visible = r?.shield > 0 || r?.star > 0;
   d.protection.rotation.y = t;
   d.protection.children.forEach((m) => m.material.color.set(r?.star > 0 ? 0xffda5d : 0x7fe8ff));
+  // Pennant flutter, faster with speed.
+  d.flag.rotation.y = Math.sin(t * (6 + speed * 0.3)) * (0.1 + Math.min(0.35, speed * 0.008));
+  d.flag.rotation.x = Math.sin(t * 4.3) * 0.05 - Math.min(0.25, speed * 0.005);
+  d.dizzy.visible = !showcase && mood === "hurt";
+  if (d.dizzy.visible) {
+    d.dizzy.rotation.y = t * 5;
+    d.dizzy.children.forEach((st, i) => {
+      st.position.y = Math.sin(t * 7 + i * 2.1) * 0.08;
+      st.rotation.y = -t * 5;
+    });
+  }
   d.marker.visible = !showcase && r?.id === 0;
   d.marker.position.y = 3.05 + Math.sin(t * 3) * 0.06;
   d.shield.visible = r?.shield > 0 || r?.star > 0;
@@ -786,6 +957,7 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
 const clampN = (n, a, b) => Math.max(a, Math.min(b, n));
 function ribbon(track, offset, width, color, y = 0.04) {
   const pos = [],
+    uv = [],
     idx = [],
     n = 720;
   for (let i = 0; i <= n; i++) {
@@ -793,6 +965,7 @@ function ribbon(track, offset, width, color, y = 0.04) {
     for (const s of [-1, 1]) {
       const p = track.sample(d, offset + (s * width) / 2).p;
       pos.push(p.x, p.y + y, p.z);
+      uv.push(s < 0 ? 0 : 1, d / 8);
     }
     if (i < n) {
       const k = i * 2;
@@ -801,9 +974,10 @@ function ribbon(track, offset, width, color, y = 0.04) {
   }
   const geo = new T.BufferGeometry();
   geo.setAttribute("position", new T.Float32BufferAttribute(pos, 3));
+  geo.setAttribute("uv", new T.Float32BufferAttribute(uv, 2));
   geo.setIndex(idx);
   geo.computeVertexNormals();
-  const mesh = new T.Mesh(geo, mat(color));
+  const mesh = new T.Mesh(geo, typeof color === "number" ? mat(color) : color);
   mesh.receiveShadow = true;
   return mesh;
 }
@@ -900,6 +1074,183 @@ function staticBatch(group) {
   }
   return root;
 }
+// Asphalt: fine grain, darker racing line, white edge lines. Painted in the
+// track's road colour; v repeats every 8 m along the road.
+function paintTexture(w, h, draw) {
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  draw(c.getContext("2d"), w, h);
+  const tex = new T.CanvasTexture(c);
+  tex.colorSpace = T.SRGBColorSpace;
+  return tex;
+}
+function roadMaterial(hex, theme) {
+  const base = new T.Color(hex),
+    tex = paintTexture(128, 256, (ctx, w, h) => {
+      const rng = seeded(31 + theme);
+      ctx.fillStyle = "#" + base.getHexString();
+      ctx.fillRect(0, 0, w, h);
+      for (let i = 0; i < 2600; i++) {
+        const v = rng();
+        ctx.fillStyle = v < 0.5 ? "rgba(0,0,0," + (0.05 + v * 0.08) + ")" : "rgba(255,255,255," + (v - 0.5) * 0.12 + ")";
+        ctx.fillRect(rng() * w, rng() * h, 1 + rng() * 1.5, 1 + rng() * 2);
+      }
+      // Rubbered-in racing line, slightly off-centre on each side.
+      for (const x of [0.32, 0.68]) {
+        const gr = ctx.createLinearGradient((x - 0.08) * w, 0, (x + 0.08) * w, 0);
+        gr.addColorStop(0, "rgba(0,0,0,0)");
+        gr.addColorStop(0.5, "rgba(0,0,0,0.09)");
+        gr.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = gr;
+        ctx.fillRect((x - 0.08) * w, 0, 0.16 * w, h);
+      }
+      ctx.fillStyle = theme === 2 ? "#cfd8ff" : "#fffaf0";
+      ctx.fillRect(0.035 * w, 0, 0.022 * w, h);
+      ctx.fillRect(0.943 * w, 0, 0.022 * w, h);
+    });
+  tex.wrapS = T.ClampToEdgeWrapping;
+  tex.wrapT = T.RepeatWrapping;
+  tex.anisotropy = 4;
+  const m = new T.MeshStandardMaterial({ map: tex, roughness: 0.86, metalness: 0 });
+  return m;
+}
+// Gradient sky dome (follows the camera) with a soft sun glow; stars at night.
+function skyDome(theme, horizonHex) {
+  const top = [0x4aa3e4, 0x86c9ee, 0x070a24][theme],
+    horizon = new T.Color(horizonHex),
+    zenith = new T.Color(top),
+    geo = new T.SphereGeometry(560, 32, 16),
+    colors = [],
+    p = geo.attributes.position,
+    sun = new T.Vector3(-0.55, 0.32, 0.77).normalize(),
+    glow = new T.Color(theme === 2 ? 0x8f7dff : 0xfff3d6),
+    c = new T.Color(),
+    v = new T.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i).normalize();
+    const h = Math.max(0, v.y);
+    c.copy(horizon).lerp(zenith, Math.pow(h, 0.55));
+    if (v.y < 0) c.copy(horizon);
+    c.lerp(glow, Math.pow(Math.max(0, v.dot(sun)), 12) * 0.6);
+    colors.push(c.r, c.g, c.b);
+  }
+  geo.setAttribute("color", new T.Float32BufferAttribute(colors, 3));
+  const dome = new T.Mesh(
+    geo,
+    new T.MeshBasicMaterial({ vertexColors: true, side: T.BackSide, fog: false, depthWrite: false }),
+  );
+  dome.renderOrder = -10;
+  if (theme === 2) {
+    const rng = seeded(404),
+      star = [];
+    for (let i = 0; i < 700; i++) {
+      v.set(rng() * 2 - 1, rng() * 0.9 + 0.08, rng() * 2 - 1).normalize().multiplyScalar(540);
+      star.push(v.x, v.y, v.z);
+    }
+    const g = new T.BufferGeometry();
+    g.setAttribute("position", new T.Float32BufferAttribute(star, 3));
+    const pts = new T.Points(g, new T.PointsMaterial({ color: 0xfff6d8, size: 2.2, sizeAttenuation: false, fog: false, depthWrite: false }));
+    pts.renderOrder = -9;
+    dome.add(pts);
+  }
+  return dome;
+}
+// Distant ranges around the circuit, tinted toward the horizon colour with
+// distance (no fog on them, so they stay as a silhouette layer).
+function ranges(track, theme, horizonHex) {
+  const g = new T.Group(),
+    rng = seeded(77 + theme),
+    pts = track.points,
+    cx = pts.reduce((s, p) => s + p.x, 0) / pts.length,
+    cz = pts.reduce((s, p) => s + p.z, 0) / pts.length,
+    horizon = new T.Color(horizonHex),
+    palettes = [
+      [0x5f9b7a, 0x7fae86, 0x4f8a76],
+      [0xf2b6c8, 0xbfe3d4, 0xf7d59c],
+      [0x2c2f63, 0x3b3477, 0x252a55],
+    ][theme];
+  const mats = new Map(),
+    matFor = (col) => {
+      const key = col.getHex();
+      if (!mats.has(key)) mats.set(key, new T.MeshBasicMaterial({ color: key, fog: false }));
+      return mats.get(key);
+    };
+  for (let ring = 0; ring < 2; ring++)
+    for (let i = 0; i < 18; i++) {
+      const a = (i / 18) * Math.PI * 2 + ring * 0.17 + rng() * 0.12,
+        r = 360 + ring * 70 + rng() * 40,
+        h = (theme === 1 ? 40 : 70) + rng() * (theme === 1 ? 40 : 90),
+        w = 60 + rng() * 70,
+        col = new T.Color(palettes[Math.floor(rng() * 3)]).lerp(horizon, 0.35 + ring * 0.25);
+      col.setHex(col.getHex()); // quantise so materials can be shared
+      const geo = theme === 1 ? new T.SphereGeometry(1, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2) : new T.ConeGeometry(1, 1, 6 + Math.floor(rng() * 3));
+      const m = new T.Mesh(geo, matFor(col));
+      m.position.set(cx + Math.cos(a) * r, theme === 1 ? -6 : h / 2 - 8, cz + Math.sin(a) * r);
+      m.scale.set(w, theme === 1 ? h : h, w * (0.7 + rng() * 0.5));
+      m.rotation.y = rng() * Math.PI;
+      g.add(m);
+      if (theme === 0 && h > 120) {
+        // Snow caps on the tallest peaks.
+        const cap = new T.Mesh(new T.ConeGeometry(1, 1, m.geometry.parameters.radialSegments), matFor(new T.Color(0xf6fbff).lerp(horizon, 0.2)));
+        cap.position.copy(m.position);
+        cap.position.y += h * 0.32;
+        cap.scale.set(w * 0.36, h * 0.36, m.scale.z * 0.36);
+        cap.rotation.y = m.rotation.y;
+        g.add(cap);
+      }
+    }
+  return g;
+}
+// Grandstand with a cheering crowd, flags and balloons by the start line.
+function grandstand(g, decor, track, theme, moving) {
+  const c = track.config,
+    rng = seeded(500 + theme),
+    s = track.sample(-18, c.width / 2 + 13),
+    stand = new T.Group();
+  stand.position.copy(s.p);
+  stand.rotation.y = s.yaw + Math.PI / 2;
+  decor.add(stand);
+  const wood = theme === 2 ? 0x7d86c4 : 0xf2e2c4,
+    trim = theme === 2 ? 0xb8c2ff : theme === 1 ? 0xf09cbc : 0xe8a35f;
+  for (let tier = 0; tier < 4; tier++) box(stand, tier % 2 ? wood : 0xfff6e3, [tier * 1.6, 0.5 + tier * 0.9, 0], [1.6, 1 + tier * 1.8, 34]);
+  box(stand, trim, [6.6, 5.2, 0], [0.4, 0.5, 34.4]);
+  box(stand, trim, [3.2, 7.4, 0], [8, 0.3, 35]).rotation.z = -0.18;
+  const shirts = [0xe85d5d, 0x4f8fe0, 0xf3c34b, 0x5cc08a, 0xb17ae8, 0xff9f5a, 0xffffff];
+  for (let tier = 0; tier < 4; tier++)
+    for (let k = 0; k < 15; k++) {
+      if (rng() < 0.12) continue;
+      const z = -15.5 + k * 2.2 + rng() * 0.6,
+        x = tier * 1.6 + 0.2,
+        y = 1.1 + tier * 1.8;
+      ball(stand, shirts[Math.floor(rng() * shirts.length)], [x, y + 0.45, z], [0.42, 0.5, 0.36]);
+      ball(stand, [0xf2c9a0, 0xe0ac7e, 0xfff0e0, 0xc98e63][Math.floor(rng() * 4)], [x, y + 1.08, z], [0.27, 0.28, 0.27]);
+      if (rng() < 0.3) box(stand, shirts[Math.floor(rng() * shirts.length)], [x - 0.1, y + 1.6, z + 0.25], [0.04, 0.5, 0.7]);
+    }
+  // Bunting along the rails either side of the start.
+  for (const side of [-1, 1])
+    for (let i = 0; i < 26; i++) {
+      const a = track.sample(-40 + i * 3.2, side * (c.width / 2 + 2.2)),
+        flag = new T.Mesh(new T.ConeGeometry(0.32, 0.7, 3), mat(shirts[i % shirts.length]));
+      flag.position.copy(a.p);
+      flag.position.y += 1.55;
+      flag.rotation.set(Math.PI, a.yaw, 0);
+      decor.add(flag);
+    }
+  // Balloons bobbing above the start (animated).
+  for (let i = 0; i < 7; i++) {
+    const b = track.sample(-6 + (i % 2) * 4, (i - 3) * 3.4 + (i > 3 ? 4 : -4) * Math.sign(i - 3 || 1)),
+      grp = new T.Group();
+    grp.position.copy(b.p);
+    grp.position.y += 9 + rng() * 2;
+    const balloon = ball(grp, shirts[i % shirts.length], [0, 0, 0], [0.8, 1, 0.8]);
+    balloon.material = balloon.material.clone();
+    balloon.material.roughness = 0.25;
+    cyl(grp, 0xf5f0e0, [0, -2.2, 0], [0.02, 3.4, 0.02]);
+    g.add(grp);
+    moving.push({ mesh: grp, type: "balloon", y: grp.position.y, phase: rng() * 6 });
+  }
+}
 export function createWorld(track) {
   const g = new T.Group(),
     decor = new T.Group(),
@@ -908,7 +1259,7 @@ export function createWorld(track) {
     c = track.config,
     rng = seeded(9812 + theme);
   g.add(ribbon(track, 0, c.width + 24, c.ground, -0.03));
-  g.add(ribbon(track, 0, c.width, c.road, 0.04));
+  g.add(ribbon(track, 0, c.width, roadMaterial(c.road, theme), 0.04));
   g.add(ribbon(track, 0, c.width + 2.8, c.curb, 0.02));
   g.add(ribbon(track, 0, c.width + 6, theme === 2 ? 0x626d99 : 0xb7c18d, 0));
   const terrainGeo = new T.PlaneGeometry(650, 650, 80, 80);
@@ -1074,31 +1425,69 @@ export function createWorld(track) {
       theme === 2 ? "#ffffff" : "#5c7562",
     );
   }
+  grandstand(g, decor, track, theme, moving);
+  g.add(ranges(track, theme, c.fog));
+  const sky = skyDome(theme, c.fog);
+  g.add(sky);
   g.add(staticBatch(decor));
-  return { group: g, moving };
+  return { group: g, moving, sky };
+}
+// Item boxes share one material whose colour cycles through the rainbow,
+// like Mario Kart's boxes; the edges glow in the complementary hue.
+const boxGeo = new T.BoxGeometry(1.7, 1.7, 1.7),
+  boxEdgesGeo = new T.EdgesGeometry(boxGeo),
+  boxMat = new T.MeshStandardMaterial({
+    color: 0xa6e4e8,
+    emissive: 0x335a66,
+    roughness: 0.12,
+    metalness: 0.15,
+    transparent: true,
+    opacity: 0.78,
+  }),
+  boxEdgeMat = new T.LineBasicMaterial({ color: 0xf3ffff });
+export function updateBoxShimmer(t) {
+  boxMat.color.setHSL((t * 0.18) % 1, 0.75, 0.68);
+  boxMat.emissive.setHSL((t * 0.18 + 0.08) % 1, 0.7, 0.18);
+  boxEdgeMat.color.setHSL((t * 0.18 + 0.5) % 1, 0.9, 0.85);
+}
+// Pennant: a triangle trailing back from the antenna tip.
+const pennantGeo = (() => {
+  const g = new T.BufferGeometry();
+  g.setAttribute("position", new T.Float32BufferAttribute([0, 0, 0, 0, -0.34, 0, 0, -0.17, -0.62], 3));
+  g.computeVertexNormals();
+  return g;
+})();
+// A bold "?" with a dark outline on every side of the box.
+const boxFaceGeo = new T.PlaneGeometry(1.3, 1.3);
+let boxFace = null;
+function boxFaceMat() {
+  if (!boxFace) {
+    const tex = paintTexture(128, 128, (ctx, w, h) => {
+      ctx.font = "900 112px system-ui, -apple-system, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.lineJoin = "round";
+      ctx.lineWidth = 14;
+      ctx.strokeStyle = "#3a3f63";
+      ctx.strokeText("?", w / 2, h / 2 + 6);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText("?", w / 2, h / 2 + 6);
+    });
+    boxFace = new T.MeshBasicMaterial({ map: tex, transparent: true, side: T.DoubleSide, depthWrite: false });
+  }
+  return boxFace;
 }
 export function makeItemBox() {
   const g = new T.Group();
-  const m = new T.Mesh(
-    new T.BoxGeometry(1.7, 1.7, 1.7),
-    new T.MeshStandardMaterial({
-      color: 0xa6e4e8,
-      roughness: 0.18,
-      metalness: 0.12,
-      transparent: true,
-      opacity: 0.82,
-    }),
-  );
+  const m = new T.Mesh(boxGeo, boxMat);
   g.add(m);
-  const edges = new T.LineSegments(
-    new T.EdgesGeometry(m.geometry),
-    new T.LineBasicMaterial({ color: 0xf3ffff }),
-  );
+  const edges = new T.LineSegments(boxEdgesGeo, boxEdgeMat);
   g.add(edges);
   for (let i = 0; i < 4; i++) {
-    const face = badge(g, "?", [0, 0, 0], 1.25, 1.25, "#a6e4e8", "#ffffff");
+    const face = new T.Mesh(boxFaceGeo, boxFaceMat());
     face.rotation.y = (i * Math.PI) / 2;
-    face.position.set(Math.sin((i * Math.PI) / 2) * 0.86, 0, Math.cos((i * Math.PI) / 2) * 0.86);
+    face.position.set(Math.sin((i * Math.PI) / 2) * 0.87, 0, Math.cos((i * Math.PI) / 2) * 0.87);
+    g.add(face);
   }
   return g;
 }

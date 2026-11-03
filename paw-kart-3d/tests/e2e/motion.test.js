@@ -84,7 +84,15 @@ test("nearby karts never vanish and pop back in", async (t) => {
   let pops = 0;
   for (let i = 1; i < samples.length; i++)
     for (let k = 1; k < 8; k++)
-      if (!samples[i - 1].visible[k] && samples[i].visible[k] && samples[i].near[k] && !samples[i].invincible[k])
+      // Invincibility blinking (including its last blink as it wears off)
+      // is deliberate, not a pop-in.
+      if (
+        !samples[i - 1].visible[k] &&
+        samples[i].visible[k] &&
+        samples[i].near[k] &&
+        !samples[i].invincible[k] &&
+        !samples[i - 1].invincible[k]
+      )
         pops++;
   assert.equal(pops, 0, `${pops} pop-ins of karts within 15 m`);
 });

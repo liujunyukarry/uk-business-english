@@ -1943,3 +1943,286 @@ button {
     margin: 4px 0;
   }
 }
+
+/* ------------------------------------------------------------------------
+   v2.2 touch layout: the left / right halves of the screen steer; drift and
+   the item are big buttons over them. V2.1's 58 px arrow keys were too small
+   to hit reliably while racing.
+   ------------------------------------------------------------------------ */
+#hud {
+  touch-action: none; /* no pinch-zoom or double-tap zoom mid-race */
+}
+@media (pointer: coarse), (max-width: 900px), (max-height: 520px) {
+  .keyboard-guide {
+    display: none;
+  }
+  #touch-controls {
+    display: block;
+    position: absolute;
+    inset: 0;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    height: auto;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .race-top,
+  .item-slot {
+    z-index: 3;
+  }
+  .zone {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 84px);
+    bottom: 0;
+    pointer-events: auto;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  .zone-left {
+    left: 0;
+    right: 50%;
+  }
+  .zone-right {
+    left: 50%;
+    right: 0;
+  }
+  .zone::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.12s;
+  }
+  .zone-left::before {
+    background: linear-gradient(90deg, #ffe39d8c, #ffe39d00 42%);
+  }
+  .zone-right::before {
+    background: linear-gradient(270deg, #ffe39d8c, #ffe39d00 42%);
+  }
+  .zone.pressed::before {
+    opacity: 1;
+  }
+  .zone i {
+    position: absolute;
+    bottom: max(26px, calc(env(safe-area-inset-bottom) + 10px));
+    font-style: normal;
+    font-size: 58px;
+    font-weight: 900;
+    line-height: 1;
+    color: #fffbea;
+    opacity: 0.42;
+    text-shadow: 0 3px 0 #29463c55;
+    transition:
+      transform 0.12s,
+      opacity 0.12s;
+  }
+  .zone-left i {
+    left: max(22px, calc(env(safe-area-inset-left) + 8px));
+  }
+  .zone-right i {
+    right: max(22px, calc(env(safe-area-inset-right) + 8px));
+  }
+  .zone.pressed i {
+    opacity: 1;
+    transform: scale(1.22);
+  }
+  /* "Tap here" coaching, shown during the countdown only. */
+  .zone span {
+    position: absolute;
+    top: 46%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 9px 14px;
+    border-radius: 999px;
+    background: #24413aa8;
+    border: 1px solid #fff4cf66;
+    color: #fffbe9;
+    font-size: 13px;
+    font-weight: 800;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  #hud[data-phase="countdown"] .zone span {
+    opacity: 1;
+  }
+  #drift-button {
+    z-index: 2;
+    top: auto;
+    width: 86px;
+    height: 86px;
+    border-radius: 50%;
+    font-size: 32px;
+    line-height: 1;
+  }
+  #drift-button small {
+    font-size: 11px;
+    font-weight: 800;
+    margin-top: 2px;
+  }
+  #accelerate {
+    z-index: 2;
+    top: auto;
+    right: auto;
+  }
+}
+/* Portrait: drift in the middle at the bottom, reachable by either thumb;
+   the item button up the right edge, out of the steering thumb's way. */
+@media (orientation: portrait) and (pointer: coarse), (orientation: portrait) and (max-width: 900px) {
+  #drift-button {
+    left: calc(50% - 43px);
+    right: auto;
+    bottom: max(20px, calc(env(safe-area-inset-bottom) + 6px));
+  }
+  .item-slot {
+    left: auto;
+    right: max(14px, env(safe-area-inset-right));
+    top: auto;
+    bottom: 33%;
+    width: 86px;
+    height: 90px;
+  }
+  #accelerate {
+    left: max(14px, env(safe-area-inset-left));
+    bottom: 33%;
+    width: 70px;
+    height: 70px;
+  }
+}
+/* Landscape: drift by the right thumb, the item by the left thumb, both just
+   inside the thumbs' resting spots. */
+@media (orientation: landscape) and (max-height: 520px) {
+  #drift-button {
+    left: auto;
+    right: max(150px, calc(env(safe-area-inset-right) + 132px));
+    bottom: max(14px, env(safe-area-inset-bottom));
+    width: 80px;
+    height: 80px;
+  }
+  .item-slot {
+    right: auto;
+    left: max(150px, calc(env(safe-area-inset-left) + 132px));
+    top: auto;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    width: 76px;
+    height: 82px;
+  }
+  #speed,
+  .manual-gas #speed {
+    left: max(22px, calc(env(safe-area-inset-left) + 10px));
+    bottom: 104px;
+  }
+  #accelerate {
+    left: max(20px, calc(env(safe-area-inset-left) + 8px));
+    bottom: 46%;
+    width: 64px;
+    height: 64px;
+  }
+  .zone span {
+    font-size: 12px;
+  }
+}
+
+/* v2.2 feedback: boost colour on the speed streaks, a stronger rush for big
+   boosts and the rocket, a red edge flash when hit, and the position number
+   popping on an overtake. */
+#speed-lines[data-kind^="drift1"],
+#speed-lines[data-kind="pad"] {
+  box-shadow: inset 0 0 110px #7fdcffaa;
+}
+#speed-lines[data-kind="drift2"],
+#speed-lines[data-kind="item"] {
+  box-shadow: inset 0 0 120px #ffa64aaa;
+}
+#speed-lines[data-kind="drift3"] {
+  box-shadow: inset 0 0 130px #f47be0b3;
+}
+#speed-lines[data-kind="star"] {
+  box-shadow: inset 0 0 130px #ffd75acc;
+}
+#speed-lines[data-kind="rocket"] {
+  box-shadow: inset 0 0 150px #ff7a3acc;
+}
+#speed-lines.strong::before {
+  opacity: 0.85;
+  animation-duration: 0.28s;
+}
+#hit-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse 70% 62% at 50% 50%, #ff3b3b00 55%, #ff3b3b8c 100%);
+}
+#hit-vignette.on {
+  animation: hit-flash 0.55s ease-out;
+}
+@keyframes hit-flash {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.position.up > b {
+  animation: rank-up 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
+  color: #fff6c9;
+}
+.position.down > b {
+  animation: rank-down 0.4s ease-out;
+}
+@keyframes rank-up {
+  0% {
+    transform: scale(1.55) rotate(-6deg);
+    color: #9ff0ff;
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes rank-down {
+  0%,
+  100% {
+    transform: none;
+  }
+  30% {
+    transform: translateY(5px);
+    color: #ffb4a8;
+  }
+}
+/* The drift meter glows in the tier colour while charging. */
+#hud[data-drifting="1"] .drift-meter > div,
+#hud[data-drifting="2"] .drift-meter > div,
+#hud[data-drifting="3"] .drift-meter > div {
+  background: #17332c80;
+}
+#hud[data-drifting="3"] #drift-fill {
+  animation: tier-pulse 0.25s ease-in-out infinite alternate;
+}
+@keyframes tier-pulse {
+  to {
+    filter: brightness(1.35);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .position.up > b,
+  .position.down > b,
+  #hud[data-drifting="3"] #drift-fill,
+  #hit-vignette.on {
+    animation: none;
+  }
+}
+/* Overlays never swallow a steering touch (the countdown, banners such as
+   "最后一圈！" and the status line sit over the middle of the screen). */
+#countdown,
+#banner,
+#status-effect,
+#hit-vignette {
+  pointer-events: none;
+}
