@@ -281,6 +281,8 @@ export class Race {
         // AI racecraft: committed passing side, and corner mini-turbo state.
         passSide: 0,
         passTimer: 0,
+        dodgeId: 0, // hazard currently being dodged (0 = none / decided not to)
+        dodgeSide: 0,
         cornerDrift: 0,
         cornerCooldown: 0,
         // Last contact, for visual bump feedback (side and seconds remaining).
@@ -350,7 +352,7 @@ export class Race {
     r.drifting = false;
     r.driftDirection = 0;
   }
-  giveItem(r) {
+  giveItem(r, box = null) {
     const rank = this.rank(r),
       pool =
         rank <= 2
@@ -361,7 +363,7 @@ export class Race {
     r.item = pool[Math.floor(this.rng() * pool.length)];
     r.roulette = 0.7;
     r.aiItem = 1.3 + this.rng() * 3.5;
-    this.event("pickup", { racer: r.id });
+    this.event("pickup", { racer: r.id, box: box?.id ?? null });
   }
   useItem(r = this.player) {
     if (this.phase !== "racing" || !r.item || r.roulette > 0 || r.finish !== null || r.rescue > 0)
@@ -550,6 +552,29 @@ export class Race {
           if (Math.abs(keep) < half - 1.2)
             targetLane = side > 0 ? Math.max(targetLane, keep) : Math.min(targetLane, keep);
         }
+        // Bananas in our line: most of the time (more often on harder
+        // difficulties) steer round them, decided once per banana.
+        let hazard = null,
+          hazardGap = 22;
+        for (const h of this.hazards) {
+          const g = this.gap(h.distance, r.distance);
+          if (g > 0 && g < hazardGap && Math.abs(h.lane - r.lane) < 2.4) {
+            hazard = h;
+            hazardGap = g;
+          }
+        }
+        if (hazard && r.dodgeId !== hazard.id) {
+          r.dodgeId = hazard.id;
+          const dodge = this.rng() < ({ easy: 0.45, normal: 0.75, hard: 0.95 }[this.difficulty] || 0.75);
+          const roomLeft = hazard.lane - 2.8 > -half + 1.4,
+            roomRight = hazard.lane + 2.8 < half - 1.4;
+          let side = r.lane <= hazard.lane ? -1 : 1; // keep to the side we are already on
+          if (side < 0 && !roomLeft) side = 1;
+          else if (side > 0 && !roomRight) side = -1;
+          r.dodgeSide = dodge ? side : 0;
+        }
+        if (hazard && r.dodgeId === hazard.id && r.dodgeSide)
+          targetLane = clamp(hazard.lane + r.dodgeSide * 2.8, -half + 1.4, half - 1.4);
         steer = clamp((targetLane - r.lane) * 0.45 - (curve * r.speed * r.speed * 0.012) / 8, -0.8, 0.8);
         r.aiItem -= dt;
         if (r.aiItem <= 0 && r.item) this.useItem(r);
@@ -654,7 +679,7 @@ export class Race {
       for (const b of this.boxes)
         if (b.cooldown <= 0 && !r.item && this.contact(r, b, 2.3, 1.7)) {
           b.cooldown = 3;
-          this.giveItem(r);
+          this.giveItem(r, b);
         }
       for (const c of this.coins)
         if (c.cooldown <= 0 && this.contact(r, c, 1.8, 1.4)) {

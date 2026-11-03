@@ -90,6 +90,21 @@ export class KartAudio {
       this.tone(95, 0.32, "sine", 0.12, 48);
       return;
     }
+    if (type === "pop") {
+      this.noise(0.22, 1400, 220, 0.18, 0.9);
+      this.tone(220, 0.16, "triangle", 0.08, 90);
+      return;
+    }
+    if (type === "zap") {
+      this.noise(0.4, 4200, 700, 0.14, 0.6);
+      this.tone(1400, 0.3, "sawtooth", 0.035, 180);
+      return;
+    }
+    if (type === "score") {
+      this.tone(784, 0.12, "triangle", 0.1);
+      this.tone(1175, 0.18, "triangle", 0.08, 0, (this.ctx?.currentTime || 0) + 0.08);
+      return;
+    }
     if (type === "bump") {
       this.noise(0.14, 900, 180, 0.16, 1.2);
       this.tone(150, 0.12, "sine", 0.1, 60);

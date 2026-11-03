@@ -779,8 +779,9 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
   d.marker.position.y = 3.05 + Math.sin(t * 3) * 0.06;
   d.shield.visible = r?.shield > 0 || r?.star > 0;
   d.shield.material.color.set(r?.star > 0 ? 0xffda5d : 0x7fe8ff);
-  if (r?.small > 0) g.scale.setScalar(0.7);
-  else g.scale.setScalar(1);
+  // Lightning shrink and regrow animate instead of popping between sizes.
+  v.scale = ease(v.scale ?? 1, r?.small > 0 ? 0.7 : 1, 9, dt);
+  g.scale.setScalar(v.scale);
 }
 const clampN = (n, a, b) => Math.max(a, Math.min(b, n));
 function ribbon(track, offset, width, color, y = 0.04) {

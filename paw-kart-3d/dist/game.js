@@ -141,6 +141,7 @@ audio.muted = save.muted;
 audio.volume = save.volume;
 let fpsFrames = 0,
   fpsTime = 0,
+  slowWindows = 0,
   adaptiveLow = false;
 const coarse = matchMedia("(pointer:coarse)").matches;
 const touchLayout = () => coarse || innerWidth <= 900 || innerHeight <= 520;
@@ -154,10 +155,15 @@ function resize() {
   renderer.setSize(innerWidth, innerHeight, false);
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
-  cameraReady = false;
 }
+// Only a real rotation pauses the race. Safari and in-app browsers also fire
+// resize when their toolbars slide in or out; V2 paused (and snapped the
+// camera) on every one of those.
+let landscape = innerWidth > innerHeight;
 addEventListener("resize", () => {
-  if (mode === "race") pause();
+  const now = innerWidth > innerHeight;
+  if (now !== landscape && mode === "race") pause();
+  landscape = now;
   resize();
 });
 quality();
@@ -500,6 +506,15 @@ function startRace(trackIndex = save.track) {
   show("countdown", true);
   lastCount = 0;
   updateHUD();
+  // Compile every shader the race can need (flames, shields, fade dither,
+  // particles) now, during the countdown, instead of stalling the first time
+  // a boost or shield appears mid-race.
+  if (!renderer.software) {
+    cars.slice(1).forEach((k) => setKartFade(k, k.userData.fade ?? 1));
+    try {
+      renderer.compile(scene, camera);
+    } catch {}
+  }
 }
 function goHome() {
   mode = "home";
@@ -561,6 +576,11 @@ function resume() {
   show("countdown", true);
 }
 $("pause").onclick = pause;
+// Respond on the touch itself too, so pausing works while another finger is
+// still steering (iOS may not synthesise a click during multi-touch).
+$("pause").addEventListener("pointerup", (e) => {
+  if (e.pointerType !== "mouse") pause();
+});
 function help() {
   if (mode === "race") pause();
   modal(
@@ -715,7 +735,20 @@ function getInput() {
     assist: save.assist,
   };
 }
+// Short full-screen flash for lightning (skipped with reduced motion).
+const flashEl = document.createElement("div");
+flashEl.id = "flash";
+flashEl.setAttribute("aria-hidden", "true");
+document.body.append(flashEl);
+function flash() {
+  if (save.reduced) return;
+  flashEl.classList.remove("on");
+  void flashEl.offsetWidth; // restart the transition
+  flashEl.classList.add("on");
+}
+const near = (distance, metres) => Math.abs(race.gap(distance, race.player.distance)) < metres;
 function processEvents() {
+  const landed = [];
   for (const e of race.events) {
     if (e.racer === 0 || e.type === "go") {
       audio.cue(e.type);
@@ -746,7 +779,27 @@ function processEvents() {
         burst(cars[0].position.clone().add(new T.Vector3(0, 2, 0)), 70, 0xffdc7b, kartVelocity(race.player));
       }
     }
+    // Feedback for what happens around the player, not only to it (V2 showed
+    // nothing when the player's shell or banana hit someone).
+    if (e.type === "hit" && e.owner === 0 && e.racer !== 0) landed.push(race.racers[e.racer].name);
+    if (e.type === "pop" && near(e.distance, 70)) {
+      const at = race.track.sample(e.distance, e.lane).p.add(new T.Vector3(0, 0.9, 0));
+      burst(at, 14, 0xffe0a6, kartVelocity(race.racers.find((r) => Math.abs(r.distance - e.distance) < 0.01) || race.player));
+      if (near(e.distance, 40)) audio.cue("pop");
+    }
+    if (e.type === "pickup" && e.box != null) {
+      const i = race.boxes.findIndex((b) => b.id === e.box);
+      if (i >= 0 && near(race.boxes[i].distance, 60)) burst(pickupMeshes[i].position, e.racer === 0 ? 12 : 6, 0xbff3ff);
+    }
+    if (e.type === "item" && e.item === "bolt") {
+      flash();
+      audio.cue("zap");
+    }
     if (e.type === "end") showResult();
+  }
+  if (landed.length) {
+    notify("🎯 命中 " + (landed.length > 2 ? landed.length + " 位对手" : landed.join("、")) + "！", 1.5);
+    audio.cue("score");
   }
   race.events = [];
 }
@@ -1166,10 +1219,16 @@ function frame(now) {
     dt = Math.min(0.25, Math.max(0, raw));
   last = now;
   if (mode !== "paused") clock += dt;
-  fpsFrames++;
-  fpsTime += raw;
+  // Auto quality: judge only steady racing (one-off stalls such as loading or
+  // shader compilation are ignored) and drop to "low" after two slow windows
+  // in a row, so a single hitch at the start cannot cost the whole session.
+  if (mode === "race" && resumeTimer <= 0 && race?.phase === "racing" && raw < 0.25) {
+    fpsFrames++;
+    fpsTime += raw;
+  }
   if (fpsTime > 4) {
-    if (fpsFrames / fpsTime < 26 && save.quality === "auto" && !adaptiveLow) {
+    slowWindows = fpsFrames / fpsTime < 26 ? slowWindows + 1 : 0;
+    if (slowWindows >= 2 && save.quality === "auto" && !adaptiveLow) {
       adaptiveLow = true;
       quality();
     }
@@ -1241,7 +1300,7 @@ function frame(now) {
         }
       }
     }
-    renderRace(mode === "paused" ? 0 : dt);
+    renderRace(mode === "paused" || resumeTimer > 0 ? 0 : dt);
     uiTimer += dt;
     if (uiTimer > 0.1) {
       updateHUD();

@@ -1865,3 +1865,30 @@ button {
     padding: 12px 22px max(14px, env(safe-area-inset-bottom));
   }
 }
+
+/* Lightning flash. */
+#flash {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: #fff7c4;
+  opacity: 0;
+}
+#flash.on {
+  animation: lightning 0.45s ease-out;
+}
+@keyframes lightning {
+  0% {
+    opacity: 0.7;
+  }
+  30% {
+    opacity: 0.15;
+  }
+  45% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 0;
+  }
+}
