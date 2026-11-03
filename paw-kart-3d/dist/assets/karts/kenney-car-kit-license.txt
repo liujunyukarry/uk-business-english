@@ -1,0 +1,9 @@
+Kenney Car Kit assets
+Author: Kenney
+License: Creative Commons CC0 1.0 Universal
+Official asset page: https://kenney.nl/assets/car-kit
+License reference: https://creativecommons.org/publicdomain/zero/1.0/
+Official support: https://kenney.nl/support
+
+This notice records the license listed on the official asset page.
+Assets were recovered from the public mirror documented in ASSET_PROVENANCE.md.
