@@ -256,6 +256,7 @@ export class Race {
         speed: 0,
         steer: 0,
         boost: 0,
+        boostKind: "", // drift1..3 / item / pad: picks the exhaust flame colour
         star: 0,
         shield: 0,
         stun: 0,
@@ -277,6 +278,14 @@ export class Race {
         itemsUsed: 0,
         wallCooldown: 0,
         rescue: 0,
+        // AI racecraft: committed passing side, and corner mini-turbo state.
+        passSide: 0,
+        passTimer: 0,
+        cornerDrift: 0,
+        cornerCooldown: 0,
+        // Last contact, for visual bump feedback (side and seconds remaining).
+        bump: 0,
+        bumpSide: 0,
       });
     }
     this.player = this.racers[0];
@@ -360,7 +369,10 @@ export class Race {
     const type = r.item;
     r.item = null;
     r.itemsUsed++;
-    if (type === "boost") r.boost = Math.max(r.boost, 2.5);
+    if (type === "boost") {
+      r.boost = Math.max(r.boost, 2.5);
+      r.boostKind = "item";
+    }
     if (type === "star") {
       r.star = 5;
       r.stun = 0;
@@ -473,6 +485,9 @@ export class Race {
         "roulette",
         "wallCooldown",
         "rescue",
+        "passTimer",
+        "cornerCooldown",
+        "bump",
       ])
         r[k] = Math.max(0, r[k] - dt);
       this.constrain(r);
@@ -483,6 +498,8 @@ export class Race {
       let steer = isPlayer ? input.steer || 0 : 0,
         drift = isPlayer && input.drift,
         throttle = isPlayer ? input.throttle !== false : true;
+      let blocker = null,
+        blockGap = Infinity;
       if (!isPlayer) {
         r.aiTimer -= dt;
         if (r.aiTimer <= 0) {
@@ -497,10 +514,76 @@ export class Race {
             .sort((a, b) => this.gap(a.distance, r.distance) - this.gap(b.distance, r.distance))[0];
           r.aiLane = !r.item && next ? next.lane : (this.rng() - 0.5) * 8;
         }
-        steer = clamp((r.aiLane - r.lane) * 0.45 - (curve * r.speed * r.speed * 0.012) / 8, -0.8, 0.8);
+        // Racecraft: a kart ahead in our line is passed on a committed side
+        // instead of being rammed (V2 AIs drove straight into the player).
+        for (const o of this.racers) {
+          if (o === r || o.rescue > 0) continue;
+          const g = this.gap(o.distance, r.distance);
+          if (g > 0.5 && g < 16 && g < blockGap && Math.abs(o.lane - r.lane) < 2.7) {
+            blocker = o;
+            blockGap = g;
+          }
+        }
+        let targetLane = r.aiLane;
+        if (blocker && r.speed > blocker.speed - 1.5) {
+          const room = half - 1.7,
+            canLeft = blocker.lane - 3 > -room,
+            canRight = blocker.lane + 3 < room;
+          let side = r.passSide;
+          if (!side || (side < 0 && !canLeft) || (side > 0 && !canRight))
+            side = canLeft && canRight ? (r.lane <= blocker.lane ? -1 : 1) : canLeft ? -1 : 1;
+          r.passSide = side;
+          r.passTimer = 0.9;
+        }
+        if (r.passTimer > 0 && r.passSide) {
+          const ref = blocker ? blocker.lane : r.lane - r.passSide * 3;
+          targetLane = clamp(ref + r.passSide * 3, -half + 1.7, half - 1.7);
+        } else r.passSide = 0;
+        // Side by side: hold a lane gap instead of drifting into the other kart.
+        for (const o of this.racers) {
+          if (o === r || o.rescue > 0) continue;
+          const g = this.gap(o.distance, r.distance),
+            gapLane = r.lane - o.lane;
+          if (Math.abs(g) > 3.4 || Math.abs(gapLane) > 3.4) continue;
+          const side = Math.sign(gapLane) || (r.id % 2 ? 1 : -1),
+            keep = o.lane + side * 3;
+          if (Math.abs(keep) < half - 1.2)
+            targetLane = side > 0 ? Math.max(targetLane, keep) : Math.min(targetLane, keep);
+        }
+        steer = clamp((targetLane - r.lane) * 0.45 - (curve * r.speed * r.speed * 0.012) / 8, -0.8, 0.8);
         r.aiItem -= dt;
         if (r.aiItem <= 0 && r.item) this.useItem(r);
-        if (Math.abs(curve) > 0.006 && this.rng() < dt * 0.23) r.boost = Math.max(r.boost, 0.7);
+        // Corner mini-turbo: the AI visibly drifts through a real corner and
+        // releases a short boost on exit, instead of V2's random mid-corner
+        // speed spikes that read as karts "teleporting" past.
+        if (r.cornerDrift > 0) {
+          r.cornerDrift += dt;
+          r.drift = Math.min(2.6, r.cornerDrift);
+          if (Math.abs(curve) < 0.004 || r.cornerDrift > 1.9 || r.stun > 0 || r.speed < 14) {
+            if (r.stun <= 0 && r.cornerDrift >= 0.65) {
+              const level = r.cornerDrift >= 1.2 ? 2 : 1;
+              r.boost = Math.max(r.boost, [0, 0.75, 1.25][level]);
+              r.boostKind = "drift" + level;
+              this.event("drift", { racer: r.id, level });
+            }
+            r.cornerDrift = 0;
+            r.cornerCooldown = 2.5;
+            this.clearDrift(r);
+          }
+        } else if (
+          r.cornerCooldown <= 0 &&
+          Math.abs(curve) > 0.007 &&
+          r.speed > 22 &&
+          r.stun <= 0 &&
+          r.finish === null
+        ) {
+          r.cornerCooldown = 2.5;
+          if (this.rng() < ({ easy: 0.35, normal: 0.6, hard: 0.85 }[this.difficulty] || 0.6)) {
+            r.cornerDrift = dt;
+            r.drifting = true;
+            r.driftDirection = Math.sign(curve);
+          }
+        }
       }
       let base = 35 * r.character.speed + Math.min(10, r.coins) * 0.22;
       if (!isPlayer && r.finish === null)
@@ -508,6 +591,14 @@ export class Race {
           ({ easy: 0.86, normal: 0.97, hard: 1.055 }[this.difficulty] || 0.97) +
           (r.id - 4) * 0.006 +
           clamp((this.player.distance - r.distance) / 220, -0.025, 0.035);
+      // Close behind a kart still in our line: ease off to its pace rather
+      // than bump-and-push. The cap rises smoothly with the gap.
+      if (blocker && Math.abs(blocker.lane - r.lane) < 2.2) {
+        // Only bites while actually closing in, so it never slows a standing
+        // start or a kart that is merely following at the same pace.
+        const allowed = blocker.speed + 0.4 + Math.max(0, blockGap - 3.4) * 1.3;
+        if (r.speed > allowed) base = Math.min(base, allowed);
+      }
       const offroad = Math.abs(r.lane) > half - 0.2;
       if (offroad && r.boost <= 0 && r.star <= 0) base *= 0.6;
       if (r.small > 0) base *= 0.74;
@@ -531,7 +622,10 @@ export class Race {
       r.lane += r.lateral * dt;
       this.constrain(r);
       const valid = r.speed > 14 && r.stun <= 0 && !offroad && r.wallCooldown <= 0;
-      if (drift && valid && (r.drifting || Math.abs(r.steer) > 0.18)) {
+      if (r.cornerDrift > 0) {
+        r.drifting = true; // AI corner drift is handled above; keep the pose
+        r.driftDirection ||= Math.sign(curve) || 1;
+      } else if (drift && valid && (r.drifting || Math.abs(r.steer) > 0.18)) {
         r.drifting = true;
         r.driftDirection ||= Math.sign(r.steer);
         r.drift = Math.min(2.6, r.drift + dt);
@@ -539,6 +633,7 @@ export class Race {
         if (!drift && valid && r.drift >= 0.65) {
           const level = r.drift >= 2 ? 3 : r.drift >= 1.2 ? 2 : 1;
           r.boost = Math.max(r.boost, [0, 0.75, 1.25, 1.85][level]);
+          r.boostKind = "drift" + level;
           r.drifts++;
           this.event("drift", { racer: r.id, level });
         }
@@ -570,11 +665,25 @@ export class Race {
       for (const p of this.pads)
         if (this.time > r.padUntil && this.contact(r, p, 4, 2.5)) {
           r.boost = Math.max(r.boost, 1.2);
+          r.boostKind = "pad";
           r.padUntil = this.time + 2;
           this.event("pad", { racer: r.id });
         }
     }
-    // Resolve penetration geometrically, including a coincident pair, then reapply rails.
+    // Kart contact. V2 removed the whole overlap in one step (up to ~0.45 m of
+    // instant sideways/forward jump) and clamped the rear kart's speed to the
+    // front one's (up to 32 m/s lost in one step), which read as karts
+    // snapping and the screen shaking. Now each pass corrects at most a few
+    // centimetres and the rest is resolved with velocity impulses, so karts
+    // bump apart over a few frames, firmly but continuously.
+    const handled = new Set(),
+      bumpKart = (r, time, side) => {
+        if (r.bump > 0.15) return;
+        r.bump = time;
+        r.bumpSide = side;
+        if (r.id === 0) playerBumped = true;
+      };
+    let playerBumped = false;
     for (let pass = 0; pass < 3; pass++)
       for (let i = 0; i < 8; i++)
         for (let j = i + 1; j < 8; j++) {
@@ -586,27 +695,55 @@ export class Race {
             rx = 2.65,
             ry = 1.95;
           if ((dx / rx) ** 2 + (dy / ry) ** 2 >= 1) continue;
+          const first = !handled.has(i * 8 + j);
+          handled.add(i * 8 + j);
           if (Math.abs(dy) > 0.25 || Math.abs(dx) < 0.25) {
             const dir = dy ? Math.sign(dy) : i % 2 ? 1 : -1,
-              push = (Math.sqrt(Math.max(0, 1 - (dx / rx) ** 2)) * ry - Math.abs(dy)) * 0.51;
+              pen = Math.sqrt(Math.max(0, 1 - (dx / rx) ** 2)) * ry - Math.abs(dy),
+              push = Math.min(pen * 0.5, 0.045);
             a.lane += dir * push;
             b.lane -= dir * push;
-            a.lateral += dir * 0.2;
-            b.lateral -= dir * 0.2;
+            if (first) {
+              // Equal-mass lateral impulse: cancel the closing speed and leave
+              // a gentle separating speed, never a launch.
+              const separating = (a.lateral - b.lateral) * dir;
+              if (separating < 1.6) {
+                const k = (1.6 - separating) / 2;
+                a.lateral += dir * k;
+                b.lateral -= dir * k;
+              }
+              const strength = clamp(Math.abs(separating - 1.6) / 6, 0.25, 1);
+              bumpKart(a, 0.35, -dir * strength);
+              bumpKart(b, 0.35, dir * strength);
+            }
           } else {
             const dir = Math.sign(dx),
-              push = (Math.sqrt(Math.max(0, 1 - (dy / ry) ** 2)) * rx - Math.abs(dx)) * 0.51;
+              pen = Math.sqrt(Math.max(0, 1 - (dy / ry) ** 2)) * rx - Math.abs(dx),
+              push = Math.min(pen * 0.5, 0.06);
             a.distance += dir * push;
             b.distance -= dir * push;
-            const rear = dx > 0 ? b : a,
-              front = dx > 0 ? a : b;
-            rear.speed = Math.min(rear.speed, front.speed + 1);
+            if (first) {
+              const rear = dx > 0 ? b : a,
+                front = dx > 0 ? a : b,
+                closing = rear.speed - front.speed;
+              // Momentum exchange: the rear kart gives up most of its closing
+              // speed and the front kart is nudged forward, KartRider style.
+              // Spread over a few steps so a hard hit is still felt but no kart
+              // ever stops dead in a single frame.
+              if (closing > 0) {
+                rear.speed -= Math.min(closing * 0.62, 5.5);
+                front.speed += Math.min(closing * 0.3, 2.6);
+              }
+              bumpKart(rear, 0.3, 0);
+              bumpKart(front, 0.3, 0);
+            }
           }
           if (a.star > 0) this.hit(b, a.id);
           else if (b.star > 0) this.hit(a, b.id);
           this.constrain(a);
           this.constrain(b);
         }
+    if (playerBumped) this.event("bump", { racer: 0 });
     for (const h of this.hazards) {
       h.life -= dt;
       for (const r of this.racers)
