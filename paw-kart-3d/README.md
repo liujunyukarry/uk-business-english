@@ -31,6 +31,8 @@ npm run test:e2e    # 10 项浏览器回归测试，需要本机 Chrome；CHROME
 
 模拟测试覆盖三条赛道 × 三档难度的完整三圈比赛、闭合路径、漂移、道具、受击保护、手动油门、AI 难度差异、运动连续性与 AI 超车。浏览器测试在真实页面里用 Chrome 的触控管线操作按钮（卡键、滑出、多指、取消、暂停、切后台、旋转）并在随机掉帧下测量画面抖动和车辆闪现。`PAWKART_URL=<地址>` 可以对另一个版本（例如 V2）运行同一组浏览器测试。
 
+修改 `dist/` 里的任何文件后运行 `npm run stamp`：它给所有本地模块和样式表的地址加上内容哈希（例如 `./art.js?v=11982f8f`），避免浏览器在更新后混用缓存里的旧文件；`npm test` 会检查哈希是否最新。暂停菜单和玩法说明底部会显示当前构建号。
+
 `tools/inspect.html` 是开发用的车手/赛车检查页：在 `paw-kart-3d/` 目录起静态服务后打开 `tools/inspect.html?kind=bunny&view=three`（视角 front / side / rear / three / back3 / chase，可加 `&boost=drift3`、`&drift=1&steer=1`）。
 
 ## 操作

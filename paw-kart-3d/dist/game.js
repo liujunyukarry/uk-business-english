@@ -1,6 +1,6 @@
 import * as T from "./vendor/three.module.js";
 import { RoomEnvironment } from "./vendor/RoomEnvironment.js";
-import { Race, Track, TRACKS, CHARACTERS, ITEMS, clamp } from "./race.js";
+import { Race, Track, TRACKS, CHARACTERS, ITEMS, clamp } from "./race.js?v=11982f8f";
 import {
   createKart,
   animateKart,
@@ -16,10 +16,14 @@ import {
   box,
   mat,
   label,
-} from "./art.js";
-import { KartAudio } from "./audio.js";
-import { bindTouchControls, CONTROLS } from "./input.js";
-import { SoftwareRenderer } from "./software-renderer.js";
+} from "./art.js?v=11982f8f";
+import { KartAudio } from "./audio.js?v=11982f8f";
+import { bindTouchControls, CONTROLS } from "./input.js?v=11982f8f";
+import { SoftwareRenderer } from "./software-renderer.js?v=11982f8f";
+// Build id stamped by tools/stamp.mjs; shown in the pause and help dialogs so
+// a tester can tell exactly which version is running.
+const BUILD = document.querySelector('meta[name="paw-build"]')?.content || "dev";
+document.documentElement.dataset.build = BUILD;
 const $ = (id) => document.getElementById(id),
   show = (id, on) => $(id).classList.toggle("hidden", !on),
   KEY = "paw-kart-v1";
@@ -559,7 +563,7 @@ function pause() {
   inputClear();
   show("countdown", false);
   modal(
-    '<span class="dialog-eyebrow">A LITTLE PIT STOP</span><h2>进站，歇一会儿。</h2><p>比赛已暂停。准备好了，继续向终点出发。</p><div class="dialog-actions"><button class="primary" id="resume">继续比赛</button><button class="secondary" id="restart">重新开始</button></div><div class="dialog-actions"><button class="secondary" id="race-settings">驾驶设置</button><button class="secondary" id="home">返回车库</button></div>',
+    '<span class="dialog-eyebrow">A LITTLE PIT STOP</span><h2>进站，歇一会儿。</h2><p>比赛已暂停。准备好了，继续向终点出发。</p><div class="dialog-actions"><button class="primary" id="resume">继续比赛</button><button class="secondary" id="restart">重新开始</button></div><div class="dialog-actions"><button class="secondary" id="race-settings">驾驶设置</button><button class="secondary" id="home">返回车库</button></div><div class="modal-footer">版本 2.1 · ' + BUILD + '</div>',
   );
   $("resume").onclick = resume;
   $("restart").onclick = () => startRace(race.track.index);
@@ -588,7 +592,7 @@ function help() {
       Object.entries(ITEMS)
         .map(([k, v]) => "<div><span>" + v.icon + "</span><b>" + v.name + "</b>" + v.desc + "</div>")
         .join("") +
-      '</div><p>关闭自动油门后：W / ↑ 或屏幕油门键加速，S / ↓ 刹车。P / Esc 暂停；切换应用会自动暂停。</p><div class="dialog-actions sticky-actions"><button id="got-it" class="primary">准备好啦</button></div><div class="modal-footer">非官方同人作品 · 角色造型参考，原创赛道与音乐</div>',
+      '</div><p>关闭自动油门后：W / ↑ 或屏幕油门键加速，S / ↓ 刹车。P / Esc 暂停；切换应用会自动暂停。</p><div class="dialog-actions sticky-actions"><button id="got-it" class="primary">准备好啦</button></div><div class="modal-footer">非官方同人作品 · 角色造型参考，原创赛道与音乐 · 版本 2.1 · ' + BUILD + '</div>',
   );
   $("got-it").onclick = closeModal;
   $("close-dialog").onclick = closeModal;

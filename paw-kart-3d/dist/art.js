@@ -1,7 +1,7 @@
 import * as T from "./vendor/three.module.js";
-import { kartAsset } from "./kart-assets.js";
-import { dog, animateDog, material, ellipsoid, roundedBox } from "./models.js";
-import { CHARACTERS, seeded } from "./race.js";
+import { kartAsset } from "./kart-assets.js?v=11982f8f";
+import { dog, animateDog, material, ellipsoid, roundedBox } from "./models.js?v=11982f8f";
+import { CHARACTERS, seeded } from "./race.js?v=11982f8f";
 const scenerySphere = new T.SphereGeometry(1, 12, 8);
 const sphere = new T.SphereGeometry(1, 24, 18),
   unitBox = new T.BoxGeometry(1, 1, 1),

@@ -1,4 +1,4 @@
-import {sprintMotion} from './sprint.js?v=figurine9d';
+import {sprintMotion} from './sprint.js?v=11982f8f';
 import * as T from './vendor/three.module.js';
 import {Group,Tween,Easing} from './vendor/tween.esm.js';
 const shapeParts=Array.from({length:10},(_,i)=>`./assets/packed/dog-rules18.gz.part${String(i).padStart(2,'0')}`);
