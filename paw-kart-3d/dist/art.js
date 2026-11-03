@@ -220,8 +220,7 @@ function character(kind) {
         bunny ? [0.09, 0.4, 0.06] : [0.13, 0.13, 0.05],
       );
       ears.push(ear);
-      ball(root, color, [s * 0.47, 1.03, 0.25], [0.18, 0.27, 0.2]);
-      ball(root, color, [s * 0.3, 0.6, 0.24], [0.24, 0.17, 0.31]);
+      // Arms and legs are fitted to the kart's wheel in createKart().
       ball(head, 0xeaa2a7, [s * 0.43, -0.14, 0.44], [0.13, 0.07, 0.04]);
     }
     eyeList.push(...eyes(head, 0.04, 0.52, 0.23, 0.052));
@@ -241,8 +240,240 @@ function character(kind) {
     root.add(band);
   }
   root.userData = { head, eyes: eyeList, ears };
+  if (kind === "bunny" || kind === "bear") root.userData.limbs = { color: kind === "bunny" ? 0xffe4e7 : 0x9dd4bf };
   return root;
 }
+// ---------------------------------------------------------------------------
+// Kart assembly
+// ---------------------------------------------------------------------------
+// Exhaust pipe caps measured from the Kenney kart mesh (identical in all five
+// variants): model (±0.224, 0.623, -0.552), axis (0, 0.71, -0.71), scaled by
+// 2.05. V2 put its flame balls at (±0.35, 0.48, -1.28), low behind the bumper,
+// where the kart itself hid them from the chase camera.
+const EXHAUST_TIPS = [-1, 1].map((s) => new T.Vector3(s * 0.459, 1.283, -1.138));
+// Flames leave close to the pipe axis (up and back), so from the raised chase
+// camera they rise above the stacks instead of pointing straight at the lens.
+// Each flame also fans outward, so from straight behind the pair reads as a V
+// on either side of the driver rather than two dots pointing at the lens.
+const EXHAUST_DIRS = [-1, 1].map((side) => new T.Vector3(side * 0.42, 0.62, -0.66).normalize());
+export const NITRO = {
+  drift1: { outer: 0x1aa8ff, core: 0xe4f8ff, len: 1.15 },
+  drift2: { outer: 0xff7a12, core: 0xfff0b8, len: 1.35 },
+  drift3: { outer: 0xf03cc8, core: 0xffe8ff, len: 1.6 },
+  item: { outer: 0xff5410, core: 0xffe39a, len: 1.7 },
+  pad: { outer: 0x12c9ff, core: 0xeaffff, len: 1.3 },
+  star: { outer: 0xffc21a, core: 0xffffff, len: 1.45 },
+};
+let compatibility = false;
+// The CPU fallback renderer has no blending or texture alpha: flames there are
+// drawn as solid cones only.
+export function setCompatibilityMode(on) {
+  compatibility = !!on;
+}
+// Teardrop flame body: wide at the nozzle, tapering to a point (around +y).
+const flameGeo = new T.LatheGeometry(
+  [
+    [0.0, -0.02],
+    [0.62, 0.0],
+    [0.95, 0.07],
+    [1.0, 0.16],
+    [0.86, 0.36],
+    [0.58, 0.6],
+    [0.28, 0.83],
+    [0.0, 1.0],
+  ].map(([x, y]) => new T.Vector2(x, y)),
+  14,
+);
+// Axial billboard: a quad from the nozzle (y=0) to the tip (y=1) that turns
+// about the flame axis to face the camera, so the flame reads from any angle.
+const boardGeo = new T.PlaneGeometry(1, 1);
+boardGeo.translate(0, 0.5, 0);
+for (const geo of [flameGeo, boardGeo]) geo.userData.shared = true;
+const canvasTexture = (w, h, paint) => {
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const x = c.getContext("2d"),
+    img = x.createImageData(w, h);
+  for (let j = 0; j < h; j++)
+    for (let i = 0; i < w; i++) {
+      const a = paint((i + 0.5) / w, 1 - (j + 0.5) / h),
+        k = (j * w + i) * 4;
+      img.data[k] = img.data[k + 1] = img.data[k + 2] = 255;
+      img.data[k + 3] = Math.round(255 * Math.max(0, Math.min(1, a)));
+    }
+  x.putImageData(img, 0, 0);
+  const tex = new T.CanvasTexture(c);
+  tex.colorSpace = T.SRGBColorSpace;
+  return tex;
+};
+let flameTex = null,
+  glowTex = null;
+const smooth01 = (e0, e1, x) => {
+  const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
+  return t * t * (3 - 2 * t);
+};
+function flameMap() {
+  // Soft tongue: full width just above the nozzle, tapering to a wisp.
+  return (flameTex ||= canvasTexture(48, 128, (u, v) => {
+    const width = Math.pow(1 - v, 0.75) * smooth01(0, 0.12, v) * 0.5 + 0.02,
+      edge = 1 - smooth01(width * 0.35, width, Math.abs(u - 0.5));
+    return edge * Math.pow(1 - v, 0.55);
+  }));
+}
+function glowMap() {
+  return (glowTex ||= canvasTexture(64, 64, (u, v) => {
+    const r = Math.hypot(u - 0.5, v - 0.5) * 2;
+    return Math.pow(Math.max(0, 1 - r), 2.2);
+  }));
+}
+const fx = (color, opacity, blending, map) =>
+  new T.MeshBasicMaterial({
+    color,
+    map: map || null,
+    transparent: true,
+    opacity,
+    blending,
+    depthWrite: false,
+    fog: false,
+    toneMapped: false,
+    side: T.DoubleSide,
+  });
+function exhaustFlame(body) {
+  const nozzle = new T.Group(),
+    turn = new T.Group(); // spins about the axis to face the camera
+  const outer = new T.Mesh(boardGeo, fx(0x1aa8ff, 0.95, T.NormalBlending, flameMap())),
+    inner = new T.Mesh(boardGeo, fx(0xe4f8ff, 1, T.AdditiveBlending, flameMap())),
+    core = new T.Mesh(flameGeo, fx(0xe4f8ff, 0.9, T.AdditiveBlending)),
+    solid = new T.Mesh(flameGeo, new T.MeshBasicMaterial({ color: 0x1aa8ff, fog: false })),
+    glow = new T.Sprite(
+      new T.SpriteMaterial({
+        map: glowMap(),
+        color: 0x1aa8ff,
+        transparent: true,
+        blending: T.AdditiveBlending,
+        depthWrite: false,
+        fog: false,
+        toneMapped: false,
+      }),
+    );
+  for (const m of [outer, inner, core, glow]) m.renderOrder = 5;
+  turn.add(outer, inner);
+  nozzle.add(turn, core, glow, solid);
+  body.add(nozzle);
+  nozzle.visible = false;
+  return { nozzle, turn, outer, inner, core, solid, glow };
+}
+
+// A small three-spoke wheel on a column. The kart model ships without one, so
+// in V2 no driver had anything to hold.
+const wheelRim = new T.TorusGeometry(0.2, 0.034, 10, 36),
+  wheelSpoke = new T.BoxGeometry(0.2, 0.04, 0.03),
+  wheelHub = new T.CylinderGeometry(0.06, 0.07, 0.07, 18),
+  wheelColumn = new T.CylinderGeometry(0.03, 0.04, 1, 10);
+for (const geo of [wheelRim, wheelSpoke, wheelHub, wheelColumn]) geo.userData.shared = true;
+const WHEEL_TILT = 0.52; // column runs forward-down; rim top leans away, as in a real kart
+function steeringWheel(body, centre, accent) {
+  const mount = new T.Group();
+  mount.position.copy(centre);
+  mount.rotation.x = WHEEL_TILT;
+  body.add(mount);
+  const spin = new T.Group();
+  mount.add(spin);
+  const rim = new T.Mesh(wheelRim, mat(0x30363a, 0.45));
+  rim.castShadow = true;
+  spin.add(rim);
+  for (const a of [Math.PI / 2, Math.PI * (7 / 6), Math.PI * (11 / 6)]) {
+    const spoke = new T.Mesh(wheelSpoke, mat(0x5b6468, 0.4));
+    spoke.position.set(Math.cos(a) * 0.1, Math.sin(a) * 0.1, 0);
+    spoke.rotation.z = a;
+    spin.add(spoke);
+  }
+  const hub = new T.Mesh(wheelHub, mat(accent, 0.45));
+  hub.rotation.x = Math.PI / 2;
+  spin.add(hub);
+  // Column runs from the hub forward and down into the dash.
+  const col = new T.Mesh(wheelColumn, mat(0x4a5256, 0.45));
+  col.scale.y = 0.5;
+  col.rotation.x = Math.PI / 2;
+  col.position.z = 0.25;
+  mount.add(col);
+  mount.updateMatrix();
+  return { mount, spin };
+}
+// Where a hand holds the rim (10 and 2 o'clock), in body coordinates, for a
+// given wheel rotation.
+const gripLocal = new T.Vector3();
+function gripPoint(wheel, side, spin, out) {
+  const a = Math.PI / 2 + side * -1.05 + spin;
+  gripLocal.set(Math.cos(a) * 0.2, Math.sin(a) * 0.2, 0.0);
+  wheel.mount.updateMatrix();
+  return out.copy(gripLocal).applyMatrix4(wheel.mount.matrix);
+}
+
+// Two-segment limb made of rounded capsules: shoulder -> elbow -> hand.
+const capsule = new T.CapsuleGeometry(1, 1, 6, 12);
+capsule.userData.shared = true;
+const yAxis = new T.Vector3(0, 1, 0),
+  tmpA = new T.Vector3(),
+  tmpB = new T.Vector3(),
+  tmpC = new T.Vector3();
+function segment(group, color, radius) {
+  const m = new T.Mesh(capsule, typeof color === "number" ? mat(color, 0.72) : color);
+  m.castShadow = true;
+  m.userData.radius = radius;
+  group.add(m);
+  return m;
+}
+function placeSegment(m, a, b) {
+  const len = Math.max(0.001, a.distanceTo(b)),
+    r = m.userData.radius;
+  m.position.copy(a).add(b).multiplyScalar(0.5);
+  m.quaternion.setFromUnitVectors(yAxis, tmpC.copy(b).sub(a).normalize());
+  // The unit capsule (radius 1, body 1) is 3 tall: scale it to span a..b,
+  // caps included, with thickness r.
+  m.scale.set(r, Math.max(r * 0.8, len / 3), r);
+}
+// Bend the elbow outwards and down so arms never pass through the torso.
+function elbow(shoulder, hand, side, upper, fore, out) {
+  const d = shoulder.distanceTo(hand),
+    reach = Math.min(d, upper + fore - 0.001),
+    along = (upper * upper - fore * fore + reach * reach) / (2 * reach),
+    h = Math.sqrt(Math.max(0, upper * upper - along * along));
+  const dir = tmpA.copy(hand).sub(shoulder).normalize(),
+    bend = tmpB.set(side * 0.75, -0.62, -0.2);
+  bend.addScaledVector(dir, -bend.dot(dir)).normalize(); // perpendicular to the arm
+  return out.copy(shoulder).addScaledVector(dir, along).addScaledVector(bend, h);
+}
+
+// Limbs live in `space` (the driver for the plush characters, the kart body
+// for the Kenney drivers, whose single-mesh figures were modelled armless).
+function fitLimbs(space, color, opts = {}) {
+  const s = opts.scale || 1;
+  const arms = [-1, 1].map((side) => ({
+    side,
+    shoulder: new T.Vector3(...(opts.shoulder || [0.43, 1.2, 0.04])).multiply(new T.Vector3(side, 1, 1)),
+    upper: segment(space, color, 0.115 * s),
+    fore: segment(space, color, 0.105 * s),
+    hand: ball(space, color, [0, 0, 0], [0.135 * s, 0.12 * s, 0.14 * s]),
+    lengths: [0.36 * s, 0.34 * s],
+    elbow: new T.Vector3(),
+    target: new T.Vector3(),
+  }));
+  if (opts.legs !== false)
+    for (const side of [-1, 1]) {
+      const hip = new T.Vector3(side * 0.22, 0.66, 0.08),
+        knee = new T.Vector3(side * 0.26, 0.74, 0.5),
+        ankle = new T.Vector3(side * 0.26, 0.5, 0.78);
+      placeSegment(segment(space, color, 0.15), hip, knee);
+      placeSegment(segment(space, color, 0.12), knee, ankle);
+      ball(space, color, [side * 0.26, 0.47, 0.86], [0.15, 0.12, 0.21]);
+    }
+  return { arms, space };
+}
+// Body colours of the two Kenney drivers, for their added arms.
+const NATIVE_ARM = { nova: 0xf1c34e, milo: 0xc8b9ee };
+
 export function createKart(kind = "gold", number = 1) {
   const g = new T.Group(),
     body = new T.Group();
@@ -250,24 +481,46 @@ export function createKart(kind = "gold", number = 1) {
   const asset = kartAsset(kind);
   body.add(asset.model);
   const driver = asset.nativeDriver || character(kind);
+  const info = CHARACTERS.find((c) => c.id === kind);
+  let limbs = null;
   if (!asset.nativeDriver) {
     if (!driver.userData.kartDog) {
       driver.scale.setScalar(0.82);
       driver.position.set(0, -0.02, -0.24);
+    } else {
+      // Sit the dogs a touch higher and further forward so shoulders clear
+      // the side pods and the paws can reach the wheel.
+      driver.position.set(0, 0.52, -0.22);
+      driver.scale.setScalar(0.7);
     }
     body.add(driver);
   }
-  const exhaust = [];
-  for (const side of [-1, 1]) {
-    const flame = ball(
-      body,
-      new T.MeshBasicMaterial({ color: 0x8bf3ff }),
-      [side * 0.35, 0.48, -1.28],
-      [0.13, 0.14, 0.38],
-    );
-    flame.visible = false;
-    exhaust.push(flame);
+  // Steering wheel in front of the chest; position depends on the driver's
+  // reach (measured in body coordinates).
+  const wheelAt = driver.userData.kartDog
+    ? new T.Vector3(0, 1.06, 0.14)
+    : asset.nativeDriver
+      ? new T.Vector3(0, 1.0, 0.66)
+      : new T.Vector3(0, 0.98, 0.36);
+  const wheel = steeringWheel(body, wheelAt, info ? new T.Color(info.color).getHex() : 0xeeae55);
+  if (driver.userData.kartDog) {
+    // The sculpted arms are short: extend each with a forearm and paw so the
+    // paws actually rest on the rim (they ended inside the cowl in V2).
+    const u = driver.userData,
+      fur = material(u.kind === "gold" ? 0xf1d5ba : 0xf8f6f2, 0.76);
+    u.kartPaws = [-1, 1].map(() => ({
+      fore: segment(u.rig, fur, 0.105),
+      paw: ellipsoid(u.rig, fur, [0, 0, 0], [0.13, 0.115, 0.14]),
+    }));
   }
+  if (driver.userData.limbs) limbs = fitLimbs(driver, driver.userData.limbs.color);
+  else if (asset.nativeDriver)
+    limbs = fitLimbs(body, NATIVE_ARM[kind], { shoulder: [0.34, 1.16, 0.2], scale: 0.78, legs: false });
+  const exhaust = EXHAUST_TIPS.map(() => exhaustFlame(body));
+  exhaust.forEach((f, i) => {
+    f.nozzle.position.copy(EXHAUST_TIPS[i]);
+    f.nozzle.quaternion.setFromUnitVectors(yAxis, EXHAUST_DIRS[i]);
+  });
   const shadow = new T.Mesh(
     new T.CircleGeometry(1, 32),
     new T.MeshBasicMaterial({ color: 0x33463e, transparent: true, opacity: 0.26, depthWrite: false }),
@@ -314,35 +567,137 @@ export function createKart(kind = "gold", number = 1) {
     wheels: asset.wheels,
     nativeDriver: !!asset.nativeDriver,
     exhaust,
+    wheel,
+    limbs,
     shield,
     protection,
     marker,
     kind,
+    // Smoothed visual pose (heading slip, drift yaw, lean, pitch, nitro).
+    vis: { slip: 0, drift: 0, roll: 0, pitch: 0, wheel: 0, speed: 0, accel: 0, nitro: 0, kick: 0, active: false, kind: "item" },
+    fade: 1,
   };
   return g;
 }
-export function animateKart(g, t, r, dt = 1 / 60, showcase = false) {
+
+// Fade a kart smoothly while it is right in front of the camera, using an
+// ordered 4x4 screen-door dither (as console kart games do for near-camera
+// objects): opaque rendering, no sorting artefacts, a stable fine pattern
+// instead of noise, and no shader recompile when the amount changes.
+const ditherPatch = (shader) => {
+  shader.fragmentShader = shader.fragmentShader.replace(
+    "void main() {",
+    `const float pawBayer[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
+void main() {
+  {
+    ivec2 cell = ivec2(mod(gl_FragCoord.xy, 4.0));
+    if (opacity < 0.999 && opacity * 16.0 <= pawBayer[cell.x + cell.y * 4] + 0.5) discard;
+  }`,
+  );
+};
+export function setKartFade(g, a) {
+  const d = g.userData;
+  if (!d.fadeMaterials) {
+    d.fadeMaterials = [];
+    const seen = new Map();
+    g.traverse((o) => {
+      if (!o.isMesh || o.material.blending === T.AdditiveBlending || o.material.transparent) return;
+      if (!seen.has(o.material)) {
+        const m = o.material.clone();
+        m.onBeforeCompile = ditherPatch;
+        m.customProgramCacheKey = () => "paw-dither";
+        seen.set(o.material, m);
+        d.fadeMaterials.push(m);
+      }
+      o.material = seen.get(o.material);
+    });
+  }
+  if (Math.abs(d.fade - a) < 0.004) return;
+  d.fade = a;
+  for (const m of d.fadeMaterials) m.opacity = a;
+}
+
+const ease = (current, target, rate, dt) => current + (target - current) * (1 - Math.exp(-dt * rate));
+const tmpGrip = new T.Vector3(),
+  tmpLocal = new T.Vector3(),
+  tmpRest = new T.Vector3(),
+  tmpDir = new T.Vector3(),
+  tmpQ = new T.Quaternion(),
+  tmpM = new T.Matrix4();
+
+export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
   const d = g.userData,
-    driver = d.driver;
+    driver = d.driver,
+    v = d.vis;
   const speed = r?.speed || 0,
-    steer = r?.steer || 0;
+    steer = r?.steer || 0,
+    curve = ctx.curve || 0,
+    drifting = !!r?.drifting && speed > 10;
+  // --- Body pose --------------------------------------------------------
+  // Slip: the nose follows the actual direction of travel (lane velocity),
+  // so steering visibly turns the kart instead of sliding it sideways.
+  const slipTarget = showcase ? 0 : Math.atan2(r?.lateral || 0, Math.max(8, speed)) * 0.9;
+  v.slip = ease(v.slip, slipTarget, 10, dt);
+  // Drift: KartRider-style angle into the corner, modulated by steering.
+  const driftTarget = drifting ? (r.driftDirection || Math.sign(steer) || 1) * (0.42 + steer * (r.driftDirection || 1) * 0.12) : 0;
+  v.drift = ease(v.drift, driftTarget, drifting ? 7 : 5, dt);
+  // Lean into turns (driver weight) and squat/lift with acceleration.
+  const accel = dt > 0 ? (speed - v.speed) / dt : 0;
+  v.speed = speed;
+  v.accel = ease(v.accel, clampN(accel, -40, 40), 6, dt);
+  const lateralG = curve * speed * speed;
+  v.roll = ease(v.roll, clampN(-steer * 0.045 - lateralG * 0.0016 - v.drift * 0.08, -0.14, 0.14), 8, dt);
+  v.pitch = ease(v.pitch, clampN(-v.accel * 0.0035, -0.07, 0.07), 7, dt);
+  const bump = r?.bump > 0 ? r.bump : 0,
+    wobble = bump > 0 ? Math.sin((0.35 - bump) * 38) * bump * 0.5 : 0;
   d.body.position.y =
-    Math.sin(t * (showcase ? 2 : 14)) * (showcase ? 0.025 : 0.015) * Math.min(1, 0.2 + speed / 25);
-  d.body.rotation.z = steer * 0.055;
-  d.body.rotation.y = (r?.drifting ? -steer * 0.24 : 0) + (r?.stun > 0 ? Math.sin(t * 18) * 0.3 : 0);
+    Math.sin(t * (showcase ? 2 : 14)) * (showcase ? 0.025 : 0.015) * Math.min(1, 0.2 + speed / 25) +
+    Math.abs(wobble) * 0.15;
+  d.body.position.x = wobble * (r?.bumpSide || 0) * 0.35;
+  d.body.rotation.set(
+    v.pitch,
+    -v.slip - v.drift + (r?.stun > 0 ? (1 - r.stun / 1.1) * Math.PI * 4 : 0),
+    v.roll + wobble * (r?.bumpSide || 0) * 0.5,
+    "YXZ",
+  );
+  // --- Steering wheel and wheels ----------------------------------------
+  const wheelTarget = showcase ? Math.sin(t * 0.9) * 0.18 : -(steer * 0.85) + (drifting ? v.drift * 0.6 : 0);
+  v.wheel = ease(v.wheel, wheelTarget, 14, dt);
+  d.wheel.spin.rotation.z = v.wheel;
+  d.wheels.forEach((w) => {
+    w.mesh.rotation.x += (speed * dt) / 0.43;
+    // Counter-steer the front wheels while drifting, as karts do.
+    if (w.front) w.pivot.rotation.y = drifting ? v.drift * 0.55 : -steer * 0.32;
+  });
+  // --- Driver -------------------------------------------------------------
+  if (!d.nativeDriver) driver.rotation.z = -steer * 0.06 - v.drift * 0.05;
   if (driver.userData.kartDog) {
     animateDog(driver, t, "idle", { dt, turn: steer });
     const u = driver.userData;
-    u.arms.forEach((a, i) => {
-      a.rotation.x = -1.15;
-      a.rotation.z = (i ? 1 : -1) * -0.12;
-    });
-    u.legs.forEach((a) => (a.rotation.x = -0.7));
+    u.legs.forEach((a) => (a.rotation.x = -1.25)); // seated: thighs forward
     u.head.rotation.y = showcase ? Math.sin(t * 0.8) * 0.13 : -steer * 0.18;
     u.ears.forEach((e, i) => {
       e.rotation.x = Math.sin(t * 7 + i) * 0.06 + speed * 0.002;
     });
     u.tail.rotation.z = Math.sin(t * 10) * 0.5;
+    // Aim each arm bone at its grip on the rim, so paws stay on the wheel as
+    // it turns. Rest direction of the sculpted arm is down and slightly out.
+    driver.updateMatrixWorld(true);
+    tmpM.copy(u.rig.matrixWorld).invert();
+    u.arms.forEach((a, i) => {
+      const side = i ? 1 : -1;
+      gripPoint(d.wheel, side, v.wheel, tmpGrip);
+      tmpLocal.copy(tmpGrip).applyMatrix4(d.body.matrixWorld).applyMatrix4(tmpM).sub(a.position);
+      tmpRest.set(side * 0.22, -1, 0.1).normalize();
+      const reach = tmpLocal.length();
+      tmpDir.copy(tmpLocal).normalize();
+      a.quaternion.setFromUnitVectors(tmpRest, tmpDir);
+      const p = u.kartPaws[i],
+        tip = tmpA.copy(a.position).addScaledVector(tmpDir, Math.min(0.3, reach * 0.6)),
+        grip = tmpB.copy(a.position).add(tmpLocal);
+      placeSegment(p.fore, tip, grip);
+      p.paw.position.copy(grip);
+    });
   } else if (!d.nativeDriver) {
     const u = driver.userData;
     u.head.rotation.z = Math.sin(t * 2) * 0.035;
@@ -355,24 +710,82 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false) {
     );
     u.ears.forEach((e, i) => (e.rotation.z = Math.sin(t * 3 + i) * 0.06));
   }
-  d.wheels.forEach((w) => {
-    w.mesh.rotation.x += (speed * dt) / 0.43;
-    if (w.front) w.pivot.rotation.y = -steer * 0.3;
+  if (d.limbs) {
+    // Hands follow the rim; elbows bend outwards and down.
+    const space = d.limbs.space;
+    if (space === d.body) tmpM.identity();
+    else {
+      space.updateMatrix();
+      tmpM.copy(space.matrix).invert();
+    }
+    for (const arm of d.limbs.arms) {
+      gripPoint(d.wheel, arm.side, v.wheel, tmpGrip);
+      arm.target.copy(tmpGrip).applyMatrix4(tmpM);
+      elbow(arm.shoulder, arm.target, arm.side, arm.lengths[0], arm.lengths[1], arm.elbow);
+      placeSegment(arm.upper, arm.shoulder, arm.elbow);
+      placeSegment(arm.fore, arm.elbow, arm.target);
+      arm.hand.position.copy(arm.target);
+    }
+  }
+  // --- Nitro ---------------------------------------------------------------
+  const active = (r?.boost > 0 || r?.star > 0) && !(r?.rescue > 0);
+  if (active && !v.active) {
+    v.kick = 1; // ignition pop
+    v.kind = r.star > 0 ? "star" : r.boostKind || "item";
+  }
+  if (active) v.kind = r.star > 0 ? "star" : r.boostKind || v.kind;
+  v.active = active;
+  v.nitro = ease(v.nitro, active ? 1 : 0, active ? 22 : 7, dt);
+  v.kick = Math.max(0, v.kick - dt * 5.5);
+  const cfg = NITRO[v.kind] || NITRO.item,
+    on = v.nitro > 0.02,
+    fade = d.fade ?? 1;
+  if (on && ctx.camera) d.body.updateMatrixWorld();
+  d.exhaust.forEach((f, i) => {
+    f.nozzle.visible = on;
+    if (!on) return;
+    const flicker =
+        1 + Math.sin(t * 47 + i * 1.7) * 0.09 + Math.sin(t * 83 + i * 0.6) * 0.07 + Math.sin(t * 19 + i) * 0.05,
+      pop = v.kick > 0 ? 1 + Math.sin((1 - v.kick) * Math.PI) * 0.5 : 1,
+      len = cfg.len * v.nitro * flicker * pop * (0.8 + Math.min(1, speed / 45) * 0.3),
+      width = 0.5 * (0.55 + 0.45 * v.nitro) * (1 + (pop - 1) * 0.6),
+      strength = Math.min(1, v.nitro * 1.5) * fade;
+    // Face the camera about the flame axis.
+    if (ctx.camera) {
+      tmpLocal.copy(ctx.camera.position);
+      f.nozzle.worldToLocal(tmpLocal);
+      f.turn.rotation.y = Math.atan2(tmpLocal.x, tmpLocal.z);
+    }
+    const outerColour =
+      v.kind === "star" ? f.outer.material.color.setHSL((t * 1.6 + i * 0.12) % 1, 1, 0.55) : f.outer.material.color.setHex(cfg.outer);
+    f.inner.material.color.setHex(cfg.core);
+    f.core.material.color.setHex(cfg.core);
+    f.glow.material.color.copy(outerColour);
+    f.solid.material.color.copy(outerColour);
+    f.outer.scale.set(width, len, 1);
+    f.inner.scale.set(width * 0.5, len * 0.62, 1);
+    f.core.scale.set(0.09, len * 0.45, 0.09);
+    f.solid.scale.set(0.13, len * 0.8, 0.13);
+    f.glow.scale.setScalar((0.62 + 0.3 * v.nitro) * (1 + (pop - 1) * 0.8));
+    f.outer.material.opacity = 0.95 * strength;
+    f.inner.material.opacity = strength;
+    f.core.material.opacity = 0.9 * strength;
+    f.glow.material.opacity = 0.85 * strength;
+    f.turn.visible = f.core.visible = f.glow.visible = !compatibility;
+    f.solid.visible = compatibility;
   });
+  // --- Status effects --------------------------------------------------------
   d.protection.visible = r?.shield > 0 || r?.star > 0;
   d.protection.rotation.y = t;
   d.protection.children.forEach((m) => m.material.color.set(r?.star > 0 ? 0xffda5d : 0x7fe8ff));
   d.marker.visible = !showcase && r?.id === 0;
   d.marker.position.y = 3.05 + Math.sin(t * 3) * 0.06;
-  d.exhaust.forEach((m, i) => {
-    m.visible = r?.boost > 0 || r?.star > 0;
-    m.scale.z = 0.3 + Math.sin(t * 35 + i) * 0.12;
-  });
   d.shield.visible = r?.shield > 0 || r?.star > 0;
   d.shield.material.color.set(r?.star > 0 ? 0xffda5d : 0x7fe8ff);
   if (r?.small > 0) g.scale.setScalar(0.7);
   else g.scale.setScalar(1);
 }
+const clampN = (n, a, b) => Math.max(a, Math.min(b, n));
 function ribbon(track, offset, width, color, y = 0.04) {
   const pos = [],
     idx = [],

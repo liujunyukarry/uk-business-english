@@ -52,7 +52,49 @@ export class KartAudio {
       g.disconnect();
     };
   }
+  // Filtered white noise: the "whoosh" of nitro and the thud of a bump.
+  noise(duration, from, to, volume, q = 0.8, at = 0) {
+    if (!this.ctx || this.muted) return;
+    const c = this.ctx,
+      t = at || c.currentTime;
+    if (!this.noiseBuffer) {
+      this.noiseBuffer = c.createBuffer(1, c.sampleRate * 1, c.sampleRate);
+      const d = this.noiseBuffer.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    const src = c.createBufferSource(),
+      filter = c.createBiquadFilter(),
+      g = c.createGain();
+    src.buffer = this.noiseBuffer;
+    filter.type = "bandpass";
+    filter.Q.value = q;
+    filter.frequency.setValueAtTime(from, t);
+    filter.frequency.exponentialRampToValueAtTime(Math.max(40, to), t + duration);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(volume, t + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+    src.connect(filter);
+    filter.connect(g);
+    g.connect(this.master);
+    src.start(t);
+    src.stop(t + duration + 0.05);
+    src.onended = () => {
+      src.disconnect();
+      filter.disconnect();
+      g.disconnect();
+    };
+  }
   cue(type) {
+    if (type === "boost") {
+      this.noise(0.55, 500, 2600, 0.22, 0.7);
+      this.tone(95, 0.32, "sine", 0.12, 48);
+      return;
+    }
+    if (type === "bump") {
+      this.noise(0.14, 900, 180, 0.16, 1.2);
+      this.tone(150, 0.12, "sine", 0.1, 60);
+      return;
+    }
     if (type === "coin") {
       this.tone(880, 0.1, "sine", 0.09);
       this.tone(1320, 0.13, "sine", 0.06, 0, (this.ctx?.currentTime || 0) + 0.05);

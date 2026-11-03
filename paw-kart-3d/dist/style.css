@@ -846,6 +846,34 @@ kbd {
 #speed-lines.active {
   opacity: 1;
 }
+/* Radial speed streaks while boosting (composited; off with reduced motion). */
+#speed-lines::before {
+  content: "";
+  position: absolute;
+  inset: -25%;
+  background: repeating-conic-gradient(
+    from 0deg at 50% 46%,
+    #fff0 0deg 4deg,
+    #ffffffb0 4.3deg 4.6deg,
+    #fff0 5deg 9.5deg,
+    #ffffff70 9.8deg 10deg,
+    #fff0 10.4deg 14deg
+  );
+  -webkit-mask: radial-gradient(ellipse 52% 48% at 50% 46%, #0000 58%, #000 92%);
+  mask: radial-gradient(ellipse 52% 48% at 50% 46%, #0000 58%, #000 92%);
+  opacity: 0.55;
+  animation: speed-streaks 0.42s steps(4) infinite;
+}
+@keyframes speed-streaks {
+  to {
+    transform: rotate(7deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #speed-lines::before {
+    display: none;
+  }
+}
 dialog {
   border: 1px solid #fffce9;
   border-radius: 24px;

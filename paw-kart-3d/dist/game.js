@@ -10,6 +10,9 @@ import {
   makeCoin,
   makeBanana,
   makeShell,
+  setKartFade,
+  setCompatibilityMode,
+  NITRO,
   box,
   mat,
   label,
@@ -66,6 +69,7 @@ try {
   renderer = new SoftwareRenderer($("scene"));
 }
 document.documentElement.dataset.renderer = renderer.software ? "compatibility" : "webgl2";
+setCompatibilityMode(renderer.software);
 renderer.outputColorSpace = T.SRGBColorSpace;
 renderer.toneMapping = T.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.12;
@@ -423,6 +427,11 @@ function startRace(trackIndex = save.track) {
   lobby.group.visible = false;
   camera.clearViewOffset();
   race = new Race({ track: trackIndex, character: save.character, difficulty: save.difficulty });
+  snapshot();
+  renderAlpha = 1;
+  cam.ready = false;
+  camStep(STEP);
+  lastPlayerBoost = false;
   world = createWorld(race.track);
   scene.add(world.group);
   raceGroup = new T.Group();
@@ -942,22 +951,122 @@ function drawMap() {
     ctx.stroke();
   });
 }
+// ---------------------------------------------------------------------------
+// Race rendering
+// ---------------------------------------------------------------------------
+// Physics runs at a fixed 60 Hz while the display runs at whatever the phone
+// gives (60/120 Hz, or less when busy). V2 drew the latest physics state
+// directly, so on uneven frames karts advanced 0, 1 or 2 steps per frame and
+// visibly stuttered. We draw the state interpolated between the last two
+// steps instead (alpha = leftover time / step), which keeps motion smooth at
+// any frame rate.
+const STEP = 1 / 60;
+let prevState = [],
+  renderAlpha = 1;
+function snapshot() {
+  prevState = race.racers.map((r) => ({ d: r.distance, l: r.lane }));
+}
+function shown(r, i) {
+  const a = prevState[i];
+  // Rescues and other deliberate teleports are drawn as they are.
+  if (!a || Math.abs(r.distance - a.d) > 6 || Math.abs(r.lane - a.l) > 2.5) return { d: r.distance, l: r.lane };
+  return { d: a.d + (r.distance - a.d) * renderAlpha, l: a.l + (r.lane - a.l) * renderAlpha };
+}
+// Chase camera, KartRider style: anchored to the kart, not lagging behind it.
+// V2 lerped the camera's world position toward a point on the track, so the
+// camera fell further back as speed rose (about 6.6 m extra during a boost),
+// letting other karts end up between camera and player at full size.
+const cam = { ready: false, heading: 0, lane: 0, y: 0, back: 0, height: 0, fov: 57, orbit: 0, swing: 0 },
+  camPrev = { ...cam };
+function camStep(dt) {
+  const p = race.player,
+    s = race.track.sample(p.distance, p.lane),
+    portrait = innerHeight > innerWidth,
+    finished = p.finish !== null,
+    boost = !save.reduced && (p.boost > 0 || p.star > 0) && p.rescue <= 0,
+    // Heading follows the track tangent plus part of the kart's own slip and
+    // drift angle, so the camera swings gently into drifts like KartRider.
+    swing =
+      Math.atan2(p.lateral, Math.max(8, p.speed)) * 0.9 +
+      (p.drifting && p.speed > 10 ? (p.driftDirection || 1) * 0.42 : 0);
+  const back = (portrait ? 8.4 : 7.0) + (boost ? 0.6 : 0) + Math.min(1, p.speed / 46) * 0.35,
+    height = (portrait ? 4.1 : 3.2) + (boost ? -0.12 : 0),
+    fov = (portrait ? 66 : 58) + (boost ? 6 : 0) + Math.min(1, p.speed / 46) * 2;
+  if (!cam.ready || !cameraReady) {
+    Object.assign(cam, { ready: true, heading: s.yaw, lane: p.lane, y: s.p.y, back, height, fov, orbit: 0, swing: 0 });
+    Object.assign(camPrev, cam);
+    cameraReady = true;
+    return;
+  }
+  Object.assign(camPrev, cam);
+  cam.swing = easeTo(cam.swing, swing, 6, dt);
+  cam.heading = angleTo(cam.heading, s.yaw - cam.swing * 0.45, 5.5, dt);
+  cam.lane = easeTo(cam.lane, p.lane, 9, dt);
+  cam.y = easeTo(cam.y, s.p.y, 7, dt);
+  cam.back = easeTo(cam.back, back, boost ? 3.5 : 2.2, dt);
+  cam.height = easeTo(cam.height, height, 3, dt);
+  cam.fov = easeTo(cam.fov, fov, boost ? 4 : 2.5, dt);
+  cam.orbit = angleTo(cam.orbit, finished ? Math.PI * 0.92 : 0, 1.1, dt);
+}
+const camTarget = new T.Vector3(),
+  camAim = new T.Vector3(),
+  camFwd = new T.Vector3();
+const easeTo = (current, target, rate, dt) => current + (target - current) * (1 - Math.exp(-dt * rate));
+const angleTo = (current, target, rate, dt) =>
+  current + Math.atan2(Math.sin(target - current), Math.cos(target - current)) * (1 - Math.exp(-dt * rate));
+const nitroLight = new T.PointLight(0x38c4ff, 0, 7, 1.6);
+scene.add(nitroLight);
+let lastPlayerBoost = false;
+const wheelWorld = new T.Vector3(),
+  sparkVelocity = new T.Vector3();
+function spark(at, colour, side) {
+  if (particles.length >= 140) return;
+  sparkVelocity.set((Math.random() - 0.5) * 2.5 + side * 1.5, 1.2 + Math.random() * 2.2, (Math.random() - 0.5) * 2.5);
+  particles.push({ p: at.clone(), v: sparkVelocity.clone(), life: 0.22 + Math.random() * 0.2, max: 1, size: 0.05 + Math.random() * 0.05, color: colour });
+}
 function renderRace(dt) {
   const p = race.player;
   race.racers.forEach((r, i) => {
-    const s = race.track.sample(r.distance, r.lane),
+    const at = shown(r, i),
+      s = race.track.sample(at.d, at.l),
       k = cars[i];
     k.position.copy(s.p);
     k.position.y += 0.08 + (r.rescue > 0 ? Math.sin((r.rescue / 1.1) * Math.PI) * 2 : 0);
-    k.rotation.set(-Math.asin(s.t.y), s.yaw + (r.stun > 0 ? (1 - r.stun / 1.1) * Math.PI * 4 : 0), 0, "YXZ");
-    const relative = race.gap(r.distance, p.distance),
-      blocking = relative < -0.8 && relative > -11 && Math.abs(r.lane - p.lane) < 2.5;
-    k.visible =
-      r.id === 0 ||
-      (!blocking &&
-        (r.invincible > 0 && r.star <= 0 && r.stun <= 0 ? Math.floor(clock * 10) % 5 !== 0 : true));
-    animateKart(k, clock + i, r, dt);
+    k.rotation.set(-Math.asin(s.t.y), s.yaw, 0, "YXZ");
+    // Invincibility blink, as before; karts are never hidden for being close.
+    k.visible = r.id === 0 || (r.invincible > 0 && r.star <= 0 && r.stun <= 0 ? Math.floor(clock * 10) % 5 !== 0 : true);
+    animateKart(k, clock + i, r, dt, false, { curve: race.track.curvature(at.d), camera });
+    // Drift sparks from the rear wheels, coloured by charge.
+    if (dt > 0 && r.drifting && r.speed > 14 && k.position.distanceToSquared(camera.position) < 900) {
+      const level = r.drift > 2 ? 3 : r.drift > 1.2 ? 2 : r.drift > 0.65 ? 1 : 0,
+        colour = [0xfff1c9, 0x7fdcff, 0xffa64a, 0xf47be0][level];
+      for (const w of k.userData.wheels)
+        if (!w.front && Math.random() < dt * (r.id === 0 ? 32 : 12) * (0.4 + level * 0.35)) {
+          w.mesh.getWorldPosition(wheelWorld);
+          wheelWorld.y = s.p.y + 0.12;
+          spark(wheelWorld, colour, w.mesh.position.x > 0 ? 1 : -1);
+        }
+    }
   });
+  // Player boost: ignition burst, exhaust light, whoosh.
+  const playerKart = cars[0],
+    boosting = (p.boost > 0 || p.star > 0) && p.rescue <= 0;
+  if (boosting && !lastPlayerBoost && dt > 0) {
+    audio.cue("boost");
+    for (const f of playerKart.userData.exhaust) {
+      f.nozzle.getWorldPosition(wheelWorld);
+      burst(wheelWorld, 7, NITRO[p.star > 0 ? "star" : p.boostKind || "item"].outer);
+    }
+  }
+  lastPlayerBoost = boosting;
+  const nitro = playerKart.userData.vis.nitro;
+  nitroLight.visible = !renderer.software;
+  nitroLight.intensity = nitro * 4.5;
+  if (nitro > 0.01) {
+    playerKart.userData.exhaust[0].nozzle.getWorldPosition(nitroLight.position);
+    nitroLight.position.lerp(playerKart.userData.exhaust[1].nozzle.getWorldPosition(wheelWorld), 0.5);
+    nitroLight.color.setHex(NITRO[playerKart.userData.vis.kind]?.outer || 0x38c4ff);
+  }
   pickupMeshes.forEach((m, i) => {
     m.visible = race.boxes[i].cooldown <= 0;
     m.rotation.y = clock * 0.8 + i;
@@ -989,36 +1098,50 @@ function renderRace(dt) {
       raceGroup.remove(m);
       dynamicMeshes.delete(id);
     }
-  if (mode === "race" && p.drift > 0.65 && Math.random() < dt * 26) {
-    const s = race.track.sample(p.distance - 1.1, p.lane + (Math.random() > 0.5 ? 1 : -1));
-    burst(s.p, 2, p.drift > 2 ? 0xf6a3e3 : p.drift > 1.2 ? 0xffbb65 : 0x9eeaff);
-  }
   world.moving.forEach((o) => {
     if (o.type === "mill") o.mesh.rotation.z = clock * 0.22;
     else if (o.type === "halo") o.mesh.rotation.y = clock * 0.3;
   });
-  const s = race.track.sample(p.distance, p.lane),
-    behind = race.track.sample(
-      p.distance - (p.finish !== null ? -7.5 : innerHeight > innerWidth ? 10.4 : 8.8),
-      p.lane * 0.82,
-    ),
-    ahead = race.track.sample(p.distance + (p.finish !== null ? 0 : 11), p.lane * 0.65);
-  const targetPos = behind.p
-    .clone()
-    .add(new T.Vector3(0, p.finish !== null ? 4.0 : innerHeight > innerWidth ? 5.7 : 4.7, 0));
-  const targetAim = ahead.p.clone().add(new T.Vector3(0, p.finish !== null ? 1.3 : 1.1, 0));
-  if (!cameraReady) {
-    camera.position.copy(targetPos);
-    look.copy(targetAim);
-    cameraReady = true;
-  } else {
-    camera.position.lerp(targetPos, 1 - Math.exp(-dt * 7));
-    look.lerp(targetAim, 1 - Math.exp(-dt * 8));
-  }
-  camera.lookAt(look);
-  const fov = !save.reduced && (p.boost > 0 || p.star > 0) ? 65 : 57;
-  camera.fov += (fov - camera.fov) * Math.min(1, dt * 3);
+  // --- Camera ---------------------------------------------------------------
+  // Smoothed in the fixed physics step (camStep) and interpolated here, so the
+  // amount of smoothing lag cannot wobble with uneven frame times.
+  const a = renderAlpha,
+    mix = (k) => camPrev[k] + (cam[k] - camPrev[k]) * a,
+    mixAngle = (k) => camPrev[k] + Math.atan2(Math.sin(cam[k] - camPrev[k]), Math.cos(cam[k] - camPrev[k])) * a;
+  const at = shown(p, 0),
+    lane = mix("lane"),
+    anchor = race.track.sample(at.d, lane).p,
+    yaw = mixAngle("heading") + mixAngle("orbit"),
+    finished = p.finish !== null,
+    s = race.track.sample(at.d, at.l);
+  camFwd.set(Math.sin(yaw), 0, Math.cos(yaw));
+  camTarget.copy(anchor).addScaledVector(camFwd, -mix("back"));
+  camTarget.y = mix("y") + mix("height");
+  camAim.copy(anchor).addScaledVector(camFwd, finished ? 0 : 6.5);
+  camAim.y = mix("y") + (finished ? 1.3 : 1.25);
+  camera.position.copy(camTarget);
+  camera.lookAt(camAim);
+  camera.fov = mix("fov");
   camera.updateProjectionMatrix();
+  // --- Near-camera fade -----------------------------------------------------
+  // Instead of V2's hide-then-pop (karts 0.8–11 m behind the player were made
+  // invisible, then reappeared beside you), a kart fades only while it is
+  // right in front of the lens or covering the player, and back in smoothly.
+  const playerScreen = playerKart.position.clone().project(camera),
+    playerDistance = playerKart.position.distanceTo(camera.position);
+  for (let i = 1; i < cars.length; i++) {
+    const k = cars[i],
+      dist = k.position.distanceTo(camera.position);
+    let target = clamp((dist - 2.2) / 2.6, 0, 1);
+    if (dist < playerDistance - 0.5) {
+      const q = k.position.clone().project(camera);
+      if (Math.hypot(q.x - playerScreen.x, (q.y - playerScreen.y) * 0.8) < 0.22) target = Math.min(target, 0.45);
+    }
+    const now = k.userData.fade ?? 1,
+      next = dt > 0 ? easeTo(now, target, 10, dt) : now;
+    if (renderer.software) k.visible = k.visible && next > 0.5;
+    else setKartFade(k, next);
+  }
   sun.position.copy(s.p).add(new T.Vector3(-22, 46, 24));
   sun.target.position.copy(s.p);
 }
@@ -1076,12 +1199,16 @@ function frame(now) {
       } else {
         accum += dt;
         let steps = 0;
-        while (accum >= 1 / 60 && steps < 15 && mode === "race") {
-          race.step(1 / 60, getInput());
+        while (accum >= STEP && steps < 15 && mode === "race") {
+          snapshot();
+          race.step(STEP, getInput());
+          camStep(STEP);
           processEvents();
-          accum -= 1 / 60;
+          accum -= STEP;
           steps++;
         }
+        if (accum > STEP) accum = STEP; // after a long stall, do not try to catch up
+        renderAlpha = clamp(accum / STEP, 0, 1);
         if (race.phase === "countdown") {
           const count = Math.min(3, Math.ceil(race.countdown));
           $("countdown").textContent = count;

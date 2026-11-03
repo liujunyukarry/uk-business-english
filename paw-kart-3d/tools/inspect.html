@@ -1,0 +1,35 @@
+<!doctype html>
+<!-- Dev-only kart inspector. Serve the paw-kart-3d folder (not dist/) and open
+     tools/inspect.html?kind=gold&view=front  (views: front side rear three top chase)
+     Optional: &boost=drift3|item|pad|star  &drift=1  &steer=-1..1 -->
+<html><head><meta charset="utf-8"><base href="../dist/"><style>html,body{margin:0;background:#e7e9db}canvas{display:block}</style></head>
+<body><canvas id="c"></canvas>
+<script type="module">
+import * as T from "./vendor/three.module.js";
+import { RoomEnvironment } from "./vendor/RoomEnvironment.js";
+import { createKart, animateKart } from "./art.js";
+const q = new URLSearchParams(location.search);
+const kind = q.get("kind") || "gold", view = q.get("view") || "three";
+const W = innerWidth, H = innerHeight;
+const r = new T.WebGLRenderer({ canvas: c, antialias: true });
+r.setSize(W, H); r.outputColorSpace = T.SRGBColorSpace; r.toneMapping = T.ACESFilmicToneMapping; r.toneMappingExposure = 1.12;
+r.shadowMap.enabled = true;
+const s = new T.Scene(); s.background = new T.Color(0xe7e9db);
+const pm = new T.PMREMGenerator(r); s.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; s.environmentIntensity = 0.3;
+s.add(new T.HemisphereLight(0xfff8e6, 0x98a987, 2.5));
+const sun = new T.DirectionalLight(0xffedce, 3); sun.position.set(-3, 7, 4); sun.castShadow = true; s.add(sun);
+const ground = new T.Mesh(new T.PlaneGeometry(40, 40), new T.MeshStandardMaterial({ color: 0x9aa79a })); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; s.add(ground);
+const k = createKart(kind, 1); s.add(k);
+if (q.get("hideKart")) k.userData.body.children[0].traverse((o) => { if (o.isMesh && (o.name.startsWith("kart-") || o.name.startsWith("wheel-"))) { o.material = o.material.clone(); o.material.visible = false; } });
+if (q.get("look")) { const [x,y,z] = q.get("look").split(",").map(Number); window.__look = new T.Vector3(x,y,z); }
+const boost = q.get("boost");
+const racer = { id: 0, speed: Number(q.get("speed") ?? (boost ? 40 : 0)), steer: Number(q.get("steer") || 0), drifting: q.get("drift") === "1", driftDirection: Math.sign(Number(q.get("steer") || 1)) || 1, drift: q.get("drift") === "1" ? 2.2 : 0,
+  boost: boost && boost !== "star" ? 2 : 0, boostKind: boost && boost !== "star" ? boost : "", star: boost === "star" ? 3 : 0, lateral: 0, shield: 0, invincible: 0, stun: 0, small: 0, bump: 0 };
+const cam = new T.PerspectiveCamera(Number(q.get("fov") || 32), W / H, 0.1, 200);
+const views = { front: [0, 1.3, 8], side: [8, 1.3, 0], rear: [0, 1.6, -8], three: [5.2, 3, 6], top: [0, 9, 0.01], chase: [0, 3.3, -7.2], back3: [-4.5, 2.6, -6] };
+cam.position.set(...(q.get("pos") ? q.get("pos").split(",").map(Number) : views[view])); cam.lookAt(window.__look || new T.Vector3(0, view === "chase" ? 1.2 : 0.95, view === "chase" ? 6 : 0));
+let t = 0;
+for (let i = 0; i < 40; i++) { t += 1 / 60; animateKart(k, t, racer, 1 / 60, !boost && !q.get("drift"), { curve: 0, camera: cam }); }
+r.render(s, cam);
+document.documentElement.dataset.ready = "true";
+</script></body></html>
