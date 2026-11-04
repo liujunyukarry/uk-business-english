@@ -2557,3 +2557,657 @@ header {
     bottom: max(33%, calc(max(20px, calc(env(safe-area-inset-bottom) + 6px)) + 250px));
   }
 }
+
+/* ------------------------------------------------------------------------
+   v2.4: map panel in the top-right corner (track, finish line, direction,
+   every racer; race progress strip; distance to the finish), rear radar,
+   a round special button with a charge ring and target lock, and the
+   speed race (竞速赛) nitro button.
+   ------------------------------------------------------------------------ */
+#mapbox {
+  position: absolute;
+  top: calc(max(24px, env(safe-area-inset-top)) + 60px);
+  right: max(32px, calc(env(safe-area-inset-right) + 12px));
+  bottom: auto;
+  left: auto;
+  width: 176px;
+  padding: 6px 7px 7px;
+  border-radius: 18px;
+  background: #1d3a3366;
+  border: 1px solid #ffffff38;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px #10221d26;
+  pointer-events: none;
+  z-index: 2;
+}
+#mapbox #minimap {
+  position: static;
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 220 / 250;
+  background: none;
+  border: 0;
+  border-radius: 12px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+/* Whole-race progress: every racer's position over all three laps. */
+#progress {
+  position: relative;
+  height: 8px;
+  margin: 7px 9px 0 3px;
+  border-radius: 8px;
+  background: #0e221c66;
+  box-shadow: inset 0 0 0 1px #ffffff2a;
+  --me: 0%;
+}
+#progress::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--me);
+  border-radius: 8px;
+  background: linear-gradient(90deg, #fff2a833, #fff2a8b0);
+}
+/* Chequered flag at the finish end. */
+#progress::after {
+  content: "";
+  position: absolute;
+  right: -9px;
+  top: -4px;
+  width: 10px;
+  height: 16px;
+  border-radius: 2px;
+  background: repeating-conic-gradient(#1b1b1b 0 25%, #ffffff 0 50%) 0 0 / 5px 5px;
+  box-shadow: 0 0 0 1px #ffffffaa;
+}
+#progress .lap-tick {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  margin-left: -1px;
+  background: #ffffff70;
+  border-radius: 2px;
+}
+#progress .pk {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px #fff;
+  font-style: normal;
+}
+#progress .pk.me {
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  background: #fff2a8 !important;
+  box-shadow:
+    0 0 0 2.5px #24413a,
+    0 0 6px 2px #fff2a8;
+  z-index: 2;
+}
+#to-finish {
+  display: block;
+  margin-top: 6px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  font-variant-numeric: tabular-nums;
+  color: #fffbe9;
+  white-space: nowrap;
+}
+#to-finish small {
+  font-size: 9px;
+  font-weight: 700;
+  opacity: 0.8;
+  margin-left: 4px;
+}
+/* Rear radar: a chevron in the rival's colour, on its side of you, for any
+   kart closing in from behind. */
+#radar {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 118px;
+  height: 36px;
+  pointer-events: none;
+  z-index: 2;
+}
+#radar b {
+  position: absolute;
+  bottom: 0;
+  min-width: 40px;
+  transform: translateX(-50%);
+  padding: 3px 7px 3px;
+  border-radius: 12px;
+  background: #142a24b8;
+  border: 2px solid var(--c, #fff);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.1;
+  text-align: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--c, #fff) 55%, transparent);
+  transition:
+    left 0.12s linear,
+    opacity 0.12s;
+}
+#radar b::before {
+  content: "▲";
+  color: var(--c, #fff);
+  margin-right: 3px;
+  font-size: 11px;
+}
+#radar b.close {
+  animation: radar-close 0.5s ease-in-out infinite alternate;
+}
+@keyframes radar-close {
+  to {
+    transform: translateX(-50%) scale(1.12);
+  }
+}
+
+/* Special: a big round button with the driver's colour as a charge ring. */
+.special-slot {
+  width: 96px;
+  height: 96px;
+  padding: 0;
+  border-radius: 50%;
+  border: 0;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #22393ad0;
+  background: radial-gradient(circle at 50% 36%, #46625fe0, #1f3536e6 72%);
+  box-shadow:
+    0 5px 0 #1d2f2d55,
+    0 0 0 3px #1f3536aa;
+}
+.special-slot::before {
+  inset: -7px;
+  border-radius: 50%;
+  opacity: 1;
+  background: conic-gradient(var(--accent) var(--gauge), #ffffff30 var(--gauge));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 8px), #000 calc(100% - 7px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 8px), #000 calc(100% - 7px));
+}
+.special-slot > span {
+  font-size: 34px;
+  filter: grayscale(0.35);
+  opacity: 0.9;
+}
+.special-slot b {
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+}
+.special-slot small {
+  margin-top: 2px;
+  font-size: 8.5px;
+  letter-spacing: 0;
+  opacity: 0.85;
+  max-width: 84px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.special-slot.ready {
+  color: #31423a;
+  background: #fff6d6;
+  background: radial-gradient(circle at 50% 36%, #fffdf2, #ffe9b0 78%);
+  animation: special-ready 0.9s ease-in-out infinite;
+}
+.special-slot.ready::before {
+  opacity: 1;
+  background: conic-gradient(var(--accent), #fff6c8, var(--accent), #fff6c8, var(--accent));
+  animation: special-spin 1.6s linear infinite;
+}
+.special-slot.ready b {
+  font-size: 15px;
+  color: #c2410c;
+}
+.special-slot.ready > span {
+  animation: special-icon 0.9s ease-in-out infinite;
+}
+@keyframes special-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+@keyframes special-icon {
+  50% {
+    transform: scale(1.14) rotate(-6deg);
+  }
+}
+/* Nothing to hit, or it would waste an item: say so, and stop pulsing. */
+.special-slot.ready.blocked {
+  animation: none;
+  background: #e9e4d2;
+  color: #5d6a61;
+}
+.special-slot.ready.blocked b {
+  color: #6b5d4f;
+  font-size: 12px;
+}
+.special-slot.ready.blocked > span {
+  animation: none;
+  filter: grayscale(0.7);
+}
+/* Lock-on count for attack specials. */
+.special-slot::after {
+  content: attr(data-lock);
+  position: absolute;
+  top: -10px;
+  right: -12px;
+  padding: 3px 7px;
+  border-radius: 12px;
+  background: #ff3b3b;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.1;
+  white-space: nowrap;
+  box-shadow: 0 2px 0 #8f1d1d66;
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+}
+.special-slot.ready.locked::after {
+  opacity: 1;
+  transform: scale(1);
+}
+/* First time the special is ready: an arrow pointing at it. */
+#special-tip {
+  position: absolute;
+  left: calc(100% + 16px);
+  top: 50%;
+  display: none;
+  z-index: 4;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: #fff4c6;
+  color: #3a5845;
+  font-size: 13px;
+  font-weight: 900;
+  font-style: normal;
+  white-space: nowrap;
+  box-shadow: 0 4px 0 #314a4036;
+  transform: translateY(-50%);
+  animation: tip-nudge 0.7s ease-in-out infinite alternate;
+}
+#special-tip::before {
+  content: "";
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  margin-top: -8px;
+  border: 8px solid transparent;
+  border-right-color: #fff4c6;
+}
+.special-slot.tip #special-tip {
+  display: block;
+}
+@keyframes tip-nudge {
+  to {
+    transform: translate(-8px, -50%);
+  }
+}
+
+/* Speed race: no coins, items or specials; the item frame is the nitro
+   button, with its gauge filling from the bottom. */
+.speed-race .coins,
+.speed-race .special-slot,
+.speed-race #kb-special {
+  display: none;
+}
+.speed-race .item-slot {
+  isolation: isolate;
+  --gauge: 0%;
+}
+.speed-race .item-slot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(to top, #3fd2ff8c var(--gauge), transparent var(--gauge));
+}
+.speed-race #item-icon {
+  font-size: 25px;
+  font-weight: 950;
+  font-style: italic;
+  letter-spacing: -1px;
+  color: #bdf2ff;
+  text-shadow: 0 0 10px #3fd2ffaa;
+}
+.speed-race .item-slot.ready {
+  background: #e9fbff;
+  border-color: #3fd2ff;
+  color: #17414d;
+  animation: nitro-ready 0.9s ease-in-out infinite;
+}
+.speed-race .item-slot.ready #item-icon {
+  color: #0b9fd1;
+  text-shadow: none;
+}
+.speed-race #item-key {
+  font-size: 12px;
+  letter-spacing: 3px;
+  opacity: 1;
+  color: #3fd2ff;
+}
+.speed-race #item-next {
+  background: #e9fbff;
+  border-color: #3fd2ff;
+  color: #0b7fa8;
+  font-size: 14px;
+  font-weight: 950;
+}
+@keyframes nitro-ready {
+  50% {
+    box-shadow:
+      0 5px 0 #273b393d,
+      0 0 0 7px #3fd2ff55;
+  }
+}
+#speed-lines[data-kind="nitro"] {
+  box-shadow: inset 0 0 150px #3fd2ffcc;
+}
+#speed-lines[data-kind="draft"] {
+  box-shadow: inset 0 0 110px #dff6ffaa;
+}
+@media (prefers-reduced-motion: reduce) {
+  .special-slot.ready::before,
+  .special-slot.ready > span,
+  #special-tip,
+  #radar b.close,
+  .speed-race .item-slot.ready {
+    animation: none;
+  }
+}
+
+/* Desktop: the map takes the top-right corner; item and special move to the
+   bottom-right. */
+.item-slot {
+  top: auto;
+  bottom: 28px;
+  right: 32px;
+}
+.special-slot {
+  top: auto;
+  bottom: 40px;
+  right: 168px;
+}
+#radar {
+  bottom: 118px;
+}
+
+/* Phones and small tablets, portrait. */
+@media (orientation: portrait) and (pointer: coarse), (orientation: portrait) and (max-width: 900px) {
+  #mapbox {
+    top: calc(max(24px, env(safe-area-inset-top)) + 54px);
+    right: max(12px, calc(env(safe-area-inset-right) + 8px));
+    width: 132px;
+    padding: 5px 5px 6px;
+    border-radius: 16px;
+  }
+  #to-finish {
+    font-size: 10px;
+  }
+  .item-slot {
+    top: auto;
+    left: auto;
+    right: max(14px, env(safe-area-inset-right));
+    bottom: max(28%, calc(max(20px, calc(env(safe-area-inset-bottom) + 6px)) + 214px));
+  }
+  .special-slot {
+    top: auto;
+    right: auto;
+    left: max(18px, calc(env(safe-area-inset-left) + 12px));
+    bottom: max(28%, calc(max(20px, calc(env(safe-area-inset-bottom) + 6px)) + 214px));
+    width: 92px;
+    height: 92px;
+  }
+  #radar {
+    left: 6%;
+    right: 6%;
+    bottom: calc(max(20px, calc(env(safe-area-inset-bottom) + 6px)) + 176px);
+  }
+  #accelerate {
+    bottom: calc(max(28%, calc(max(20px, calc(env(safe-area-inset-bottom) + 6px)) + 214px)) + 112px);
+  }
+}
+
+/* Phones, landscape: map in the top-right corner with pause beside it and the
+   drift button under it; item top-left, the special just below it at the
+   left thumb; speed readout down by the drift meter. */
+@media (orientation: landscape) and (max-height: 520px) {
+  #mapbox {
+    top: max(10px, env(safe-area-inset-top));
+    right: max(19px, calc(env(safe-area-inset-right) + 8px));
+    width: 112px;
+    padding: 4px 4px 5px;
+    border-radius: 14px;
+  }
+  #progress {
+    margin-top: 5px;
+    height: 7px;
+  }
+  #to-finish {
+    margin-top: 4px;
+    font-size: 9.5px;
+  }
+  .race-top {
+    right: calc(max(19px, calc(env(safe-area-inset-right) + 8px)) + 122px);
+  }
+  #drift-button {
+    left: auto;
+    right: max(36px, calc(env(safe-area-inset-right) + 24px));
+    top: calc(max(10px, env(safe-area-inset-top)) + 186px);
+    bottom: auto;
+    width: 76px;
+    height: 76px;
+  }
+  .item-slot {
+    right: auto;
+    left: max(20px, calc(env(safe-area-inset-left) + 8px));
+    top: calc(max(12px, env(safe-area-inset-top)) + 64px);
+    bottom: auto;
+  }
+  .special-slot {
+    right: auto;
+    left: max(20px, calc(env(safe-area-inset-left) + 8px));
+    top: calc(max(12px, env(safe-area-inset-top)) + 160px);
+    bottom: auto;
+    width: 84px;
+    height: 84px;
+    padding: 0;
+  }
+  .special-slot > span {
+    font-size: 28px;
+  }
+  .special-slot b {
+    font-size: 10px;
+  }
+  .special-slot.ready b {
+    font-size: 13px;
+  }
+  .special-slot small {
+    display: block;
+    font-size: 8px;
+    max-width: 74px;
+  }
+  #speed,
+  .manual-gas #speed {
+    left: auto;
+    right: calc(50% + 132px);
+    bottom: max(14px, calc(env(safe-area-inset-bottom) + 4px));
+  }
+  #radar {
+    left: 14%;
+    right: 14%;
+    bottom: calc(max(14px, env(safe-area-inset-bottom)) + 62px);
+    height: 30px;
+  }
+  #radar b {
+    font-size: 11px;
+    padding: 2px 6px;
+  }
+}
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 760px) {
+  #speed,
+  .manual-gas #speed {
+    right: calc(50% + 2px);
+  }
+}
+
+/* Tablets in landscape: map top right, then item, special and drift down the
+   right-hand side. */
+@media (orientation: landscape) and (pointer: coarse) and (min-height: 521px) {
+  #mapbox {
+    top: calc(max(16px, env(safe-area-inset-top)) + 74px);
+    right: max(28px, calc(env(safe-area-inset-right) + 12px));
+    width: 168px;
+  }
+  .item-slot {
+    top: calc(max(16px, env(safe-area-inset-top)) + 74px);
+    right: max(222px, calc(env(safe-area-inset-right) + 206px));
+    bottom: auto;
+  }
+  .special-slot {
+    top: calc(max(16px, env(safe-area-inset-top)) + 360px);
+    right: max(56px, calc(env(safe-area-inset-right) + 40px));
+    bottom: auto;
+  }
+  #drift-button {
+    top: auto;
+    right: max(64px, calc(env(safe-area-inset-right) + 48px));
+    bottom: max(40px, calc(env(safe-area-inset-bottom) + 20px));
+  }
+}
+/* Toasts: clear of the lap / coin readout and, in portrait, of the map. */
+@media (orientation: portrait) and (pointer: coarse), (orientation: portrait) and (max-width: 900px) {
+  #toast {
+    top: calc(max(24px, env(safe-area-inset-top)) + 74px);
+    left: calc(50% - 72px);
+    max-width: calc(100% - 184px);
+    white-space: normal;
+    text-align: center;
+  }
+  /* The coaching bubble sits above the special, off the kart. */
+  #special-tip {
+    left: 0;
+    top: auto;
+    bottom: calc(100% + 16px);
+    transform: none;
+    animation-name: tip-bob;
+  }
+  #special-tip::before {
+    right: auto;
+    left: 38px;
+    top: 100%;
+    margin-top: 0;
+    border-right-color: transparent;
+    border-top-color: #fff4c6;
+  }
+}
+@keyframes tip-bob {
+  to {
+    transform: translateY(-7px);
+  }
+}
+/* Landscape speed race: nitro takes the special's spot at the left thumb. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .speed-race .item-slot {
+    top: calc(max(12px, env(safe-area-inset-top)) + 150px);
+  }
+}
+/* Portrait: the speed readout sits above the drift meter, below the radar. */
+@media (orientation: portrait) and (pointer: coarse), (orientation: portrait) and (max-width: 900px) {
+  #speed,
+  .manual-gas #speed {
+    bottom: calc(max(20px, calc(env(safe-area-inset-bottom) + 6px)) + 136px);
+  }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .speed-race #item-next {
+    left: auto;
+    right: -10px;
+  }
+}
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 760px) {
+  #speed,
+  .manual-gas #speed {
+    right: calc(50% + 52px);
+  }
+}
+/* Tablets in landscape: the special is in the right-hand column, so its
+   coaching bubble points at it from the left. */
+@media (orientation: landscape) and (pointer: coarse) and (min-height: 521px) {
+  #special-tip {
+    left: auto;
+    right: calc(100% + 16px);
+  }
+  #special-tip::before {
+    right: auto;
+    left: 100%;
+    border-right-color: transparent;
+    border-left-color: #fff4c6;
+  }
+}
+/* Status line ("✦ 冲刺 1.2s", "💨 吸尾流中…"): between the radar and the drift
+   meter, never on top of either. */
+@media (orientation: portrait) and (pointer: coarse), (orientation: portrait) and (max-width: 900px) {
+  #status-effect {
+    bottom: calc(max(20px, calc(env(safe-area-inset-bottom) + 6px)) + 136px);
+  }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  #status-effect {
+    bottom: calc(max(14px, env(safe-area-inset-bottom)) + 34px);
+  }
+  #radar {
+    bottom: calc(max(14px, env(safe-area-inset-bottom)) + 68px);
+  }
+}
+#speed-lines[data-kind="draft"]::before {
+  opacity: 0.4;
+}
+/* Desktop: the radar stays under the kart, clear of the bottom-right
+   buttons, and the coaching bubble sits above the special. */
+@media (min-width: 901px) and (min-height: 521px) and (pointer: fine) {
+  #radar {
+    left: 26%;
+    right: 26%;
+  }
+  #special-tip {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: calc(100% + 16px);
+    transform: none;
+    animation-name: tip-bob;
+  }
+  #special-tip::before {
+    right: 38px;
+    top: 100%;
+    margin-top: 0;
+    border-right-color: transparent;
+    border-top-color: #fff4c6;
+  }
+}

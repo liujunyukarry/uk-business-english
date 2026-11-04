@@ -116,7 +116,15 @@ test("the player kart holds still on screen when frames are dropped", async (t) 
       x.aiItem = 1e9;
     });
     r.hazards.length = r.projectiles.length = 0;
+    // No boost pads either: a boost's FOV punch is intended camera motion,
+    // not jitter (with v2.4's slipstream start the player can reach the
+    // first pad inside this window).
+    r.pads.length = 0;
   });
+  // Let a boost already running (e.g. a slipstream off the start) and its
+  // camera punch wear off before measuring.
+  await page.waitForFunction(() => window.__pk.race.player.boost <= 0, null, { timeout: 10000 });
+  await page.waitForTimeout(1200);
   const samples = await record(page, 6);
   // Time-aware acceleration of the kart's screen position (NDC units / s²):
   // velocity between drawn frames divided by the real time between them, so

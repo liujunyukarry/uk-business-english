@@ -40,7 +40,7 @@ export async function serve() {
 // Appended to game.js in the browser only, never on disk: exposes module state
 // so tests can read the exact input the race receives.
 const HOOK = `
-;window.__pk={get race(){return race},get mode(){return mode},getInput,touch,get cars(){return cars},camera,get clock(){return clock}};
+;window.__pk={get race(){return race},get mode(){return mode},getInput,touch,get cars(){return cars},camera,get clock(){return clock},get marks(){return typeof targetMarks==="undefined"?[]:targetMarks}};
 `;
 
 export async function launch({ webgl = false } = {}) {

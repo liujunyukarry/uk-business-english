@@ -1,7 +1,7 @@
 import * as T from "./vendor/three.module.js";
-import { kartAsset } from "./kart-assets.js?v=5250c1b5";
-import { dog, animateDog, reactDog, material, ellipsoid, roundedBox, star as starMesh } from "./models.js?v=5250c1b5";
-import { CHARACTERS, seeded } from "./race.js?v=5250c1b5";
+import { kartAsset } from "./kart-assets.js?v=0c6ed773";
+import { dog, animateDog, reactDog, material, ellipsoid, roundedBox, star as starMesh } from "./models.js?v=0c6ed773";
+import { CHARACTERS, seeded } from "./race.js?v=0c6ed773";
 const scenerySphere = new T.SphereGeometry(1, 12, 8);
 const sphere = new T.SphereGeometry(1, 24, 18),
   unitBox = new T.BoxGeometry(1, 1, 1),
@@ -301,6 +301,8 @@ export const NITRO = {
   pad: { outer: 0x12c9ff, core: 0xeaffff, len: 1.3 },
   star: { outer: 0xffc21a, core: 0xffffff, len: 1.45 },
   rocket: { outer: 0xff6a1a, core: 0xfff7d6, len: 2.3 },
+  nitro: { outer: 0x3fd2ff, core: 0xf2fdff, len: 2.1 },
+  draft: { outer: 0xbfeaff, core: 0xffffff, len: 0.95 },
 };
 let compatibility = false;
 // The CPU fallback renderer has no blending or texture alpha: flames there are
@@ -1668,6 +1670,31 @@ export function makeMeteor() {
   rock.add(stone, flame);
   g.add(ring, rock);
   g.userData = { ring, rock };
+  return g;
+}
+// Lock-on marker for an attack special: a red reticle with a pointer that
+// hovers over the kart it would hit. Drawn over everything (no depth test)
+// so it shows through scenery; the game turns it to face the camera.
+export function makeTargetMark() {
+  const red = new T.MeshBasicMaterial({ color: 0xff3b3b, transparent: true, opacity: 0.95, side: T.DoubleSide, depthTest: false, depthWrite: false, toneMapped: false }),
+    white = new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, side: T.DoubleSide, depthTest: false, depthWrite: false, toneMapped: false }),
+    g = new T.Group(),
+    reticle = new T.Group();
+  reticle.add(new T.Mesh(new T.RingGeometry(0.6, 0.78, 36), red), new T.Mesh(new T.RingGeometry(0.78, 0.86, 36), white));
+  for (let i = 0; i < 4; i++) {
+    const a = (i * Math.PI) / 2,
+      tick = new T.Mesh(new T.PlaneGeometry(0.13, 0.42), red);
+    tick.position.set(Math.sin(a) * 1.02, Math.cos(a) * 1.02, 0);
+    tick.rotation.z = -a;
+    reticle.add(tick);
+  }
+  const pointer = new T.Mesh(new T.ConeGeometry(0.3, 0.5, 3), red);
+  pointer.rotation.z = Math.PI; // points down at the kart
+  pointer.position.y = -1.35;
+  g.add(reticle, pointer);
+  g.traverse((o) => (o.renderOrder = 20));
+  g.userData = { reticle, pointer };
+  g.visible = false;
   return g;
 }
 export function makeShell() {

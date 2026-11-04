@@ -470,6 +470,27 @@ export class KartAudio {
       case "specialReady":
         [76, 83, 88].forEach((n, i) => this.tone(midi(n), 0.14, "triangle", 0.07, 0, now + i * 0.07));
         return;
+      case "nitro":
+        // Speed race nitro: a deep ignition thump and a long rising jet.
+        this.noise(1.1, 300, 4200, 0.3, 0.55);
+        this.tone(85, 0.45, "sine", 0.18, 40);
+        this.tone(440, 0.9, "sawtooth", 0.035, 1760, now + 0.05);
+        return;
+      case "nitroReady":
+        // A charge clicks into place: two bright notes and a shimmer.
+        this.tone(1047, 0.09, "square", 0.045);
+        this.tone(1568, 0.16, "square", 0.045, 0, now + 0.07);
+        this.noise(0.25, 6000, 9000, 0.04, 0.6, now + 0.07, "highpass");
+        return;
+      case "draft":
+        // Slipstream: a soft rush of wind as you are pulled past.
+        this.noise(0.55, 900, 2600, 0.14, 0.8);
+        this.tone(660, 0.3, "triangle", 0.035, 990);
+        return;
+      case "deny":
+        this.tone(260, 0.09, "square", 0.04, 200);
+        this.tone(200, 0.12, "square", 0.04, 160, now + 0.09);
+        return;
       case "meteor":
         this.noise(0.6, 1800, 120, 0.3, 0.7);
         this.tone(120, 0.5, "sine", 0.18, 40);
