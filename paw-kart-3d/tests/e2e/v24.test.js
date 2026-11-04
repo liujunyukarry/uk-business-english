@@ -74,10 +74,13 @@ for (const orient of ["portrait", "landscape"]) {
 test("progress strip and distance to go follow the race", async (t) => {
   const { page } = await phoneRace(t, "portrait");
   const read = () =>
-    page.evaluate(() => ({
-      me: parseFloat(document.querySelector("#progress .pk.me").style.left),
-      text: document.querySelector("#to-finish").textContent,
-    }));
+    page.evaluate(() => {
+      // Where the marker is drawn along the strip (v2.6 moves it with a
+      // transform every frame), in % of the strip.
+      const bar = document.querySelector("#progress").getBoundingClientRect(),
+        dot = document.querySelector("#progress .pk.me").getBoundingClientRect();
+      return { me: ((dot.left + dot.width / 2 - bar.left) / bar.width) * 100, text: document.querySelector("#to-finish").textContent };
+    });
   await page.evaluate(() => {
     const race = window.__pk.race;
     race.player.distance = race.track.length * 1.5; // halfway through the race
@@ -104,7 +107,13 @@ test("rear radar: a kart closing from behind shows on its side, with its distanc
     );
   const chips = () =>
     page.$$eval("#radar b:not([hidden])", (els) =>
-      els.map((b) => ({ text: b.textContent, left: parseFloat(b.style.left), racer: Number(b.dataset.racer) })),
+      els.map((b) => {
+        // Where the chip is drawn across the radar, in % (v2.6 places it with
+        // the translate property every frame).
+        const r = b.parentElement.getBoundingClientRect(),
+          c = b.getBoundingClientRect();
+        return { text: b.textContent, left: ((c.left + c.width / 2 - r.left) / r.width) * 100, racer: Number(b.dataset.racer) };
+      }),
     );
   await place(10, 4);
   await page.waitForTimeout(250);

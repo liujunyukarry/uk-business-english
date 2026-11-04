@@ -122,6 +122,9 @@ test("drift tiers: each release grants its boost time and an instant kick", () =
     p.distance = 100;
     p.lane = p.previousLane = -6;
     steps(r, 90, { assist: true }); // cruise
+    // v2.6: a drift charges with the bend it takes; charge it through a
+    // steady bend into the drift (steering right: curvature < 0).
+    r.track.curvature = () => -0.02;
     const hold = Math.ceil(((DRIFT.levels[level] + 0.06) / 1.25) * 60) + 8;
     // Keep the kart in the middle of the road while it charges: this checks
     // the tiers, not the drift's line across the road.

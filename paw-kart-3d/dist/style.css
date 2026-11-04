@@ -669,10 +669,15 @@ kbd {
 .drift-meter i {
   display: block;
   height: 4px;
-  width: 0;
+  width: 100%;
   background: #a7f1ff;
   border-radius: 5px;
   box-shadow: 0 0 9px #a7f1ff;
+  /* Filled with a transform every frame (v2.6), not a width ten times a
+     second. */
+  transform: scaleX(0);
+  transform-origin: left center;
+  will-change: transform;
 }
 .item-slot {
   position: absolute;
@@ -868,15 +873,43 @@ kbd {
   -webkit-mask: radial-gradient(ellipse 52% 48% at 50% 46%, #0000 58%, #000 92%);
   mask: radial-gradient(ellipse 52% 48% at 50% 46%, #0000 58%, #000 92%);
   opacity: 0.55;
-  animation: speed-streaks 0.42s steps(4) infinite;
+  /* v2.6: streaks stream outward smoothly (two offset layers, so one fades
+     in as the other flies out) instead of ticking round in four steps. */
+  animation: speed-streaks 0.36s linear infinite;
+  will-change: transform, opacity;
+}
+#speed-lines::after {
+  content: "";
+  position: absolute;
+  inset: -25%;
+  background: repeating-conic-gradient(
+    from 3deg at 50% 46%,
+    #fff0 0deg 6deg,
+    #ffffff90 6.2deg 6.5deg,
+    #fff0 7deg 12deg
+  );
+  -webkit-mask: radial-gradient(ellipse 52% 48% at 50% 46%, #0000 62%, #000 94%);
+  mask: radial-gradient(ellipse 52% 48% at 50% 46%, #0000 62%, #000 94%);
+  opacity: 0;
+  animation: speed-streaks 0.36s linear -0.18s infinite;
+  will-change: transform, opacity;
 }
 @keyframes speed-streaks {
+  from {
+    transform: scale(1) rotate(0deg);
+    opacity: 0;
+  }
+  35% {
+    opacity: 0.6;
+  }
   to {
-    transform: rotate(7deg);
+    transform: scale(1.22) rotate(1.5deg);
+    opacity: 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  #speed-lines::before {
+  #speed-lines::before,
+  #speed-lines::after {
     display: none;
   }
 }
@@ -954,6 +987,10 @@ dialog p {
   border-radius: 12px;
   padding: 13px;
   font-size: 12px;
+}
+/* An odd card out spans the row. */
+.help-grid > div:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 .help-grid b {
   display: block;
@@ -2155,9 +2192,26 @@ button {
 #speed-lines[data-kind="rocket"] {
   box-shadow: inset 0 0 150px #ff7a3acc;
 }
-#speed-lines.strong::before {
-  opacity: 0.85;
+#speed-lines.strong::before,
+#speed-lines.strong::after {
+  animation-name: speed-streaks-strong;
   animation-duration: 0.28s;
+}
+#speed-lines.strong::after {
+  animation-delay: -0.14s;
+}
+@keyframes speed-streaks-strong {
+  from {
+    transform: scale(1) rotate(0deg);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.95;
+  }
+  to {
+    transform: scale(1.28) rotate(1.5deg);
+    opacity: 0;
+  }
 }
 #hit-vignette {
   position: fixed;
@@ -2601,7 +2655,7 @@ header {
   border-radius: 8px;
   background: #0e221c66;
   box-shadow: inset 0 0 0 1px #ffffff2a;
-  --me: 0%;
+  --me: 0;
 }
 #progress::before {
   content: "";
@@ -2609,9 +2663,11 @@ header {
   left: 0;
   top: 0;
   bottom: 0;
-  width: var(--me);
+  width: 100%;
   border-radius: 8px;
   background: linear-gradient(90deg, #fff2a833, #fff2a8b0);
+  transform: scaleX(var(--me));
+  transform-origin: left center;
 }
 /* Chequered flag at the finish end. */
 #progress::after {
@@ -2636,7 +2692,9 @@ header {
 }
 #progress .pk {
   position: absolute;
+  left: 0; /* moved along with a transform every frame */
   top: 50%;
+  will-change: transform;
   width: 8px;
   height: 8px;
   margin: -4px 0 0 -4px;
@@ -2684,6 +2742,7 @@ header {
 }
 #radar b {
   position: absolute;
+  left: 0; /* placed with the translate property every frame */
   bottom: 0;
   min-width: 40px;
   transform: translateX(-50%);
@@ -3183,8 +3242,22 @@ header {
     bottom: calc(max(14px, env(safe-area-inset-bottom)) + 68px);
   }
 }
-#speed-lines[data-kind="draft"]::before {
-  opacity: 0.4;
+#speed-lines[data-kind="draft"]::before,
+#speed-lines[data-kind="draft"]::after {
+  animation-name: speed-streaks-soft;
+}
+@keyframes speed-streaks-soft {
+  from {
+    transform: scale(1);
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.35;
+  }
+  to {
+    transform: scale(1.18);
+    opacity: 0;
+  }
 }
 /* Desktop: the radar stays under the kart, clear of the bottom-right
    buttons, and the coaching bubble sits above the special. */

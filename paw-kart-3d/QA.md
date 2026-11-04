@@ -252,3 +252,67 @@ Same nine devices and safe areas as v2.4, portrait and landscape: home with the 
 ## Not verified — needs a real phone
 
 The start-boost timing feel on the 14 Pro Max (60 / 120 Hz), how the light trails and neon read on the phone screen, touch feel of the garage tabs, frame rate and heat with the premium bodies.
+
+# v2.6 Verification — 2026-11-04
+
+Build id at the bottom of the pause / help dialogs ("版本 2.6 · <id>"). Same container environment as before (headless Chrome; the CPU renderer for the regression tests and real-time playthroughs, SwiftShader WebGL for screenshots and draw-call counts; no phone).
+
+## What changed and how it was checked
+
+| Request | Change | Evidence |
+|---|---|---|
+| A special should make you invincible | Firing a special gives 必杀无敌 for 3 s (金毛 3.6 s, covering its three dashes), AI included. Any attack (shell, banana, lightning, meteor, fireball, bear hug, star or rocket ram) bounces off with a "✨ 必杀无敌！攻击无效" toast. In kart contact the guarded kart is heavy: the other kart takes the bounce. Golden aura shell and rings, a status countdown ("✨ 必杀无敌 2.3s") that blinks before it ends, and "无敌 N 秒" on the cut-in. AI hold attacks meant for an immune player; attack specials pick targets that are not immune (shells still home on whoever is next) | `tests/v26.test.js`: every character's special guards its driver for its time and the block is reported; it wears off; the AI get it too; a guarded kart shrugs off a side bump (the other kart bounces at least 3× as hard); an AI keeps a shell while the player is immune; specials pass over guarded or starred karts. `tests/e2e/v26.test.js`: a real tap on the special button shows the countdown and the cut-in, and an attack in the next step bounces off with the toast. The milo bubble test now clears the guard first |
+| Holding a very long drift wins mindlessly, even scraping the wall | A drift now costs speed: about 2 % through a bend it follows, 12 % down a straight (player only; the AI only drift real bends). Spark charge runs at 30 % of the bend rate on a straight, nitro at 12 %. A drift that follows a bend keeps the full rail assist, since hugging the inside is the racing line and a touch drift always turns in fully. A drift that is not following a bend gets only 35 % of the assist, so aimed at the rail down a straight it reaches the rail and bounces off, losing its charge. The drift is no longer cancelled silently at the kerb | `tests/v26.test.js`: charge rate in a bend vs on a straight (×0.3); drifting down a straight is slower than driving it while drifting a bend beats steering it; nitro in a bend vs on a straight; a drift aimed at the rail reaches it, bounces, loses its charge with no boost and no teleport; a full race where the bend driver places ≤ 2nd, the hold-along-the-rail driver ≥ 7th and the drift-everywhere driver is slower. Tier, gauge and nitro tests from v2.2–v2.5 now drift through a steady bend (`track.curvature` stubbed) because a straight no longer charges at full rate |
+| Walls and other karts should bounce | Rails are solid. A kart that reaches one bounces back: sideways speed × 0.55 plus up to 3 m/s from forward speed, at most 9 m/s. It loses 5–22 % of its speed by how square it hit (at most 9 m/s at once) and its drift charge. Side contact springs both karts apart at 2.4 m/s plus half the closing speed (at most 6.5). A rear-end costs the kart behind most of its closing speed (at most 8 m/s) and shoves the one in front (at most 3). Bounces are a decaying sideways speed, so motion stays continuous. Sparks fly back off the rail; camera shake and sound scale with the impact; startled faces and emotes. The chase camera stays over the road while a kart scrapes a rail (it used to end up in the trackside balloons) | `tests/v26.test.js`: a square hit costs more than twice a graze and bounces harder; both rails; side bump bounces both and clears; rear-end slows and shoves within limits; full races with a careless weaving driver stay finite and on the road with bounded bounces. `tests/continuity.test.js` unchanged and passing (lane step < 0.35 m, along-track < 0.15 m, speed change < 12 m/s per step) |
+| Rough models; no cool transforming boost | Every body transforms for a boost, a special, a star, a rocket or the bear's ram. A spring drives a quick unfold with a small overshoot and a softer fold back, and a servo sound plays. Moving parts are separate small merged groups that cast no shadows. 经典卡丁: a GT wing flips up and twin boosters slide out of the rear. 闪电 GT: the wing rises on telescoping struts and tilts, rear blades slide out, the canards flip out and the tail pipes extend. 喷射火箭: swing wings sweep out, the side rockets slide out and the turbine spools up. 幻影星舰: the wheels fold flat into glowing hover pads and the body rises, the wing foils split into an X and the thrusters extend. Flames follow the pipes. The garage preview transforms every few seconds and at once when a body is picked, with a toast saying how. Materials: premium paint is a clear coat over metal with environment reflections; the classic kart gets a sheen; more curve segments and bevels | `docs/qa-2.6/transform-bodies.jpg` (folded, top; transformed, bottom; WebGL). `tests/e2e/v26.test.js` (picking a body shows the transformation toast; the cards' labels describe it) |
+| Livelier, more detailed faces | The four plush drivers share one face rig: catchlights; blinks every 2–5 s (sometimes double); eyes that follow the steering and a rival alongside. Moods are eased, never snapped: happy is "^ ^" with blush and an open smile with tongue; focus (deep drift) knits the brows and grits the teeth; surprise lifts the brows and opens an "o"; hurt spins "x x" eyes; excited (special, star, rocket) gives starry catchlights and a big smile. Emote bubbles are vector-drawn, so no emoji font is needed: ♪ when passing, 💥 / 💦 off a rail, 💢 when bumped hard, ! when a shell locks on, ✨ for a special, 💫 when hit, ❤ on a podium finish. Ears stream back with speed and flap in the boost wind, and the driver is pushed back into the seat at ignition. Faces past 16 m stop animating and hide their catchlights | `docs/qa-2.6/faces-and-emotes.jpg` (WebGL). The licensed characters' models are unchanged |
+| More frames, smoother | The drift meter, charge rings, progress markers and radar chips move every frame with transforms instead of jumping 10 times a second. The map redraws every frame (was 30 Hz). Text is written only when it changes, and the ranking list is rebuilt only when the order changes. Speed streaks flow outward continuously (were `steps(4)`). Render resolution adapts: it starts at 1.5× on phones and steps up by 0.25 to 2× while frames arrive on time; it drops as soon as frames are late and never climbs back past a level that dropped frames. Curvature is a table lookup and the render loop samples the track into scratch objects, so no garbage per frame. Shaders hidden until a boost or special (aura, flames, transform parts, emote) are compiled during the countdown | `tests/e2e/v26.test.js` (the drift fill changes on consecutive frames; the progress markers use transforms). The progress and radar e2e tests now read the drawn positions instead of `style.left`. Curvature from the table matches the old two-sample formula to within its own segment noise (the old value stepped by up to 0.011 between 0.7 m segments) |
+
+## The exploit, before and after (simulation, 9 races per row: three tracks × three seeds)
+
+Time (s) · average place, 100cc / 150cc. "Bends" drifts every real bend and releases on the exit, like a good player. "Everywhere" holds the drift and the direction of the last bend all the time, letting go for 8 frames at purple. "Rail" does the same steering right. "Hold" never lets go.
+
+| Driver | v2.5 item | v2.5 speed | v2.6 item | v2.6 speed |
+|---|---|---|---|---|
+| Bends | 59.0 · 1.4 / 57.0 · 3.3 | 56.2 · 1.1 / 55.8 · 2.4 | 56.1 · 1.0 / 55.0 · 2.2 | 56.0 · 1.0 / 55.8 · 1.9 |
+| Everywhere | 52.4 · 1.0 / 51.4 · 1.0 | 48.0 · 1.0 / 48.0 · 1.0 | 63.1 · 3.4 / 60.5 · 6.8 | 61.4 · 3.8 / 61.8 · 7.7 |
+| Rail | 57.1 · 1.0 / 56.3 · 2.9 | 51.7 · 1.0 / 51.6 · 1.0 | 102.5 · 8 / 103.8 · 8 | 110.4 · 8 / 112.0 · 8 |
+| Hold | 67.9 · 6.0 / 63.4 · 7.6 | 54.1 · 1.0 / 54.1 · 1.0 | 110.7 · 8 / 112.1 · 8 | 112.1 · 8 / 113.1 · 8 |
+
+In v2.5 a boost was active 87–96 % of the time for the mindless drivers, against about 60 % for the bend driver. The AI pace (`AI_PACE`) is unchanged.
+
+The same comparison in the real page, with real touch input in real time: holding the drift button and the right half for a whole 100cc speed race on 花田晴空环线. The fingers jiggle by a pixel, as a thumb does; a perfectly still test finger is released by the input watchdog after a few seconds.
+- v2.5: 1st, 53.5 s, 21 nitros.
+- v2.6: 8th, 112.1 s, 101 rail bounces.
+
+In both runs the script checked that drift and steering stayed held. One earlier run whose drift press had not registered was discarded.
+
+## Draw calls
+
+WebGL, 932×430, high quality.
+- In a race: about 535–630 per frame, depending on how many premium bodies the field has (v2.5: about 500–545).
+- Worst case, all eight karts transformed and under the aura at once: about 650–750.
+- One kart, shadow pass and ground included, folded → boosting: classic 43 → 64, 闪电 GT 60 → 78, 喷射火箭 68 → 89, 幻影星舰 65 → 79.
+
+## Mobile layout audit (emulated safe areas)
+
+Same nine devices, portrait and landscape, same screens as v2.5 (home with both garage tabs, item race HUD with the special ready and the radar, pause, speed race HUD, settings): no issues. The help dialog's ninth card spans the row.
+
+## Tests and play
+
+`npm test` 89/89, `npm run test:e2e` 39/39 on the final build. In-race screenshots (WebGL), with the two licensed-character karts parked out of view and checked off screen:
+- `docs/qa-2.6/race-hover-and-guard.jpg`: 幻影星舰 in hover mode mid-boost, and 小金毛 under 必杀无敌 with the countdown.
+- `docs/qa-2.6/race-jet-and-rail.jpg`: 喷射火箭 transformed with purple flames, and a kart bounced off the rail with the toast.
+
+Real-time touch playthroughs to the results screen on the final build, each starting with a real tap on a steering half:
+- 430×932, 星光云端公路, 150cc item race, 薄荷熊 on 幻影星舰: perfect start, 6th in 58.8 s, in a field that finished within 56.0–58.9 s. 20 items, 4 specials, 15 drift boosts, hit 4 times, no rail hits.
+- 430×932, 花田晴空环线, 150cc item race, 小金毛 on 闪电 GT: perfect start, 2nd in 53.0 s. 21 items, 5 specials (two attacks bounced off 必杀无敌), 17 drift boosts, hit twice, 1 rail hit.
+- 932×430, 花田晴空环线, 100cc speed race, 桃桃兔 on 喷射火箭: good start, 2nd in 57.5 s, 0.1 s behind 1st. 9 nitros, 16 drift boosts, 2 rail hits.
+
+Earlier v2.6 builds, before the bend-assist fix: the same touch driver hit the inside rail 6–7 times a race and finished 5th and 6th. After the fix it hit no rails and finished 1st (speed race, 58.2 s) and 2nd (150cc item race, 54.5 s).
+
+No page errors in any run.
+
+## Not verified — needs a real phone
+
+How the transformation, the aura and the faces read at phone size and arm's length; whether the adaptive resolution settles at 1.75–2× on the 14 Pro Max (it can only be measured there); frame rate and heat; the feel of rail bounces and of drifting with touch.
