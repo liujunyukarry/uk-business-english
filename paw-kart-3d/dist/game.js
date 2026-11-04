@@ -1,6 +1,6 @@
 import * as T from "./vendor/three.module.js";
 import { RoomEnvironment } from "./vendor/RoomEnvironment.js";
-import { Race, Track, TRACKS, CHARACTERS, ITEMS, SPECIALS, DRIFT, NITRO_RULES, DRAFT, driftLevel, clamp } from "./race.js?v=0c6ed773";
+import { Race, Track, TRACKS, CHARACTERS, ITEMS, SPECIALS, DRIFT, NITRO_RULES, DRAFT, KARTS, START, driftLevel, clamp } from "./race.js?v=c9d5e852";
 import {
   createKart,
   animateKart,
@@ -13,6 +13,9 @@ import {
   makeFireball,
   makeMeteor,
   makeTargetMark,
+  createShowroomKart,
+  speedTrail,
+  boostRing,
   updateBoxShimmer,
   kartMood,
   setKartFade,
@@ -21,10 +24,10 @@ import {
   box,
   mat,
   label,
-} from "./art.js?v=0c6ed773";
-import { KartAudio } from "./audio.js?v=0c6ed773";
-import { bindTouchControls, CONTROLS } from "./input.js?v=0c6ed773";
-import { SoftwareRenderer } from "./software-renderer.js?v=0c6ed773";
+} from "./art.js?v=c9d5e852";
+import { KartAudio } from "./audio.js?v=c9d5e852";
+import { bindTouchControls, CONTROLS } from "./input.js?v=c9d5e852";
+import { SoftwareRenderer } from "./software-renderer.js?v=c9d5e852";
 // Build id stamped by tools/stamp.mjs; shown in the pause and help dialogs so
 // a tester can tell exactly which version is running.
 const BUILD = document.querySelector('meta[name="paw-build"]')?.content || "dev";
@@ -46,6 +49,7 @@ const defaults = {
   records: {},
   races: 0,
   mode: "single", // 道具赛 (single), 竞速赛 (speed) or 杯赛 (cup)
+  kart: "classic", // kart body (车型), see KARTS
   specialsTotal: 0, // the "use your special" coaching stops after a few
 };
 let save = { ...defaults };
@@ -58,6 +62,7 @@ if (!CHARACTERS.some((c) => c.id === save.character)) save.character = "gold";
 save.track = clamp(Number(save.track) || 0, 0, 2);
 if (!["easy", "normal", "hard"].includes(save.difficulty)) save.difficulty = "normal";
 if (!["single", "speed", "cup"].includes(save.mode)) save.mode = "single";
+if (!KARTS[save.kart]) save.kart = "classic";
 save.volume = clamp(Number(save.volume) || 0, 0, 1);
 let storageWarned = false;
 function persist() {
@@ -117,11 +122,20 @@ if (!renderer.software) {
 const lobby = createLobby();
 scene.add(lobby.group);
 const kartCache = new Map();
-function kart(key, kind, num) {
-  if (!kartCache.has(key)) kartCache.set(key, createKart(kind, num));
+function kart(key, kind, num, body = "classic") {
+  key += "@" + body;
+  if (!kartCache.has(key)) kartCache.set(key, createKart(kind, num, body));
   return kartCache.get(key);
 }
-let selected = kart("hero-" + save.character, save.character, 1);
+// Garage copy for the kart bodies: what each one is good at, and the change
+// to the speed / acceleration / handling bars it makes.
+const KART_INFO = {
+  classic: { tag: "均衡 · 好上手", perk: "四项均衡", bars: [0, 0, 0] },
+  thunder: { tag: "极速型", perk: "极速更高 · 起步稍慢", bars: [1, -1, 0] },
+  jet: { tag: "冲刺型", perk: "所有加速多 12%", bars: [0, 1, -1] },
+  phantom: { tag: "操控型", perk: "集气快 15% · 抓地稳", bars: [-1, 0, 1] },
+};
+let selected = kart("hero-" + save.character, save.character, 1, save.kart);
 lobby.group.add(selected);
 selected.position.y = 0.08;
 let orbit = -0.3,
@@ -151,6 +165,7 @@ let world = null,
   cameraReady = false;
 const keys = new Set(),
   touch = { left: false, right: false, drift: false, gas: false };
+let startTap = false; // a start press not yet seen by a physics step
 // Drift tier colours (none / blue / orange / purple), as in Mario Kart.
 const DRIFT_COLOURS = ["#fff1c9", "#7fdcff", "#ffa64a", "#f47be0"],
   DRIFT_SPARKS = [0xfff1c9, 0x7fdcff, 0xffa64a, 0xf47be0];
@@ -159,7 +174,13 @@ let lastRank = 0,
   nitroTipShown = false,
   progressDots = [],
   targetMarks = [],
-  specialTargets = []; // racer ids the player's special would hit right now
+  specialTargets = [], // racer ids the player's special would hit right now
+  trails = [], // boost light trails from the player's rear corners
+  ring = null, // boost ignition shock ring
+  lastBoostCount = 0;
+// Where the light trails leave the kart (body space): the rear corners.
+const TRAIL_ANCHORS = [new T.Vector3(-0.82, 0.22, -0.95), new T.Vector3(0.82, 0.22, -0.95)],
+  RING_ANCHOR = new T.Vector3(0, 0.95, -1.7);
 // Specials that hit someone: their targets are marked before firing.
 const ATTACK_SPECIALS = new Set(["bear", "nova", "mario"]);
 const audio = new KartAudio();
@@ -219,6 +240,7 @@ function timeText(t) {
 }
 function inputClear() {
   keys.clear();
+  startTap = false;
   controls.clear(); // also clears the .pressed visuals
   for (const k in touch) touch[k] = false;
 }
@@ -234,20 +256,38 @@ function updateHome() {
     b.setAttribute("aria-pressed", String(active));
   });
   $("difficulty").value = save.difficulty;
+  document.querySelectorAll("[data-kart]").forEach((b) => {
+    const active = b.dataset.kart === save.kart;
+    b.classList.toggle("active", active);
+    b.setAttribute("aria-pressed", String(active));
+  });
   const c = CHARACTERS.find((x) => x.id === save.character),
-    idx = CHARACTERS.indexOf(c);
+    idx = CHARACTERS.indexOf(c),
+    body = KART_INFO[save.kart];
   $("driver-name").innerHTML = c.name + "<span>READY TO ROLL</span>";
   $("driver-tag").textContent =
-    String(idx + 1).padStart(2, "0") + " / " + String(CHARACTERS.length).padStart(2, "0") + " · " + c.tag;
+    String(idx + 1).padStart(2, "0") +
+    " / " +
+    String(CHARACTERS.length).padStart(2, "0") +
+    " · " +
+    c.tag +
+    " · " +
+    KARTS[save.kart].name;
+  // The bars show the driver on the chosen body; a changed bar is marked.
   $("driver-stats").innerHTML = ["速度", "加速", "操控"]
-    .map(
-      (v, i) =>
+    .map((v, i) => {
+      const n = clamp(c.stats[i] + body.bars[i], 1, 5),
+        delta = body.bars[i];
+      return (
         "<div>" +
         v +
         '<span class="stat-bars">' +
-        Array.from({ length: 5 }, (_, j) => '<i class="' + (j < c.stats[i] ? "on" : "") + '"></i>').join("") +
-        "</span></div>",
-    )
+        Array.from({ length: 5 }, (_, j) => '<i class="' + (j < n ? "on" : "") + '"></i>').join("") +
+        "</span>" +
+        (delta ? '<em class="' + (delta > 0 ? "up" : "down") + '">' + (delta > 0 ? "▲" : "▼") + "</em>" : "") +
+        "</div>"
+      );
+    })
     .join("");
   document.querySelectorAll("[data-mode]").forEach((x) => {
     const on = x.dataset.mode === raceMode;
@@ -273,11 +313,32 @@ function updateHome() {
   scene.fog.color.copy(scene.background);
   persist();
 }
+function chooseKart(id) {
+  if (mode !== "home" || !KARTS[id]) return;
+  lobby.group.remove(selected);
+  save.kart = id;
+  selected = kart("hero-" + save.character, save.character, 1, id);
+  selected.position.set(0, 0.08, 0);
+  lobby.group.add(selected);
+  orbit = -0.3;
+  audio.cue("tap");
+  updateHome();
+}
+// Garage tabs: drivers (车手) or kart bodies (车型).
+function garageTab(tab) {
+  document.querySelectorAll("[data-tab]").forEach((b) => {
+    const on = b.dataset.tab === tab;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-pressed", String(on));
+  });
+  show("characters", tab === "characters");
+  show("karts", tab === "karts");
+}
 function chooseCharacter(id) {
   if (mode !== "home") return;
   lobby.group.remove(selected);
   save.character = id;
-  selected = kart("hero-" + id, id, 1);
+  selected = kart("hero-" + id, id, 1, save.kart);
   selected.position.set(0, 0.08, 0);
   lobby.group.add(selected);
   orbit = -0.3;
@@ -334,9 +395,35 @@ function buildMenu() {
       "</small></button>"
     );
   }).join("");
+  $("karts").innerHTML = Object.entries(KARTS)
+    .map(
+      ([id, k]) =>
+        '<button class="character-card kart-card" data-kart="' +
+        id +
+        '" aria-label="选择车型：' +
+        k.name +
+        "，" +
+        KART_INFO[id].perk +
+        '"><img alt="' +
+        k.name +
+        '"><b>' +
+        k.name +
+        "</b><small>" +
+        KART_INFO[id].perk +
+        "</small></button>",
+    )
+    .join("");
   document
     .querySelectorAll("[data-character]")
     .forEach((b) => (b.onclick = () => chooseCharacter(b.dataset.character)));
+  document.querySelectorAll("[data-kart]").forEach((b) => (b.onclick = () => chooseKart(b.dataset.kart)));
+  document.querySelectorAll("[data-tab]").forEach(
+    (b) =>
+      (b.onclick = () => {
+        audio.cue("tap");
+        garageTab(b.dataset.tab);
+      }),
+  );
   document.querySelectorAll("[data-track]").forEach(
     (b) =>
       (b.onclick = () => {
@@ -384,6 +471,19 @@ function buildMenu() {
       renderer.domElement.toDataURL("image/png");
     ps.remove(k);
   });
+  // Kart body thumbnails: the empty kart, three-quarter view.
+  const kc = new T.PerspectiveCamera(34, 1, 0.1, 50);
+  kc.position.set(3.9, 2.6, 4.6);
+  kc.lookAt(0, 0.45, 0.15);
+  for (const id of Object.keys(KARTS)) {
+    const k = createShowroomKart(id);
+    k.rotation.y = -0.35;
+    ps.add(k);
+    if (renderer.software) renderer.last = 0;
+    renderer.render(ps, kc);
+    document.querySelector('[data-kart="' + id + '"] img').src = renderer.domElement.toDataURL("image/png");
+    ps.remove(k);
+  }
   lobby.group.add(selected);
   quality();
   updateHome();
@@ -566,6 +666,7 @@ function startRace(trackIndex = save.track) {
     character: save.character,
     difficulty: save.difficulty,
     rules: raceMode === "speed" ? "speed" : "item",
+    kart: save.kart,
   });
   const speedRace = race.rules === "speed";
   document.body.classList.toggle("speed-race", speedRace);
@@ -584,7 +685,7 @@ function startRace(trackIndex = save.track) {
   raceGroup = new T.Group();
   scene.add(raceGroup);
   cars = race.racers.map((r) => {
-    const k = kart("race-" + r.id + "-" + r.character.id, r.character.id, r.id + 1);
+    const k = kart("race-" + r.id + "-" + r.character.id, r.character.id, r.id + 1, r.kart);
     raceGroup.add(k);
     return k;
   });
@@ -645,6 +746,13 @@ function startRace(trackIndex = save.track) {
     $("progress").append(dot);
     return dot;
   });
+  // Boost effects for the player's kart (not in the CPU renderer, which has
+  // no blending): two light trails and the ignition ring.
+  trails = renderer.software ? [] : TRAIL_ANCHORS.map(() => speedTrail());
+  ring = renderer.software ? null : boostRing();
+  for (const t of trails) raceGroup.add(t.mesh);
+  if (ring) raceGroup.add(ring.mesh);
+  lastBoostCount = 0;
   // Lock-on reticles for attack specials (Nova can mark three karts).
   targetMarks = [0, 1, 2].map(() => {
     const m = makeTargetMark();
@@ -658,6 +766,7 @@ function startRace(trackIndex = save.track) {
   show("accelerate", !save.autoGas);
   document.body.classList.toggle("manual-gas", !save.autoGas);
   show("countdown", true);
+  $("start-hint").textContent = touchLayout() ? "就是现在！倒数一结束就点屏幕 → 起步加速" : "就是现在！倒数一结束就按 ↑ 或空格 → 起步加速";
   lastCount = 0;
   updateHUD();
   // Compile every shader the race can need (flames, shields, fade dither,
@@ -684,6 +793,7 @@ function goHome() {
   show("header", true);
   show("hud", false);
   show("countdown", false);
+  show("start-hint", false);
   show("banner", false);
   show("status-effect", false);
   $("speed-lines").classList.remove("active");
@@ -714,8 +824,9 @@ function pause() {
   mode = "paused";
   inputClear();
   show("countdown", false);
+  show("start-hint", false);
   modal(
-    '<span class="dialog-eyebrow">A LITTLE PIT STOP</span><h2>进站，歇一会儿。</h2><p>比赛已暂停。准备好了，继续向终点出发。</p><div class="dialog-actions"><button class="primary" id="resume">继续比赛</button><button class="secondary" id="restart">重新开始</button></div><div class="dialog-actions"><button class="secondary" id="race-settings">驾驶设置</button><button class="secondary" id="home">返回车库</button></div><div class="modal-footer">版本 2.4 · ' + BUILD + '</div>',
+    '<span class="dialog-eyebrow">A LITTLE PIT STOP</span><h2>进站，歇一会儿。</h2><p>比赛已暂停。准备好了，继续向终点出发。</p><div class="dialog-actions"><button class="primary" id="resume">继续比赛</button><button class="secondary" id="restart">重新开始</button></div><div class="dialog-actions"><button class="secondary" id="race-settings">驾驶设置</button><button class="secondary" id="home">返回车库</button></div><div class="modal-footer">版本 2.5 · ' + BUILD + '</div>',
   );
   $("resume").onclick = resume;
   $("restart").onclick = () => startRace(race.track.index);
@@ -740,11 +851,11 @@ $("pause").addEventListener("pointerup", (e) => {
 function help() {
   if (mode === "race") pause();
   modal(
-    '<button class="dialog-close" id="close-dialog" aria-label="关闭">×</button><span class="dialog-eyebrow">YOUR FIRST LAP</span><h2>快乐超车，从这里开始。</h2><p>默认自动油门，专心转向和使用道具。跑完三圈即冲线，杯赛累积三站积分；竞速赛没有道具，比拼漂移和氮气。</p><div class="help-grid"><div><b>01 / 转向与过弯</b><p>手机：按住屏幕左半边左转，右半边右转。急弯会把车往外甩，只靠方向会掉速、贴外侧，漂移过弯更快。键盘 ← → 或 A / D。</p></div><div><b>02 / 漂移</b><p>手机：进弯按住方向就会漂移，一直按着保持，火花变蓝、橙、紫后松开，冲刺一次比一次猛；也可以点一下漂移键开始。键盘：转向时按住 Shift。</p></div><div><b>03 / 道具（两个槽）</b><p>撞碎问号箱抽道具，最多存两个，点道具框（键盘空格）使用。问号箱每人一份；越落后道具越强，最后几名还可能抽到火箭。</p></div><div><b>04 / 必杀技</b><p>每位车手都有专属必杀技。漂移加速、吃金币、打中对手都会给必杀槽充能，满了点必杀键（键盘 E）释放。流星雨、熊抱冲撞这类攻击必杀会用红圈标出要打的车；前面没人可打时不让你白放。倒计时到「1」时按住漂移键可以起步加速。</p></div><div><b>05 / 竞速赛与尾流</b><p>竞速赛没有道具和必杀：漂移给氮气槽充能，最多存两管，点 N₂O 键（键盘空格）喷射。两种比赛都有尾流：紧跟在别的车正后方一小会儿，就会被吸着加速超过去。</p></div><div><b>06 / 小地图与后方雷达</b><p>右上角小地图：方格线是终点，黄色箭头是你，彩色圆点是对手，离你近的会描白边；下方进度条显示每个人离终点多远。屏幕下方的雷达会提示从后面逼近的车和距离。</p></div></div><div class="help-items">' +
+    '<button class="dialog-close" id="close-dialog" aria-label="关闭">×</button><span class="dialog-eyebrow">YOUR FIRST LAP</span><h2>快乐超车，从这里开始。</h2><p>默认自动油门，专心转向和使用道具。跑完三圈即冲线，杯赛累积三站积分；竞速赛没有道具，比拼漂移和氮气。</p><div class="help-grid"><div><b>01 / 转向与过弯</b><p>手机：按住屏幕左半边左转，右半边右转。急弯会把车往外甩，只靠方向会掉速、贴外侧，漂移过弯更快。键盘 ← → 或 A / D。</p></div><div><b>02 / 漂移</b><p>手机：进弯按住方向就会漂移，一直按着保持，火花变蓝、橙、紫后松开，冲刺一次比一次猛；也可以点一下漂移键开始。键盘：转向时按住 Shift。</p></div><div><b>03 / 道具（两个槽）</b><p>撞碎问号箱抽道具，最多存两个，点道具框（键盘空格）使用。问号箱每人一份；越落后道具越强，最后几名还可能抽到火箭。</p></div><div><b>04 / 必杀技</b><p>每位车手都有专属必杀技。漂移加速、吃金币、打中对手都会给必杀槽充能，满了点必杀键（键盘 E）释放。流星雨、熊抱冲撞这类攻击必杀会用红圈标出要打的车；前面没人可打时不让你白放。</p></div><div><b>05 / 竞速赛与尾流</b><p>竞速赛没有道具和必杀：漂移给氮气槽充能，最多存两管，点 N₂O 键（键盘空格）喷射。两种比赛都有尾流：紧跟在别的车正后方一小会儿，就会被吸着加速超过去。</p></div><div><b>06 / 小地图与后方雷达</b><p>右上角小地图：方格线是终点，黄色箭头是你，彩色圆点是对手，离你近的会描白边；下方进度条显示每个人离终点多远。屏幕下方的雷达会提示从后面逼近的车和距离。</p></div><div><b>07 / 起步加速</b><p>倒数快结束时屏幕中间会提示「就是现在」：倒数结束的瞬间点一下屏幕（键盘 ↑ 或空格），就能起步加速，越准越猛；按得太早就没有。</p></div><div><b>08 / 车型</b><p>车库点「车型」可以换车：经典卡丁（均衡）、闪电 GT（极速更高、起步稍慢）、喷射火箭（所有加速多 12%）、幻影星舰（集气快 15%、抓地稳）。加速时车尾会拉出光带。</p></div></div><div class="help-items">' +
       Object.entries(ITEMS)
         .map(([k, v]) => "<div><span>" + v.icon + "</span><b>" + v.name + "</b>" + v.desc + "</div>")
         .join("") +
-      '</div><p>关闭自动油门后：W / ↑ 或屏幕油门键加速，S / ↓ 刹车。P / Esc 暂停；切换应用会自动暂停。</p><div class="dialog-actions sticky-actions"><button id="got-it" class="primary">准备好啦</button></div><div class="modal-footer">非官方同人作品 · 角色造型参考，原创赛道与音乐 · 版本 2.4 · ' + BUILD + '</div>',
+      '</div><p>关闭自动油门后：W / ↑ 或屏幕油门键加速，S / ↓ 刹车。P / Esc 暂停；切换应用会自动暂停。</p><div class="dialog-actions sticky-actions"><button id="got-it" class="primary">准备好啦</button></div><div class="modal-footer">非官方同人作品 · 角色造型参考，原创赛道与音乐 · 版本 2.5 · ' + BUILD + '</div>',
   );
   $("got-it").onclick = closeModal;
   $("close-dialog").onclick = closeModal;
@@ -862,6 +973,10 @@ const controls = bindTouchControls({
   ),
   isActive: () => mode === "race",
   onChange: (s) => {
+    // A new press on any control also counts as a start press, latched until
+    // the next physics step sees it: a quick tap can begin and end between
+    // two frames on a slow phone.
+    if (CONTROLS.some((k) => s[k] && !touch[k])) startTap = true;
     Object.assign(touch, s);
     $("hud").dataset.touch = CONTROLS.filter((k) => s[k]).join(" ");
   },
@@ -886,6 +1001,7 @@ addEventListener("keydown", (e) => {
     return;
   }
   if (mode !== "race") return;
+  if (!e.repeat && ["ArrowUp", "KeyW", "Space", "ShiftLeft", "ShiftRight"].includes(e.code)) startTap = true;
   keys.add(e.code);
   if (e.code === "Space" && !e.repeat) useItem();
   if (e.code === "KeyE" && !e.repeat) useSpecial();
@@ -925,12 +1041,17 @@ function getInput() {
     brake: keys.has("ArrowDown") || keys.has("KeyS"),
     assist: save.assist,
     autoDrift: save.autoDrift,
-    // Rocket start: drift or gas held when the countdown shows "1".
+    // Start boost: a press anywhere on the screen (steering halves, drift,
+    // gas) or ↑ / W / Space / Shift, at the moment the countdown runs out.
     start:
+      startTap ||
+      touch.left ||
+      touch.right ||
       touch.drift ||
       touch.gas ||
       keys.has("ArrowUp") ||
       keys.has("KeyW") ||
+      keys.has("Space") ||
       keys.has("ShiftLeft") ||
       keys.has("ShiftRight"),
   };
@@ -1024,8 +1145,11 @@ function processEvents() {
           }
       }
       if (e.type === "go") banner("出发！", "LET THE GOOD TIMES ROLL", 0.8);
-      if (e.type === "rocketStart") banner(e.perfect ? "完美起步！" : "起步加速！", e.perfect ? "PERFECT START" : "NICE START", 1.2);
-      if (e.type === "startEarly") notify("按早啦！倒计时到「1」时再按住漂移键", 1.8);
+      if (e.type === "rocketStart") {
+        banner(e.perfect ? "完美起步！" : "起步加速！", e.perfect ? "PERFECT START · 时机完美" : "NICE START", 1.3);
+        kartMood(cars[0], "happy", 1.2);
+      }
+      if (e.type === "startEarly") notify(touchLayout() ? "按早啦！倒数结束的瞬间再点屏幕" : "按早啦！倒数结束的瞬间再按 ↑ 或空格", 1.8);
       if (e.type === "item" && e.item === "rocket") banner("🚀 火箭冲刺！", "自动驾驶 · 撞开挡路的车", 1.3);
       if (e.type === "lap" && e.lap === 3) audio.finalLap();
       if (e.type === "lap")
@@ -1669,6 +1793,7 @@ function camStep(dt) {
       sx: 0,
       sy: 0,
       wasBoost: boostOn,
+      boostCount: p.boostCount || 0,
     });
     Object.assign(camPrev, cam);
     cameraReady = true;
@@ -1686,11 +1811,14 @@ function camStep(dt) {
   // Boost punch: when a boost fires, the view widens and pulls back for a
   // moment (a half sine over 0.55 s, so it starts and ends smoothly) — the
   // "push in the back" that sells a mini-turbo.
-  if (boostOn && !cam.wasBoost && !save.reduced) cam.punch = 1e-6;
+  // A new boost on top of a running one (a nitro after a drift) punches too.
+  const newBoost = p.boost > 0 && (p.boostCount || 0) !== cam.boostCount;
+  cam.boostCount = p.boostCount || 0;
+  if (((boostOn && !cam.wasBoost) || newBoost) && !save.reduced) cam.punch = 1e-6;
   cam.wasBoost = boostOn;
   if (cam.punch > 0) cam.punch = cam.punch + dt > 0.55 ? 0 : cam.punch + dt;
   const k = cam.punch > 0 ? Math.sin((Math.PI * cam.punch) / 0.55) : 0,
-    big = p.rocket > 0 || p.boostKind === "drift3" || p.boostKind === "item" ? 1.35 : 1;
+    big = p.rocket > 0 || /drift3|item|nitro|start/.test(p.boostKind) ? 1.35 : p.boostKind === "draft" ? 0.7 : 1;
   cam.pf = k * 6 * big;
   cam.pb = k * 0.75 * big;
   // Hit shake: short and decaying, computed per physics step.
@@ -1774,8 +1902,14 @@ function renderRace(dt) {
   });
   // Player boost: ignition burst, exhaust light, whoosh.
   const playerKart = cars[0],
-    boosting = (p.boost > 0 || p.star > 0 || p.rocket > 0) && p.rescue <= 0;
-  if (boosting && !lastPlayerBoost && dt > 0) {
+    boosting = (p.boost > 0 || p.star > 0 || p.rocket > 0) && p.rescue <= 0,
+    freshBoost = p.boost > 0 && (p.boostCount || 0) !== lastBoostCount;
+  lastBoostCount = p.boostCount || 0;
+  const boostKind = p.star > 0 ? "star" : p.rocket > 0 ? "rocket" : p.boostKind || "item",
+    boostColour = NITRO[boostKind]?.outer ?? 0x3fd2ff;
+  if (ring && freshBoost && dt > 0)
+    ring.fire(boostColour, /start|nitro|drift3|rocket|item/.test(boostKind) ? 1.25 : boostKind === "draft" ? 0.7 : 0.95);
+  if (((boosting && !lastPlayerBoost) || (freshBoost && lastPlayerBoost)) && dt > 0) {
     if (p.boostKind !== "nitro" && p.boostKind !== "draft") audio.cue("boost"); // those have their own cues
     const carry = kartVelocity(p),
       colour = NITRO[p.star > 0 ? "star" : p.boostKind || "item"].outer;
@@ -1792,6 +1926,15 @@ function renderRace(dt) {
     playerKart.userData.exhaust[0].nozzle.getWorldPosition(nitroLight.position);
     nitroLight.position.lerp(playerKart.userData.exhaust[1].nozzle.getWorldPosition(wheelWorld), 0.5);
     nitroLight.color.setHex(NITRO[playerKart.userData.vis.kind]?.outer || 0x38c4ff);
+  }
+  if (trails.length || ring) {
+    playerKart.updateMatrixWorld();
+    const bm = playerKart.userData.body.matrixWorld;
+    trails.forEach((tr, i) => {
+      if (p.rescue > 0) return tr.clear(); // lifted back onto the road: no streak across
+      tr.update(wheelWorld.copy(TRAIL_ANCHORS[i]).applyMatrix4(bm), boosting && p.speed > 12, boostColour, clock, camera.position);
+    });
+    ring?.update(wheelWorld.copy(RING_ANCHOR).applyMatrix4(bm), camera.quaternion, dt);
   }
   // Lock-on reticles over the karts the player's special would hit.
   targetMarks.forEach((m, i) => {
@@ -2007,7 +2150,9 @@ function frame(now) {
         let steps = 0;
         while (accum >= STEP && steps < 15 && mode === "race") {
           snapshot();
-          race.step(STEP, getInput());
+          const input = getInput();
+          startTap = false; // a latched tap is a press for exactly one step
+          race.step(STEP, input);
           camStep(STEP);
           processEvents();
           accum -= STEP;
@@ -2019,6 +2164,10 @@ function frame(now) {
           const count = Math.min(3, Math.ceil(race.countdown));
           $("countdown").textContent = count;
           show("countdown", true);
+          // In the start-boost window the steering labels give way to "now!".
+          const now = race.countdown <= START.window;
+          show("start-hint", now);
+          $("hud").dataset.start = now ? "now" : "";
           if (count !== lastCount) {
             audio.cue("tick");
             lastCount = count;
@@ -2026,6 +2175,8 @@ function frame(now) {
         } else {
           lastCount = -1; // the "go" event shows the banner (see processEvents)
           show("countdown", false);
+          show("start-hint", false);
+          $("hud").dataset.start = "";
         }
       }
     }

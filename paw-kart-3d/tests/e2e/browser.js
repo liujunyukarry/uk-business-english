@@ -53,7 +53,7 @@ export async function launch({ webgl = false } = {}) {
   return chromium.launch(opts);
 }
 
-export async function openRace(browser, url, { width = 844, height = 390, init } = {}) {
+export async function openRace(browser, url, { width = 844, height = 390, init, start = true } = {}) {
   const ctx = await browser.newContext({
     viewport: { width, height },
     deviceScaleFactor: 1,
@@ -90,8 +90,11 @@ export async function openRace(browser, url, { width = 844, height = 390, init }
   await page.waitForFunction(() => document.documentElement.dataset.ready === "true", null, {
     timeout: 120000,
   });
-  await page.click("#start");
-  await page.waitForFunction(() => window.__pk?.mode === "race", null, { timeout: 30000 });
+  // start: false stops at the garage (home screen) instead of starting a race.
+  if (start) {
+    await page.click("#start");
+    await page.waitForFunction(() => window.__pk?.mode === "race", null, { timeout: 30000 });
+  }
   const cdp = await ctx.newCDPSession(page);
   const fingers = new Map();
   // Chrome treats the points listed in a touchEnd as the ones being lifted.

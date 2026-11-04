@@ -2699,9 +2699,7 @@ header {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   box-shadow: 0 0 10px color-mix(in srgb, var(--c, #fff) 55%, transparent);
-  transition:
-    left 0.12s linear,
-    opacity 0.12s;
+  transition: opacity 0.12s;
 }
 #radar b::before {
   content: "▲";
@@ -3209,5 +3207,148 @@ header {
     margin-top: 0;
     border-right-color: transparent;
     border-top-color: #fff4c6;
+  }
+}
+
+/* ------------------------------------------------------------------------
+   v2.5: garage tabs (车手 / 车型) with kart body cards, the start-boost hint
+   under the countdown, and the kart-body marks on the stat bars.
+   ------------------------------------------------------------------------ */
+.garage-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.garage-row .characters {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+.garage-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 0 0 auto;
+  justify-content: center;
+}
+.garage-tabs button {
+  min-width: 52px;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 12px;
+  border: 1px solid #d9dfd0;
+  background: #eef1e7;
+  color: #5d6a5a;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+.garage-tabs button.active {
+  background: #2f4a40;
+  border-color: #2f4a40;
+  color: #fff8e3;
+  box-shadow: 0 3px 0 #1f322b40;
+}
+.kart-card img {
+  object-fit: contain;
+}
+.kart-card small {
+  color: #a0743f;
+  font-weight: 700;
+}
+.driver-stats em {
+  font-style: normal;
+  font-size: 9px;
+  margin-left: 4px;
+}
+.driver-stats em.up {
+  color: #3f8f5a;
+}
+.driver-stats em.down {
+  color: #c4573f;
+}
+/* Shown in the last moment of the countdown, where the steering labels
+   were: tap now for the start boost. */
+#start-hint {
+  position: fixed;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%);
+  z-index: 6;
+  max-width: calc(100% - 32px);
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: #ffcf4a;
+  border: 2px solid #fff4c6;
+  color: #3a3420;
+  font-size: 14px;
+  font-weight: 900;
+  text-align: center;
+  white-space: nowrap;
+  box-shadow: 0 5px 0 #6d5a2266;
+  pointer-events: none;
+  animation: start-now 0.3s ease-in-out infinite alternate;
+}
+#hud[data-start="now"] .zone span {
+  opacity: 0;
+}
+@keyframes start-now {
+  to {
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #start-hint {
+    animation: none;
+  }
+}
+@media (max-width: 400px) {
+  #start-hint {
+    font-size: 12px;
+    padding: 9px 14px;
+  }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  #start-hint {
+    top: 50%;
+    font-size: 13px;
+  }
+}
+/* Portrait phones with a home indicator: keep the garage tabs and cards
+   above it, and lift the setup panel by the same amount. */
+@media (max-width: 900px) and (min-height: 521px) {
+  .garage {
+    padding-bottom: max(16px, calc(env(safe-area-inset-bottom) - 6px));
+  }
+  .setup {
+    bottom: calc(189px + max(0px, env(safe-area-inset-bottom) - 22px));
+  }
+}
+/* Landscape phones: the rear radar stays clear of the drift button. */
+@media (orientation: landscape) and (max-height: 520px) {
+  #radar {
+    left: 20%;
+    right: 20%;
+  }
+}
+/* Laptop-height desktops: the hero's blurb and chips give way to the setup
+   panel instead of running under it. */
+@media (max-height: 800px) and (min-width: 901px) {
+  .hero p,
+  .feature-row {
+    display: none;
+  }
+}
+/* Landscape phones: three race modes and the class picker on one line. */
+@media (max-height: 520px) {
+  .segmented button {
+    white-space: nowrap;
+    padding-left: 7px;
+    padding-right: 7px;
+  }
+  .setup select {
+    max-width: 108px;
   }
 }

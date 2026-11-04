@@ -1,7 +1,8 @@
 import * as T from "./vendor/three.module.js";
-import { kartAsset } from "./kart-assets.js?v=0c6ed773";
-import { dog, animateDog, reactDog, material, ellipsoid, roundedBox, star as starMesh } from "./models.js?v=0c6ed773";
-import { CHARACTERS, seeded } from "./race.js?v=0c6ed773";
+import { kartAsset } from "./kart-assets.js?v=c9d5e852";
+import { buildBody } from "./kart-bodies.js?v=c9d5e852";
+import { dog, animateDog, reactDog, material, ellipsoid, roundedBox, star as starMesh } from "./models.js?v=c9d5e852";
+import { CHARACTERS, seeded } from "./race.js?v=c9d5e852";
 const scenerySphere = new T.SphereGeometry(1, 12, 8);
 const sphere = new T.SphereGeometry(1, 24, 18),
   unitBox = new T.BoxGeometry(1, 1, 1),
@@ -293,6 +294,8 @@ const EXHAUST_TIPS = [-1, 1].map((s) => new T.Vector3(s * 0.459, 1.283, -1.138))
 // Each flame also fans outward, so from straight behind the pair reads as a V
 // on either side of the driver rather than two dots pointing at the lens.
 const EXHAUST_DIRS = [-1, 1].map((side) => new T.Vector3(side * 0.42, 0.62, -0.66).normalize());
+const WHITE = new T.Color(0xffffff),
+  UP = new T.Vector3(0, 1, 0);
 export const NITRO = {
   drift1: { outer: 0x1aa8ff, core: 0xe4f8ff, len: 1.15 },
   drift2: { outer: 0xff7a12, core: 0xfff0b8, len: 1.35 },
@@ -302,6 +305,7 @@ export const NITRO = {
   star: { outer: 0xffc21a, core: 0xffffff, len: 1.45 },
   rocket: { outer: 0xff6a1a, core: 0xfff7d6, len: 2.3 },
   nitro: { outer: 0x3fd2ff, core: 0xf2fdff, len: 2.1 },
+  start: { outer: 0x5ce1ff, core: 0xffffff, len: 2.3 },
   draft: { outer: 0xbfeaff, core: 0xffffff, len: 0.95 },
 };
 let compatibility = false;
@@ -512,12 +516,31 @@ function fitLimbs(space, color, opts = {}) {
   return { arms, space };
 }
 
-export function createKart(kind = "gold", number = 1) {
+export function createKart(kind = "gold", number = 1, bodyId = "classic") {
   const g = new T.Group(),
     body = new T.Group();
   g.add(body);
-  const asset = kartAsset(kind);
-  body.add(asset.model);
+  // A premium body (闪电 GT, 喷射火箭, 幻影星舰) or the classic Kenney kart.
+  const premium = bodyId && bodyId !== "classic" ? buildBody(bodyId) : null;
+  let asset;
+  if (premium) {
+    body.add(premium.group);
+    let nativeDriver = null;
+    if (["nova", "milo"].includes(kind)) {
+      // These two drivers come with the Kenney kart: lift them out of it,
+      // keeping their seat position, and drop the kart itself.
+      const k = kartAsset(kind);
+      body.add(k.model);
+      body.updateMatrixWorld(true);
+      nativeDriver = k.nativeDriver;
+      body.attach(nativeDriver);
+      body.remove(k.model);
+    }
+    asset = { model: premium.group, wheels: premium.wheels, nativeDriver };
+  } else {
+    asset = kartAsset(kind);
+    body.add(asset.model);
+  }
   const driver = asset.nativeDriver || character(kind);
   const info = CHARACTERS.find((c) => c.id === kind);
   let limbs = null;
@@ -558,7 +581,7 @@ export function createKart(kind = "gold", number = 1) {
   // between the eight racers).
   const accent = info ? new T.Color(info.color).getHex() : 0xeeae55,
     antenna = new T.Group();
-  antenna.position.set(-0.62, 1.05, -1.0);
+  antenna.position.set(...(premium?.antenna || [-0.62, 1.05, -1.0]));
   body.add(antenna);
   cyl(antenna, 0x4a4f55, [0, 0.62, 0], [0.024, 1.25, 0.024]);
   ball(antenna, accent, [0, 1.27, 0], [0.065, 0.065, 0.065]);
@@ -570,13 +593,17 @@ export function createKart(kind = "gold", number = 1) {
     new T.PlaneGeometry(0.46, 0.28),
     new T.MeshBasicMaterial({ map: label(String(number), { bg: "#fffaf0", fg: info?.color || "#2f4a40", w: 256, h: 156 }) }),
   );
-  plate.position.set(0, 0.62, 1.715);
+  plate.position.set(...(premium?.plate || [0, 0.62, 1.715]));
   body.add(plate);
-  const exhaust = EXHAUST_TIPS.map(() => exhaustFlame(body));
-  exhaust.forEach((f, i) => {
-    f.nozzle.position.copy(EXHAUST_TIPS[i]);
-    f.nozzle.quaternion.setFromUnitVectors(yAxis, EXHAUST_DIRS[i]);
+  const exhaust = (premium?.exhaust || EXHAUST_TIPS.map((tip, i) => ({ tip, dir: EXHAUST_DIRS[i], size: 1 }))).map((e) => {
+    const f = exhaustFlame(body);
+    f.nozzle.position.copy(e.tip);
+    f.nozzle.quaternion.setFromUnitVectors(yAxis, e.dir);
+    f.size = e.size;
+    return f;
   });
+  // Neon parts that flare up during a boost (premium bodies).
+  const glow = (premium?.glow || []).map((m) => ({ m, colour: m.color.clone(), opacity: m.opacity }));
   const shadow = new T.Mesh(
     new T.CircleGeometry(1, 32),
     new T.MeshBasicMaterial({ color: 0x33463e, transparent: true, opacity: 0.26, depthWrite: false }),
@@ -652,6 +679,8 @@ export function createKart(kind = "gold", number = 1) {
     dizzy,
     flag,
     kind,
+    bodyId: premium ? bodyId : "classic",
+    glow,
     // Smoothed visual pose (heading slip, drift yaw, lean, pitch, nitro).
     vis: {
       slip: 0,
@@ -708,6 +737,7 @@ export function setKartFade(g, a) {
       }
       o.material = seen.get(o.material);
     });
+    for (const gl of d.glow || []) gl.m = seen.get(gl.m) || gl.m;
   }
   if (Math.abs(d.fade - a) < 0.004) return;
   d.fade = a;
@@ -786,7 +816,7 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
     Math.abs(Math.sin(t * 6)) * 0.14 * v.cheer;
   d.body.position.x = wobble * (r?.bumpSide || 0) * 0.35;
   d.body.rotation.set(
-    v.pitch - v.kick * 0.1 - hop * 0.15, // nose lifts at ignition and on the hop
+    v.pitch - v.kick * (0.1 + 0.09 * (v.big || 0)) - hop * 0.15, // nose lifts at ignition (more for big boosts) and on the hop
     -v.slip - v.drift + (r?.stun > 0 ? (1 - r.stun / 1.1) * Math.PI * 4 : 0),
     v.roll + wobble * (r?.bumpSide || 0) * 0.5,
     "YXZ",
@@ -898,10 +928,12 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
   }
   // --- Nitro ---------------------------------------------------------------
   const active = (r?.boost > 0 || r?.star > 0) && !(r?.rescue > 0);
-  if (active && !v.active) {
-    v.kick = 1; // ignition pop
+  if (active && (!v.active || (r.boostCount ?? 0) !== v.boostCount)) {
+    v.kick = 1; // ignition pop, also for a new boost on top of one
     v.kind = r.star > 0 ? "star" : r.boostKind || "item";
+    v.big = /start|nitro|drift3|rocket|item/.test(v.kind) ? 1 : 0.4;
   }
+  v.boostCount = r?.boostCount ?? 0;
   if (active) v.kind = r.star > 0 ? "star" : r.boostKind || v.kind;
   v.active = active;
   v.nitro = ease(v.nitro, active ? 1 : 0, active ? 22 : 7, dt);
@@ -916,8 +948,9 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
     const flicker =
         1 + Math.sin(t * 47 + i * 1.7) * 0.09 + Math.sin(t * 83 + i * 0.6) * 0.07 + Math.sin(t * 19 + i) * 0.05,
       pop = v.kick > 0 ? 1 + Math.sin((1 - v.kick) * Math.PI) * 0.5 : 1,
-      len = cfg.len * v.nitro * flicker * pop * (0.8 + Math.min(1, speed / 45) * 0.3),
-      width = 0.5 * (0.55 + 0.45 * v.nitro) * (1 + (pop - 1) * 0.6),
+      size = f.size || 1,
+      len = cfg.len * v.nitro * flicker * pop * (0.8 + Math.min(1, speed / 45) * 0.3) * size,
+      width = 0.5 * (0.55 + 0.45 * v.nitro) * (1 + (pop - 1) * 0.6) * size,
       strength = Math.min(1, v.nitro * 1.5) * fade;
     // Face the camera about the flame axis.
     if (ctx.camera) {
@@ -935,7 +968,7 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
     f.inner.scale.set(width * 0.5, len * 0.62, 1);
     f.core.scale.set(0.09, len * 0.45, 0.09);
     f.solid.scale.set(0.13, len * 0.8, 0.13);
-    f.glow.scale.setScalar((0.62 + 0.3 * v.nitro) * (1 + (pop - 1) * 0.8));
+    f.glow.scale.setScalar((0.62 + 0.3 * v.nitro) * (1 + (pop - 1) * 0.8) * size);
     f.outer.material.opacity = 0.95 * strength;
     f.inner.material.opacity = strength;
     f.core.material.opacity = 0.9 * strength;
@@ -943,6 +976,14 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
     f.turn.visible = f.core.visible = f.glow.visible = !compatibility;
     f.solid.visible = compatibility;
   });
+  // Neon trims and underglow flare up with the boost.
+  if (d.glow?.length) {
+    const flare = Math.min(1, v.nitro) * (1 + (v.kick > 0 ? v.kick * 0.6 : 0));
+    for (const gl of d.glow) {
+      if (gl.m.transparent) gl.m.opacity = Math.min(0.95, gl.opacity * (1 + 1.4 * flare));
+      else gl.m.color.copy(gl.colour).lerp(WHITE, 0.45 * Math.min(1, flare));
+    }
+  }
   // --- Status effects --------------------------------------------------------
   // Rings: gold for a star, red for the bear's ram, blue for a shield.
   const ram = r?.charge > 0;
@@ -1671,6 +1712,137 @@ export function makeMeteor() {
   g.add(ring, rock);
   g.userData = { ring, rock };
   return g;
+}
+// An empty kart for the garage thumbnails (no driver).
+export function createShowroomKart(bodyId = "classic") {
+  const g = new T.Group(),
+    premium = bodyId !== "classic" ? buildBody(bodyId) : null;
+  g.add(premium ? premium.group : kartAsset("gold").model);
+  return g;
+}
+// Light trail for boosts: a flat ribbon of light laid along the kart's path
+// from a point on the kart (a rear wheel), fading out over `life` seconds,
+// so from the raised chase camera it reads as a streak on the road. Points
+// are sampled at most 60 times a second and recycled (no per-frame garbage).
+export function speedTrail({ points = 24, life = 0.36, width = 0.2 } = {}) {
+  const pos = new Float32Array(points * 6),
+    col = new Float32Array(points * 8),
+    geo = new T.BufferGeometry(),
+    index = [];
+  for (let i = 0; i < points - 1; i++) index.push(i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2);
+  geo.setIndex(index);
+  geo.setAttribute("position", new T.BufferAttribute(pos, 3).setUsage(T.DynamicDrawUsage));
+  geo.setAttribute("color", new T.BufferAttribute(col, 4).setUsage(T.DynamicDrawUsage));
+  const mesh = new T.Mesh(
+    geo,
+    new T.MeshBasicMaterial({
+      vertexColors: true,
+      transparent: true,
+      blending: T.AdditiveBlending,
+      depthWrite: false,
+      side: T.DoubleSide,
+      toneMapped: false,
+      fog: false,
+    }),
+  );
+  mesh.frustumCulled = false;
+  mesh.renderOrder = 4;
+  mesh.visible = false;
+  const pool = Array.from({ length: points }, () => ({ p: new T.Vector3(), t: 0, c: new T.Color() }));
+  let count = 0,
+    head = 0; // pool[head] is the newest point
+  const tan = new T.Vector3(),
+    side = new T.Vector3();
+  const at = (i) => pool[(head + i) % points];
+  return {
+    mesh,
+    clear() {
+      count = 0;
+      mesh.visible = false;
+    },
+    update(anchor, active, colour, now, eye) {
+      if (count && at(0).p.distanceToSquared(anchor) > 400) count = 0; // a teleport: start over
+      if (active) {
+        if (!count || now - at(0).t >= 1 / 60) {
+          head = (head + points - 1) % points;
+          count = Math.min(points, count + 1);
+        }
+        const n = at(0);
+        n.p.copy(anchor);
+        n.t = now;
+        n.c.setHex(colour);
+      }
+      while (count && now - at(count - 1).t > life) count--;
+      mesh.visible = count > 1;
+      if (!mesh.visible) return;
+      for (let i = 0; i < points; i++) {
+        if (i >= count) {
+          col[i * 8 + 3] = col[i * 8 + 7] = 0;
+          pos.copyWithin(i * 6, Math.max(0, count - 1) * 6, Math.max(0, count - 1) * 6 + 6);
+          continue;
+        }
+        const h = at(i),
+          o = at(Math.min(count - 1, i + 1)),
+          age = Math.min(1, (now - h.t) / life),
+          fade = (1 - age) * (1 - age);
+        tan.subVectors(h.p, o.p);
+        if (tan.lengthSq() < 1e-6) tan.set(0, 0, 1);
+        side.crossVectors(tan, UP).normalize().multiplyScalar(width * (1 - age * 0.6));
+        pos[i * 6] = h.p.x + side.x;
+        pos[i * 6 + 1] = h.p.y + side.y;
+        pos[i * 6 + 2] = h.p.z + side.z;
+        pos[i * 6 + 3] = h.p.x - side.x;
+        pos[i * 6 + 4] = h.p.y - side.y;
+        pos[i * 6 + 5] = h.p.z - side.z;
+        for (const k of [0, 4]) {
+          col[i * 8 + k] = h.c.r;
+          col[i * 8 + k + 1] = h.c.g;
+          col[i * 8 + k + 2] = h.c.b;
+          col[i * 8 + k + 3] = 0.9 * fade;
+        }
+      }
+      geo.attributes.position.needsUpdate = true;
+      geo.attributes.color.needsUpdate = true;
+    },
+  };
+}
+// Shock ring at boost ignition: expands and fades behind the kart, facing
+// the camera.
+export function boostRing() {
+  const mesh = new T.Mesh(
+    new T.RingGeometry(0.62, 0.8, 48),
+    new T.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0,
+      blending: T.AdditiveBlending,
+      depthWrite: false,
+      side: T.DoubleSide,
+      toneMapped: false,
+      fog: false,
+    }),
+  );
+  mesh.renderOrder = 6;
+  mesh.visible = false;
+  let t = 1,
+    size = 1;
+  return {
+    mesh,
+    fire(colour, strength = 1) {
+      t = 0;
+      size = strength;
+      mesh.material.color.setHex(colour);
+    },
+    update(at, facing, dt) {
+      if (t >= 1) return void (mesh.visible = false);
+      t = Math.min(1, t + dt / 0.45);
+      mesh.visible = true;
+      mesh.position.copy(at);
+      mesh.quaternion.copy(facing);
+      mesh.scale.setScalar((0.6 + 2.8 * (1 - (1 - t) ** 3)) * size);
+      mesh.material.opacity = 0.9 * (1 - t) ** 1.3;
+    },
+  };
 }
 // Lock-on marker for an attack special: a red reticle with a pointer that
 // hovers over the kart it would hit. Drawn over everything (no depth test)
