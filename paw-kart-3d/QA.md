@@ -148,3 +148,35 @@ Result dialog reached every time; no page errors.
 ## Not verified — needs an iPhone
 
 Real touch feel of the half-screen steering and the watchdog inside the in-app browser; music and effect mix on the phone speaker (the synthesis was only checked to run without errors); frame rate and heat with the new sky, ranges, crowd and road texture.
+
+# v2.3 Verification — 2026-11-04
+
+Build id at the bottom of the pause / help dialogs ("版本 2.3 · <id>"). Same container environment (headless Chrome 153; no phone).
+
+## Findings fixed in this round
+
+| Problem | Cause | Fix | Evidence |
+|---|---|---|---|
+| Drifting felt pointless; plain steering took every bend | Bends barely pushed karts wide (0.012·κ·v²), the assist held any line | Outward push κ·v²·0.098 (capped 8.5 m/s), drift grips better (push ×0.6), no corner slowdown while drifting | `tests/v23.test.js` hairpin: drift faster than steering; 27-race simulation (100cc): always-drift bot 58.2 s / rank 1.2, steering-only 65.4 s / rank 3.0, no input 67.6 s / rank 4.6 |
+| Touch drift "awkward" | v2.2 auto-drift fired when steering *out* of a bend (sign error); AI drift pose pointed the nose outward | Inside of a bend is −sign(curvature); one-thumb drift (start by holding into the bend or a tap on 漂移, hold the direction to keep it) | `tests/v22.test.js` / `tests/v23.test.js` direction tests |
+| Driving through a box sometimes did nothing ("passing through") | With an item held the box stayed and was ignored | Two slots; a box always breaks on contact (`boxBreak` when both slots are full) | `tests/v23.test.js`, `tests/e2e/items.test.js` (badge, slot moves up) |
+| Karts overlapping under star / rocket | v2.2 ghosted those contacts | The victim is knocked and pushed out (once per step, ≤ 0.09 m) | `tests/continuity.test.js` |
+| Near-camera karts flickering in the CPU renderer | The fade value was recomputed from 1 every frame | Persist the eased value | `tests/e2e/motion.test.js` (pop-ins now also exclude the intended fade) |
+| Game failed to load on iOS before 16.4 | `DecompressionStream` missing | `dist/inflate.js` gunzip fallback | `tests/inflate.test.js` (byte-identical to zlib on the shipped archive; stored / fixed / dynamic blocks); page loads with `DecompressionStream` deleted |
+| ~900 draw calls per frame | Scenery batched per colour per 35 m tile; boxes 6 meshes each, coins 2 each; every tiny kart part cast a shadow | Vertex-colour batches per 90 m tile, instanced boxes and coins, no shadows for parts < 0.14 m | WebGL `renderer.info`: 865–911 → 410–413 calls per frame on all three tracks |
+
+## Specials (必杀技)
+
+Each of the eight checked in `tests/v23.test.js` (13 tests): triple dash, instant purple drifts for 8 s, two items, three fireballs (one knocks the kart in line), airborne over karts and bananas, homing ram, meteors on the three nearest karts ahead only, a bubble that absorbs two hits. Gauge: drift tiers 6 / 9 / 13, coin 5, landed hit 12, being hit 10, 1.2 per second, AI ×0.45. AI attacks aimed at the player fire on a difficulty roll (30 / 50 / 70 %) and are otherwise kept for another victim: about 3–5 hits on the player per race in simulation (always-drift bot, 100cc), 3 specials per race for the player.
+
+## Mobile layout audit (emulated safe areas)
+
+Chrome's `Emulation.setSafeAreaInsetsOverride` with real inset values, portrait and landscape, home / race HUD / pause / settings: iPhone 14 Pro Max (59 / 34 portrait, 59 / 59 / 21 landscape), 16 Pro Max, 15, 13 mini, SE, Pixel 7, 360-wide Android, iPad mini, iPad Air. Checks: every control inside the safe area, no overlapping controls, buttons ≥ 44 px. Fixed: drift meter vs drift button (portrait), minimap vs item frame (SE), minimap and home setup panel inside the notch side (landscape), iPad landscape drift button off the bottom edge. Result: no issues left (the horizontally scrolling driver strip is excluded by design). `docs/qa-2.3/hud-iphone-14-pro-max.jpg` shows both orientations with the Dynamic Island / home-bar insets.
+
+## Tests and play
+
+`npm test` 64/64, `npm run test:e2e` 25/25 (screen acceleration p95 ≈ 0.18 NDC/s²; the same test measures V2 at ≈ 2). Real-time touch playthroughs to the results screen with item and special buttons: 430×932 花田晴空环线 100cc (1st, 21 items, 3 specials, 11 drift boosts), 932×430 蜜桃糖果海湾 100cc (1st, 21 items, 3 specials, 15 drift boosts), 932×430 星光云端公路 150cc on the final build, after raising the 150cc AI pace (4th, 19 items, 2 specials, 8 drift boosts); no page errors.
+
+## Not verified — needs a real phone
+
+Touch feel of one-thumb drifting and the button positions on the 14 Pro Max; sound on the phone speaker; frame rate and heat (draw calls are now ~410 per frame).
