@@ -197,7 +197,7 @@ export const SPECIALS = {
   milo: { name: "泡泡护航", icon: "🫧", desc: "8 秒大泡泡，可挡两次攻击并加速" },
 };
 // Gauge gains (out of 100).
-export const GAUGE = { drift: [0, 6, 9, 13], coin: 5, landed: 12, hurt: 10, perSecond: 1.2, ai: 0.45 };
+export const GAUGE = { drift: [0, 9, 13, 19], coin: 6, landed: 15, hurt: 12, perSecond: 1.5, ai: 0.34 };
 // How readily an AI fires an attack whose victim would be the player (it
 // waits a few seconds otherwise): about 2-3 hits on the player per race.
 const AGGRESSION = { easy: 0.3, normal: 0.5, hard: 0.7 };
@@ -211,7 +211,7 @@ export const cornerPush = (curve, speed, drifting) =>
   clamp(curve * speed * speed * CORNER.push, -CORNER.max, CORNER.max) * (drifting ? CORNER.driftPush : 1);
 // Speed race (竞速赛), KartRider style: no items, coins or specials; drifting
 // fills a nitro gauge that stores up to two charges, fired from a button.
-export const NITRO_RULES = { perDriftSecond: 32, release: [0, 6, 10, 15], max: 2, boost: 2.3, kick: 8, ai: 0.9 };
+export const NITRO_RULES = { perDriftSecond: 42, release: [0, 8, 13, 19], draft: 20, max: 2, boost: 2.3, kick: 8, ai: 0.72 };
 // Bear's ram (熊抱冲撞): locks on to the nearest kart ahead within `range` m
 // and closes on it at least `closing` m/s faster than it is going.
 // The chase lasts until it connects (at most `chase` s; 3 s with no target).
@@ -225,8 +225,22 @@ export const AI_PACE = {
 // Slipstream (尾流), both modes: sit close behind a kart in its line for a
 // moment and you are pulled past with a short boost.
 export const DRAFT = { min: 3.5, max: 16, lane: 1.8, charge: 1.1, boost: 1, kick: 3 };
-// Rocket start: hold drift / gas when the countdown shows "1".
-export const START = { window: 1.0, perfect: 0.45 };
+// Kart bodies (车型), chosen in the garage: small trade-offs on top of the
+// driver's own stats. speed / accel / grip multiply the driver's; boost
+// stretches every boost; charge speeds up drift sparks, nitro and the
+// special gauge. AI racers ride assorted bodies for looks only.
+export const KARTS = {
+  classic: { name: "经典卡丁", speed: 1, accel: 1, grip: 1, boost: 1, charge: 1 },
+  thunder: { name: "闪电 GT", speed: 1.015, accel: 0.88, grip: 0.98, boost: 1, charge: 1 },
+  jet: { name: "喷射火箭", speed: 0.99, accel: 1, grip: 0.94, boost: 1.12, charge: 1 },
+  phantom: { name: "幻影星舰", speed: 0.99, accel: 1.03, grip: 1.08, boost: 1, charge: 1.15 },
+};
+// Start boost (起步加速), KartRider style: press (touch anywhere on the
+// steering halves, the drift button, or ↑ / Space / Shift) at the moment the
+// countdown runs out. A press up to `window` s before GO counts (`perfect`
+// within the last moment), and so does one up to `late` s after GO
+// (`latePerfect` right at it). Holding on from earlier than that is too early.
+export const START = { window: 0.9, perfect: 0.3, late: 0.35, latePerfect: 0.12 };
 // Item box rows span the road; see the constructor.
 export const BOX_ROWS = [0.07, 0.23, 0.39, 0.55, 0.71, 0.87];
 export const BOX_LANES = [-6, -3, 0, 3, 6];
@@ -292,6 +306,7 @@ export class Race {
     seed = Date.now(),
     laps = 3,
     rules = "item", // "item" (道具赛) or "speed" (竞速赛)
+    kart = "classic", // the player's kart body (KARTS)
   } = {}) {
     this.rules = rules === "speed" ? "speed" : "item";
     this.track = new Track(track);
@@ -306,16 +321,27 @@ export class Race {
     this.hazards = [];
     this.finishes = [];
     this.finishWait = 0;
+    this.lateStart = 0; // seconds left to press for a start boost after GO
+    this.earlyPress = false;
     this.nextId = 1;
     this.racers = [];
     const order = [character, ...CHARACTERS.map((c) => c.id).filter((id) => id !== character)].slice(0, 8);
+    const kartId = KARTS[kart] ? kart : "classic",
+      looks = Object.keys(KARTS);
+    this.kart = kartId;
     for (let i = 0; i < 8; i++) {
-      const c = CHARACTERS.find((c) => c.id === order[i]),
+      const base = CHARACTERS.find((c) => c.id === order[i]),
+        k = i === 0 ? KARTS[kartId] : KARTS.classic,
+        // The player's body tunes its driver (a copy: CHARACTERS is shared).
+        c = i === 0 ? { ...base, speed: base.speed * k.speed, accel: base.accel * k.accel, grip: base.grip * k.grip } : base,
         distance = -5 - (3 - Math.floor(i / 2)) * 5,
         lane = (i % 2 ? 1 : -1) * 2.2;
       this.racers.push({
         id: i,
         character: c,
+        kart: i === 0 ? kartId : looks[(i * 3 + Math.floor(this.rng() * 4)) % looks.length],
+        boostScale: k.boost,
+        chargeScale: k.charge,
         name: c.name,
         distance,
         previous: distance,
@@ -365,7 +391,9 @@ export class Race {
         holdDir: 0,
         driftAuto: false,
         driftRelease: 0,
-        startPress: null, // countdown time left when start was pressed
+        startPress: null, // countdown time left at the latest start press
+        startHeld: false,
+        startBoosted: "",
         item2: null, // second item slot (KartRider style)
         roulette2: 0,
         special: 0, // gauge 0..100
@@ -514,7 +542,7 @@ export class Race {
       return this.clearDrift(r);
     }
     const was = driftLevel(r.drift);
-    r.drift = Math.min(2.6, r.drift + dt * (0.75 + 0.5 * clamp(steer * r.driftDirection, -0.5, 1)));
+    r.drift = Math.min(2.6, r.drift + dt * (0.75 + 0.5 * clamp(steer * r.driftDirection, -0.5, 1)) * (r.chargeScale || 1));
     this.gainNitro(r, NITRO_RULES.perDriftSecond * dt);
     const now = driftLevel(r.drift);
     if (now > was) this.event("driftLevel", { racer: r.id, level: now });
@@ -566,13 +594,14 @@ export class Race {
   gain(r, amount) {
     if (r.finish !== null || this.rules !== "item") return;
     const before = r.special;
-    r.special = Math.min(100, r.special + amount * (r.id === 0 ? 1 : GAUGE.ai));
+    r.special = Math.min(100, r.special + amount * (r.id === 0 ? r.chargeScale || 1 : GAUGE.ai));
     if (before < 100 && r.special >= 100) this.event("specialReady", { racer: r.id });
   }
   // Every boost goes through here: the timer, the flame colour, and an
   // instant speed kick so the push is felt the moment it starts.
   startBoost(r, seconds, kind, kick = 0) {
-    r.boost = Math.max(r.boost, seconds);
+    r.boost = Math.max(r.boost, seconds * (r.boostScale || 1));
+    r.boostCount = (r.boostCount || 0) + 1; // lets the renderer see each new boost
     if (!(r.rocket > 0) || kind === "rocket") r.boostKind = kind; // a rocket keeps its flames
     // One kick per physics step: an item and a drift release landing in the
     // same 1/60 s must not add up to a jolt. (A tap between steps, from the
@@ -689,10 +718,15 @@ export class Race {
       .slice(0, count)
       .map((x) => x.o);
   }
+  rocketStart(p, perfect) {
+    this.startBoost(p, perfect ? 1.6 : 0.9, perfect ? "start" : "drift1", perfect ? 16 : 11);
+    p.startBoosted = perfect ? "perfect" : "good";
+    this.event("rocketStart", { racer: 0, perfect });
+  }
   // --- Speed race: nitro --------------------------------------------------------
   gainNitro(r, amount) {
     if (this.rules !== "speed" || r.finish !== null || r.nitroCharges >= NITRO_RULES.max) return;
-    r.nitro += amount * (r.id === 0 ? 1 : NITRO_RULES.ai);
+    r.nitro += amount * (r.id === 0 ? r.chargeScale || 1 : NITRO_RULES.ai);
     while (r.nitro >= 100 && r.nitroCharges < NITRO_RULES.max) {
       r.nitro -= 100;
       r.nitroCharges++;
@@ -864,26 +898,39 @@ export class Race {
     this.events = [];
     if (this.phase === "finished") return;
     if (this.phase === "countdown") {
-      // Rocket start (MK / KartRider): press and hold drift or gas once the
-      // countdown shows "1". The first moment of the current hold counts, so
-      // holding from the start is too early.
-      const p = this.player;
-      if (input.start && p.startPress === null) p.startPress = this.countdown;
-      if (!input.start) p.startPress = null;
+      // Start boost (KartRider / MK): the moment of the latest press counts,
+      // so a tap right at GO works, and a hold from long before does not.
+      const p = this.player,
+        pressed = !!input.start && !p.startHeld;
+      p.startHeld = !!input.start;
+      if (pressed) p.startPress = this.countdown;
       this.countdown -= dt;
       if (this.countdown <= 0) {
         this.phase = "racing";
         this.event("go");
-        if (p.startPress !== null && p.startPress <= START.window) {
-          const perfect = p.startPress <= START.perfect;
-          this.startBoost(p, perfect ? 1.5 : 0.9, perfect ? "drift2" : "drift1", perfect ? 16 : 11);
-          this.event("rocketStart", { racer: 0, perfect });
-        } else if (p.startPress !== null) this.event("startEarly", { racer: 0 });
+        if (p.startPress !== null && p.startPress <= START.window) this.rocketStart(p, p.startPress <= START.perfect);
+        else if (p.startHeld) this.event("startEarly", { racer: 0 });
+        else {
+          // Not pressed yet (or an early tap was let go): a press in the
+          // next moment still counts.
+          this.lateStart = START.late;
+          this.earlyPress = p.startPress !== null;
+        }
         const chance = { easy: 0.15, normal: 0.3, hard: 0.5 }[this.difficulty] ?? 0.3;
         for (const r of this.racers.slice(1)) if (this.rng() < chance) this.startBoost(r, 0.9, "drift1", 10);
       }
       return;
     }
+    if (this.lateStart > 0) {
+      const p = this.player,
+        pressed = !!input.start && !p.startHeld;
+      this.lateStart -= dt;
+      if (pressed) {
+        this.rocketStart(p, START.late - this.lateStart <= START.latePerfect);
+        this.lateStart = 0;
+      } else if (this.lateStart <= 0 && this.earlyPress) this.event("startEarly", { racer: 0 });
+    }
+    this.player.startHeld = !!input.start;
     this.time += dt;
     for (const a of this.boxes) {
       a.cooldown = Math.max(0, a.cooldown - dt);
@@ -1118,6 +1165,7 @@ export class Race {
         r.draftCooldown = 2.5;
         r.drafts++;
         this.startBoost(r, DRAFT.boost, "draft", DRAFT.kick);
+        this.gainNitro(r, NITRO_RULES.draft);
         this.event("draft", { racer: r.id });
       }
       let base = 35 * r.character.speed + Math.min(10, r.coins) * 0.22;
