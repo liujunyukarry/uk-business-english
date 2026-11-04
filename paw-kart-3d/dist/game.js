@@ -1,6 +1,6 @@
 import * as T from "./vendor/three.module.js";
 import { RoomEnvironment } from "./vendor/RoomEnvironment.js";
-import { Race, Track, TRACKS, CHARACTERS, ITEMS, SPECIALS, DRIFT, driftLevel, clamp } from "./race.js?v=5250c1b5";
+import { Race, Track, TRACKS, CHARACTERS, ITEMS, SPECIALS, DRIFT, NITRO_RULES, DRAFT, driftLevel, clamp } from "./race.js?v=0c6ed773";
 import {
   createKart,
   animateKart,
@@ -12,6 +12,7 @@ import {
   makeShell,
   makeFireball,
   makeMeteor,
+  makeTargetMark,
   updateBoxShimmer,
   kartMood,
   setKartFade,
@@ -20,10 +21,10 @@ import {
   box,
   mat,
   label,
-} from "./art.js?v=5250c1b5";
-import { KartAudio } from "./audio.js?v=5250c1b5";
-import { bindTouchControls, CONTROLS } from "./input.js?v=5250c1b5";
-import { SoftwareRenderer } from "./software-renderer.js?v=5250c1b5";
+} from "./art.js?v=0c6ed773";
+import { KartAudio } from "./audio.js?v=0c6ed773";
+import { bindTouchControls, CONTROLS } from "./input.js?v=0c6ed773";
+import { SoftwareRenderer } from "./software-renderer.js?v=0c6ed773";
 // Build id stamped by tools/stamp.mjs; shown in the pause and help dialogs so
 // a tester can tell exactly which version is running.
 const BUILD = document.querySelector('meta[name="paw-build"]')?.content || "dev";
@@ -44,6 +45,8 @@ const defaults = {
   reduced: matchMedia("(prefers-reduced-motion:reduce)").matches,
   records: {},
   races: 0,
+  mode: "single", // 道具赛 (single), 竞速赛 (speed) or 杯赛 (cup)
+  specialsTotal: 0, // the "use your special" coaching stops after a few
 };
 let save = { ...defaults };
 try {
@@ -54,6 +57,7 @@ try {
 if (!CHARACTERS.some((c) => c.id === save.character)) save.character = "gold";
 save.track = clamp(Number(save.track) || 0, 0, 2);
 if (!["easy", "normal", "hard"].includes(save.difficulty)) save.difficulty = "normal";
+if (!["single", "speed", "cup"].includes(save.mode)) save.mode = "single";
 save.volume = clamp(Number(save.volume) || 0, 0, 1);
 let storageWarned = false;
 function persist() {
@@ -132,7 +136,7 @@ let world = null,
   coins = null,
   dynamicMeshes = new Map(),
   mode = "home",
-  raceMode = "single",
+  raceMode = save.mode,
   cup = null,
   ended = false,
   clock = 0,
@@ -151,7 +155,13 @@ const keys = new Set(),
 const DRIFT_COLOURS = ["#fff1c9", "#7fdcff", "#ffa64a", "#f47be0"],
   DRIFT_SPARKS = [0xfff1c9, 0x7fdcff, 0xffa64a, 0xf47be0];
 let lastRank = 0,
-  lastPassCue = 0;
+  lastPassCue = 0,
+  nitroTipShown = false,
+  progressDots = [],
+  targetMarks = [],
+  specialTargets = []; // racer ids the player's special would hit right now
+// Specials that hit someone: their targets are marked before firing.
+const ATTACK_SPECIALS = new Set(["bear", "nova", "mario"]);
 const audio = new KartAudio();
 audio.muted = save.muted;
 audio.volume = save.volume;
@@ -198,6 +208,9 @@ function banner(text, sub = "", seconds = 2.1) {
   show("banner", true);
   bannerTimer = seconds;
 }
+// Best times per track, class and rules. Item races keep the original key,
+// so records set before the speed race existed still count.
+const recordKey = (track, rules) => (rules === "speed" ? "speed-" : "") + track + "-" + save.difficulty;
 function timeText(t) {
   const m = Math.floor(t / 60),
     s = Math.floor(t % 60),
@@ -236,15 +249,24 @@ function updateHome() {
         "</span></div>",
     )
     .join("");
+  document.querySelectorAll("[data-mode]").forEach((x) => {
+    const on = x.dataset.mode === raceMode;
+    x.classList.toggle("active", on);
+    x.setAttribute("aria-pressed", String(on));
+  });
   $("start-copy").textContent =
-    raceMode === "cup" ? "出发 · 挑战三站冠军" : "出发 · " + TRACKS[save.track].name;
-  const rec = save.records[save.track + "-" + save.difficulty];
+    raceMode === "cup"
+      ? "出发 · 挑战三站冠军"
+      : (raceMode === "speed" ? "竞速 · " : "出发 · ") + TRACKS[save.track].name;
+  const rec = save.records[recordKey(save.track, raceMode === "speed" ? "speed" : "item")];
   $("record").textContent =
     raceMode === "cup"
       ? "三条赛道 · 积分争冠"
       : rec
-        ? "个人最佳 " + timeText(rec)
-        : "三圈决胜 · 约 90 秒一局";
+        ? (raceMode === "speed" ? "竞速最佳 " : "个人最佳 ") + timeText(rec)
+        : raceMode === "speed"
+          ? "没有道具 · 漂移攒氮气 · 拼技术"
+          : "三圈决胜 · 约 90 秒一局";
   $("sound").textContent = save.muted ? "♩" : "♫";
   $("sound").setAttribute("aria-label", save.muted ? "开启声音" : "关闭声音");
   scene.background.set([0xe3ede0, 0xf1e3dd, 0xd5ddec][save.track]);
@@ -329,11 +351,8 @@ function buildMenu() {
   document.querySelectorAll("[data-mode]").forEach(
     (b) =>
       (b.onclick = () => {
-        raceMode = b.dataset.mode;
-        document.querySelectorAll("[data-mode]").forEach((x) => {
-          x.classList.toggle("active", x === b);
-          x.setAttribute("aria-pressed", String(x === b));
-        });
+        raceMode = save.mode = b.dataset.mode;
+        audio.cue("tap");
         updateHome();
       }),
   );
@@ -542,7 +561,16 @@ function startRace(trackIndex = save.track) {
   show("banner", false);
   lobby.group.visible = false;
   camera.clearViewOffset();
-  race = new Race({ track: trackIndex, character: save.character, difficulty: save.difficulty });
+  race = new Race({
+    track: trackIndex,
+    character: save.character,
+    difficulty: save.difficulty,
+    rules: raceMode === "speed" ? "speed" : "item",
+  });
+  const speedRace = race.rules === "speed";
+  document.body.classList.toggle("speed-race", speedRace);
+  nitroTipShown = false;
+  specialTargets = [];
   snapshot();
   renderAlpha = 1;
   cam.ready = false;
@@ -605,9 +633,28 @@ function startRace(trackIndex = save.track) {
   $("track-title").textContent = tc.name;
   $("cup-progress").textContent = cup
     ? "PAW CUP · 第 " + (cup.round + 1) + " / 3 站"
-    : "QUICK RACE · " + { easy: "50", normal: "100", hard: "150" }[save.difficulty] + "cc";
+    : (speedRace ? "SPEED RACE · " : "ITEM RACE · ") + { easy: "50", normal: "100", hard: "150" }[save.difficulty] + "cc";
   $("item-key").textContent = touchLayout() ? "点击使用" : "SPACE";
-  $("special-key").textContent = touchLayout() ? "满了点我" : "E 键";
+  $("kb-item").textContent = speedRace ? "氮气" : "道具";
+  // Race progress strip: one marker per racer (the player's on top).
+  $("progress").querySelectorAll(".pk").forEach((e) => e.remove());
+  progressDots = race.racers.map((r) => {
+    const dot = document.createElement("i");
+    dot.className = "pk" + (r.id === 0 ? " me" : "");
+    dot.style.background = r.character.color;
+    $("progress").append(dot);
+    return dot;
+  });
+  // Lock-on reticles for attack specials (Nova can mark three karts).
+  targetMarks = [0, 1, 2].map(() => {
+    const m = makeTargetMark();
+    raceGroup.add(m);
+    return m;
+  });
+  mapCache = null;
+  minimapFitted = false;
+  fitMinimap();
+  if (speedRace) notify("⚡ 竞速赛：没有道具，漂移攒氮气，满了点 N₂O 喷射；紧跟前车能吸尾流", 3.2);
   show("accelerate", !save.autoGas);
   document.body.classList.toggle("manual-gas", !save.autoGas);
   show("countdown", true);
@@ -640,6 +687,7 @@ function goHome() {
   show("banner", false);
   show("status-effect", false);
   $("speed-lines").classList.remove("active");
+  document.body.classList.remove("speed-race");
   lobby.group.visible = true;
   sun.color.set(0xfff2d7);
   sun.intensity = 3;
@@ -667,7 +715,7 @@ function pause() {
   inputClear();
   show("countdown", false);
   modal(
-    '<span class="dialog-eyebrow">A LITTLE PIT STOP</span><h2>进站，歇一会儿。</h2><p>比赛已暂停。准备好了，继续向终点出发。</p><div class="dialog-actions"><button class="primary" id="resume">继续比赛</button><button class="secondary" id="restart">重新开始</button></div><div class="dialog-actions"><button class="secondary" id="race-settings">驾驶设置</button><button class="secondary" id="home">返回车库</button></div><div class="modal-footer">版本 2.3 · ' + BUILD + '</div>',
+    '<span class="dialog-eyebrow">A LITTLE PIT STOP</span><h2>进站，歇一会儿。</h2><p>比赛已暂停。准备好了，继续向终点出发。</p><div class="dialog-actions"><button class="primary" id="resume">继续比赛</button><button class="secondary" id="restart">重新开始</button></div><div class="dialog-actions"><button class="secondary" id="race-settings">驾驶设置</button><button class="secondary" id="home">返回车库</button></div><div class="modal-footer">版本 2.4 · ' + BUILD + '</div>',
   );
   $("resume").onclick = resume;
   $("restart").onclick = () => startRace(race.track.index);
@@ -692,11 +740,11 @@ $("pause").addEventListener("pointerup", (e) => {
 function help() {
   if (mode === "race") pause();
   modal(
-    '<button class="dialog-close" id="close-dialog" aria-label="关闭">×</button><span class="dialog-eyebrow">YOUR FIRST LAP</span><h2>快乐超车，从这里开始。</h2><p>默认自动油门，专心转向和使用道具。跑完三圈即冲线，杯赛累积三站积分。</p><div class="help-grid"><div><b>01 / 转向与过弯</b><p>手机：按住屏幕左半边左转，右半边右转。急弯会把车往外甩，只靠方向会掉速、贴外侧，漂移过弯更快。键盘 ← → 或 A / D。</p></div><div><b>02 / 漂移</b><p>手机：进弯按住方向就会漂移，一直按着保持，火花变蓝、橙、紫后松开，冲刺一次比一次猛；也可以点一下漂移键开始。键盘：转向时按住 Shift。</p></div><div><b>03 / 道具（两个槽）</b><p>撞碎问号箱抽道具，最多存两个，点道具框（键盘空格）使用。问号箱每人一份；越落后道具越强，最后几名还可能抽到火箭。</p></div><div><b>04 / 必杀技</b><p>每位车手都有专属必杀技。漂移加速、吃金币、打中对手都会给必杀槽充能，满了点必杀键（键盘 E）释放。倒计时到「1」时按住漂移键可以起步加速。</p></div></div><div class="help-items">' +
+    '<button class="dialog-close" id="close-dialog" aria-label="关闭">×</button><span class="dialog-eyebrow">YOUR FIRST LAP</span><h2>快乐超车，从这里开始。</h2><p>默认自动油门，专心转向和使用道具。跑完三圈即冲线，杯赛累积三站积分；竞速赛没有道具，比拼漂移和氮气。</p><div class="help-grid"><div><b>01 / 转向与过弯</b><p>手机：按住屏幕左半边左转，右半边右转。急弯会把车往外甩，只靠方向会掉速、贴外侧，漂移过弯更快。键盘 ← → 或 A / D。</p></div><div><b>02 / 漂移</b><p>手机：进弯按住方向就会漂移，一直按着保持，火花变蓝、橙、紫后松开，冲刺一次比一次猛；也可以点一下漂移键开始。键盘：转向时按住 Shift。</p></div><div><b>03 / 道具（两个槽）</b><p>撞碎问号箱抽道具，最多存两个，点道具框（键盘空格）使用。问号箱每人一份；越落后道具越强，最后几名还可能抽到火箭。</p></div><div><b>04 / 必杀技</b><p>每位车手都有专属必杀技。漂移加速、吃金币、打中对手都会给必杀槽充能，满了点必杀键（键盘 E）释放。流星雨、熊抱冲撞这类攻击必杀会用红圈标出要打的车；前面没人可打时不让你白放。倒计时到「1」时按住漂移键可以起步加速。</p></div><div><b>05 / 竞速赛与尾流</b><p>竞速赛没有道具和必杀：漂移给氮气槽充能，最多存两管，点 N₂O 键（键盘空格）喷射。两种比赛都有尾流：紧跟在别的车正后方一小会儿，就会被吸着加速超过去。</p></div><div><b>06 / 小地图与后方雷达</b><p>右上角小地图：方格线是终点，黄色箭头是你，彩色圆点是对手，离你近的会描白边；下方进度条显示每个人离终点多远。屏幕下方的雷达会提示从后面逼近的车和距离。</p></div></div><div class="help-items">' +
       Object.entries(ITEMS)
         .map(([k, v]) => "<div><span>" + v.icon + "</span><b>" + v.name + "</b>" + v.desc + "</div>")
         .join("") +
-      '</div><p>关闭自动油门后：W / ↑ 或屏幕油门键加速，S / ↓ 刹车。P / Esc 暂停；切换应用会自动暂停。</p><div class="dialog-actions sticky-actions"><button id="got-it" class="primary">准备好啦</button></div><div class="modal-footer">非官方同人作品 · 角色造型参考，原创赛道与音乐 · 版本 2.3 · ' + BUILD + '</div>',
+      '</div><p>关闭自动油门后：W / ↑ 或屏幕油门键加速，S / ↓ 刹车。P / Esc 暂停；切换应用会自动暂停。</p><div class="dialog-actions sticky-actions"><button id="got-it" class="primary">准备好啦</button></div><div class="modal-footer">非官方同人作品 · 角色造型参考，原创赛道与音乐 · 版本 2.4 · ' + BUILD + '</div>',
   );
   $("got-it").onclick = closeModal;
   $("close-dialog").onclick = closeModal;
@@ -770,6 +818,15 @@ $("dialog").addEventListener("cancel", (e) => {
 });
 function useItem() {
   if (mode !== "race" || resumeTimer > 0 || race.phase !== "racing") return;
+  if (race.rules === "speed") {
+    // Speed race: the item button fires a stored nitro charge.
+    if (race.useNitro()) {
+      processEvents();
+      updateHUD();
+    } else if (race.player.finish === null)
+      notify("氮气还没攒满（" + Math.floor(race.player.nitro) + "%）· 漂移过弯就能充能", 1.4);
+    return;
+  }
   if (!race.useItem()) notify(race.player.roulette > 0 ? "惊喜马上揭晓…" : "撞进问号箱就能获得道具");
   else {
     processEvents();
@@ -777,10 +834,23 @@ function useItem() {
   }
 }
 function useSpecial() {
-  if (mode !== "race" || resumeTimer > 0 || race.phase !== "racing") return;
+  if (mode !== "race" || resumeTimer > 0 || race.phase !== "racing" || race.rules !== "item") return;
   const p = race.player;
+  // Don't let a full gauge go to waste: meteors or fireballs with nobody
+  // ahead, or the pocket with both item slots full.
+  const wasted = p.special >= 100 && p.finish === null ? race.specialWasted() : null;
+  if (wasted) {
+    audio.cue("deny");
+    notify(
+      wasted === "slotsFull" ? "道具槽满了 · 先用掉一个道具，再掏口袋" : "前方没有对手 · 必杀先留着，追上去再放",
+      1.8,
+    );
+    return;
+  }
   if (!race.useSpecial()) notify("必杀槽 " + Math.floor(p.special) + "% · 漂移、吃金币、打中对手都能加速充能", 1.6);
   else {
+    save.specialsTotal = (save.specialsTotal || 0) + 1;
+    persist();
     processEvents();
     updateHUD();
   }
@@ -898,6 +968,23 @@ function processEvents() {
         $("item-button").classList.add("got");
         if (race.player.itemsUsed === 0 && e.slot === 1) notify(touchLayout() ? "获得道具！点道具框使用" : "获得道具！按空格使用", 1.6);
       }
+      if (e.type === "nitroReady") {
+        $("item-button").classList.remove("got");
+        void $("item-button").offsetWidth;
+        $("item-button").classList.add("got");
+        if (!nitroTipShown) {
+          nitroTipShown = true;
+          notify("⚡ 氮气就绪！" + (touchLayout() ? "点 N₂O 键喷射" : "按空格喷射") + " · 最多存 2 管", 1.8);
+        }
+      }
+      if (e.type === "nitro") {
+        const carry = kartVelocity(race.player);
+        for (const f of cars[0].userData.exhaust) {
+          f.nozzle.getWorldPosition(wheelWorld);
+          for (let j = 0; j < 8; j++) spark(wheelWorld, j % 2 ? 0x3fd2ff : 0xf2fdff, f.nozzle.position.x > 0 ? 1 : -1, carry);
+        }
+      }
+      if (e.type === "draft") notify("💨 尾流加速！", 0.9);
       if (e.type === "specialReady") {
         notify(SPECIALS[race.player.character.id].icon + " 必杀技就绪！" + (touchLayout() ? "点必杀键释放" : "按 E 释放"), 1.6);
       }
@@ -1024,7 +1111,8 @@ function showResult() {
   show("banner", false);
   const p = race.player,
     rank = race.rank(),
-    key = race.track.index + "-" + save.difficulty,
+    key = recordKey(race.track.index, race.rules),
+    speedRace = race.rules === "speed",
     previous = save.records[key],
     newRecord = !previous || p.finish < previous;
   if (newRecord) save.records[key] = p.finish;
@@ -1044,7 +1132,7 @@ function showResult() {
   const displayRank = finalCup ? overall.findIndex((r) => r.id === 0) + 1 : rank;
   modal(
     '<div class="result-top"><span class="dialog-eyebrow">' +
-      (finalCup ? "PAW CUP · FINAL RESULTS" : "FINISH LINE, HAPPY TIMES") +
+      (finalCup ? "PAW CUP · FINAL RESULTS" : speedRace ? "SPEED RACE · FINISH LINE" : "FINISH LINE, HAPPY TIMES") +
       '</span><div class="trophy">' +
       (displayRank === 1 ? "🏆" : displayRank <= 3 ? "🏅" : "🏁") +
       "</div><h2>" +
@@ -1057,7 +1145,7 @@ function showResult() {
       race.track.config.name +
       " · " +
       { easy: "50", normal: "100", hard: "150" }[save.difficulty] +
-      "cc</p>" +
+      (speedRace ? "cc · 竞速赛</p>" : "cc</p>") +
       (newRecord ? '<div class="new-record">✦ 刷新个人最佳纪录！</div>' : "") +
       '</div><div class="result-stats"><div><small>' +
       (finalCup ? "末站用时" : "完赛时间") +
@@ -1065,10 +1153,9 @@ function showResult() {
       timeText(p.finish) +
       "</b></div><div><small>漂移加速</small><b>" +
       p.drifts +
-      " 次</b></div><div><small>道具 · 必杀</small><b>" +
-      p.itemsUsed +
-      " · " +
-      p.specialsUsed +
+      (speedRace
+        ? " 次</b></div><div><small>氮气 · 尾流</small><b>" + p.nitroUsed + " · " + p.drafts
+        : " 次</b></div><div><small>道具 · 必杀</small><b>" + p.itemsUsed + " · " + p.specialsUsed) +
       ' 次</b></div></div><table class="result-table"><tbody>' +
       (finalCup ? overall : standings)
         .map(
@@ -1120,42 +1207,90 @@ function updateHUD() {
   $("race-time").textContent = timeText(p.finish ?? race.time);
   $("coins").textContent = String(p.coins).padStart(2, "0");
   $("speed").querySelector("b").textContent = Math.round(p.speed * 3.6);
-  const itemKeys = Object.keys(ITEMS),
-    item = p.roulette > 0 ? itemKeys[Math.floor(clock * 14) % itemKeys.length] : p.item;
-  $("item-icon").textContent = item ? ITEMS[item].icon : "?";
-  $("item-name").textContent = p.roulette > 0 ? "惊喜抽取中…" : item ? ITEMS[item].name : "寻找道具箱";
-  $("item-button").classList.toggle("ready", !!p.item && p.roulette === 0);
-  $("item-button").classList.toggle("spinning", p.roulette > 0);
-  const next = p.roulette2 > 0 ? itemKeys[Math.floor(clock * 14 + 3) % itemKeys.length] : p.item2;
-  $("item-next").textContent = next ? ITEMS[next].icon : "";
-  $("item-next").classList.toggle("on", !!next);
-  const sp = SPECIALS[p.character.id],
-    sb = $("special-button");
-  $("special-icon").textContent = sp.icon;
-  $("special-name").textContent = p.special >= 100 ? sp.name : "必杀 " + Math.floor(p.special) + "%";
-  sb.style.setProperty("--gauge", Math.floor(p.special) + "%");
-  sb.style.setProperty("--accent", p.character.color);
-  sb.classList.toggle("ready", p.special >= 100 && race.phase === "racing");
-  sb.setAttribute("aria-label", p.special >= 100 ? "释放必杀技：" + sp.name : "必杀技充能 " + Math.floor(p.special) + "%");
-  $("item-button").setAttribute(
-    "aria-label",
-    p.item ? "使用" + ITEMS[p.item].name : "道具槽为空，寻找问号箱",
-  );
+  const ib = $("item-button");
+  if (race.rules === "speed") {
+    // Nitro: the frame fills as drifting charges it; up to two charges.
+    const charges = p.nitroCharges,
+      pct = charges >= NITRO_RULES.max ? 100 : Math.floor(p.nitro);
+    $("item-icon").textContent = "N₂O";
+    $("item-name").textContent = charges > 0 ? "喷射氮气！" : "漂移充能 " + pct + "%";
+    $("item-key").textContent = "●".repeat(charges) + "○".repeat(NITRO_RULES.max - charges);
+    $("item-next").textContent = charges > 1 ? "×" + charges : "";
+    $("item-next").classList.toggle("on", charges > 1);
+    ib.style.setProperty("--gauge", pct + "%");
+    ib.classList.toggle("ready", charges > 0 && race.phase === "racing" && p.finish === null);
+    ib.classList.remove("spinning");
+    ib.setAttribute("aria-label", charges > 0 ? "喷射氮气，还有 " + charges + " 管" : "氮气充能 " + pct + "%");
+    specialTargets = [];
+  } else {
+    const itemKeys = Object.keys(ITEMS),
+      item = p.roulette > 0 ? itemKeys[Math.floor(clock * 14) % itemKeys.length] : p.item;
+    $("item-icon").textContent = item ? ITEMS[item].icon : "?";
+    $("item-name").textContent = p.roulette > 0 ? "惊喜抽取中…" : item ? ITEMS[item].name : "寻找道具箱";
+    ib.classList.toggle("ready", !!p.item && p.roulette === 0);
+    ib.classList.toggle("spinning", p.roulette > 0);
+    const next = p.roulette2 > 0 ? itemKeys[Math.floor(clock * 14 + 3) % itemKeys.length] : p.item2;
+    $("item-next").textContent = next ? ITEMS[next].icon : "";
+    $("item-next").classList.toggle("on", !!next);
+    ib.setAttribute("aria-label", p.item ? "使用" + ITEMS[p.item].name : "道具槽为空，寻找问号箱");
+    // Special: a charge ring in the driver's colour; when full it glows,
+    // locks on to what it would hit, and says so if it would be wasted.
+    const sp = SPECIALS[p.character.id],
+      sb = $("special-button"),
+      pct = Math.floor(p.special),
+      ready = p.special >= 100 && race.phase === "racing" && p.finish === null,
+      wasted = ready ? race.specialWasted() : null;
+    specialTargets = ready && ATTACK_SPECIALS.has(p.character.id) ? race.specialTargets() : [];
+    $("special-icon").textContent = sp.icon;
+    $("special-name").textContent = !ready
+      ? "必杀 " + pct + "%"
+      : wasted === "noTarget"
+        ? "前方没人"
+        : wasted === "slotsFull"
+          ? "道具满了"
+          : "放必杀！";
+    $("special-key").textContent =
+      ready && p.character.id === "bear" && !specialTargets.length ? "没目标 · 只冲刺" : sp.name + (touchLayout() ? "" : " · E");
+    sb.style.setProperty("--gauge", pct + "%");
+    sb.style.setProperty("--accent", p.character.color);
+    sb.classList.toggle("ready", ready);
+    sb.classList.toggle("blocked", !!wasted);
+    sb.classList.toggle("locked", specialTargets.length > 0);
+    sb.dataset.lock = specialTargets.length ? "🎯 " + specialTargets.length : "";
+    sb.classList.toggle("tip", ready && !wasted && p.specialsUsed === 0 && (save.specialsTotal || 0) < 3);
+    sb.setAttribute(
+      "aria-label",
+      !ready
+        ? "必杀技充能 " + pct + "%"
+        : wasted
+          ? sp.name + "：" + (wasted === "noTarget" ? "前方没有对手" : "道具槽已满")
+          : "释放必杀技：" + sp.name + (specialTargets.length ? "，锁定 " + specialTargets.length + " 位对手" : ""),
+    );
+  }
   const fill = $("drift-fill");
   const level = driftLevel(p.drift);
   fill.style.width = Math.min(100, (p.drift / DRIFT.levels[3]) * 100) + "%";
   fill.style.background = DRIFT_COLOURS[level];
   fill.style.boxShadow = "0 0 9px " + DRIFT_COLOURS[level];
+  const speedRace = race.rules === "speed";
   $("drift-label").textContent =
     level > 0
       ? (p.driftAuto || save.autoDrift ? "松开方向！" : "松手！") + "释放" + ["", "蓝色", "橙色超级", "紫色完美"][level] + "加速"
       : p.drifting
-        ? "保持住，火花变色就能加速"
+        ? speedRace
+          ? "保持住，漂移越久氮气攒得越多"
+          : "保持住，火花变色就能加速"
         : touchLayout()
           ? save.autoDrift
-            ? "进弯按住方向就会漂移 · 按着保持 · 松开加速"
-            : "转向时按住漂移键 · 松手加速"
-          : "按住 Shift 转向漂移 · 松手加速";
+            ? speedRace
+              ? "进弯按住方向漂移 · 漂移攒氮气"
+              : "进弯按住方向就会漂移 · 按着保持 · 松开加速"
+            : speedRace
+              ? "转向时按住漂移键 · 漂移攒氮气"
+              : "转向时按住漂移键 · 松手加速"
+          : speedRace
+            ? "按住 Shift 转向漂移 · 漂移攒氮气"
+            : "按住 Shift 转向漂移 · 松手加速";
   const incoming = race.projectiles.some(
     (x) => x.target === 0 && race.gap(p.distance, x.distance) > 0 && race.gap(p.distance, x.distance) < 45,
   );
@@ -1171,18 +1306,24 @@ function updateHUD() {
           : p.shield > 0
             ? "🫧 护盾 " + p.shield.toFixed(1) + "s"
             : p.boost > 0
-              ? "✦ 冲刺 " + p.boost.toFixed(1) + "s"
+              ? (p.boostKind === "nitro" ? "🔥 氮气 " : p.boostKind === "draft" ? "💨 尾流加速 " : "✦ 冲刺 ") +
+                p.boost.toFixed(1) +
+                "s"
               : p.stun > 0
                 ? "正在恢复…"
                 : p.small > 0
                   ? "⚡ 缩小 " + p.small.toFixed(1) + "s"
-                  : "";
+                  : p.draft > 0.25
+                    ? "💨 吸尾流中… " + Math.min(100, Math.round((p.draft / DRAFT.charge) * 100)) + "%"
+                    : "";
   show("status-effect", !!effect);
   $("status-effect").textContent = effect;
   const lines = $("speed-lines");
-  lines.classList.toggle("active", !save.reduced && (p.boost > 0 || p.star > 0 || p.rocket > 0));
-  lines.classList.toggle("strong", !save.reduced && (p.rocket > 0 || (p.boost > 0 && /drift3|item|rocket/.test(p.boostKind))));
-  lines.dataset.kind = p.rocket > 0 ? "rocket" : p.star > 0 ? "star" : p.boostKind || "";
+  // Tucked into a slipstream: faint wind streaks build up before the pull.
+  const drafting = p.draft > 0.3 && p.boost <= 0;
+  lines.classList.toggle("active", !save.reduced && (p.boost > 0 || p.star > 0 || p.rocket > 0 || drafting));
+  lines.classList.toggle("strong", !save.reduced && (p.rocket > 0 || (p.boost > 0 && /drift3|item|rocket|nitro/.test(p.boostKind))));
+  lines.dataset.kind = p.rocket > 0 ? "rocket" : p.star > 0 ? "star" : drafting ? "draft" : p.boostKind || "";
   // Overtakes, MK style: the position number pops and a cue plays.
   if (race.phase === "racing" && p.finish === null && lastRank && rank !== lastRank) {
     const el = $("rank").parentElement;
@@ -1218,7 +1359,8 @@ function updateHUD() {
         "</small></div>",
     )
     .join("");
-  drawMap();
+  updateProgress();
+  updateRadar();
   $("hud").dataset.phase = race.phase;
   $("hud").dataset.drifting = p.drifting ? String(level) : "";
   $("hud").dataset.distance = p.distance.toFixed(1);
@@ -1229,10 +1371,36 @@ function updateHUD() {
   $("hud").dataset.itemsUsed = String(p.itemsUsed);
   $("hud").dataset.drifts = String(p.drifts);
 }
-// The track outline and its fit to the minimap are fixed for a race: build
-// them once instead of rescanning 1200 points ten times a second.
-let mapCache = null;
+// Map panel (top-right): the track, its chequered finish line and direction
+// arrows, every racer in their colour (the ones near you outlined), red rings
+// on whoever the special would hit, and you as an arrow. Drawn in a fixed
+// 220 x 250 space scaled to the canvas's real pixels, so it stays sharp.
+const MAP_W = 220,
+  MAP_H = 250;
+let mapCache = null,
+  mapTimer = 0,
+  minimapFitted = false;
+function fitMinimap() {
+  const c = $("minimap"),
+    box = c.getBoundingClientRect();
+  if (!box.width) return;
+  minimapFitted = true;
+  const ratio = clamp(devicePixelRatio || 1, 1, 3),
+    w = Math.round(box.width * ratio),
+    h = Math.round(box.height * ratio);
+  if (c.width !== w || c.height !== h) {
+    c.width = w;
+    c.height = h;
+  }
+}
+addEventListener("resize", () => race && fitMinimap());
+const heading = (d) => {
+  const [ax, ay] = mapCache.point(race.track.sample(d).p),
+    [bx, by] = mapCache.point(race.track.sample(d + 4).p);
+  return Math.atan2(by - ay, bx - ax);
+};
 function drawMap() {
+  if (!minimapFitted) fitMinimap(); // e.g. the race began in a background tab
   const c = $("minimap"),
     ctx = c.getContext("2d");
   if (!mapCache || mapCache.track !== race.track) {
@@ -1243,9 +1411,10 @@ function drawMap() {
       maxX = Math.max(...xs),
       minZ = Math.min(...zs),
       maxZ = Math.max(...zs),
-      scale = Math.min(230 / (maxX - minX), 205 / (maxZ - minZ)),
-      tx = (280 - (maxX + minX) * scale) / 2,
-      tz = (250 - (maxZ + minZ) * scale) / 2,
+      pad = 17,
+      scale = Math.min((MAP_W - pad * 2) / (maxX - minX), (MAP_H - pad * 2) / (maxZ - minZ)),
+      tx = MAP_W / 2 - ((maxX + minX) / 2) * scale,
+      tz = MAP_H / 2 - ((maxZ + minZ) / 2) * scale,
       point = (p) => [tx + p.x * scale, tz + p.z * scale],
       outline = new Path2D();
     pts.forEach((p, i) => {
@@ -1253,29 +1422,174 @@ function drawMap() {
       i ? outline.lineTo(x, y) : outline.moveTo(x, y);
     });
     outline.closePath();
-    mapCache = { track: race.track, point, outline, start: point(pts[0]) };
+    mapCache = { track: race.track, point };
+    mapCache.outline = outline;
+    mapCache.finish = [...point(race.track.sample(0).p), heading(0)];
+    mapCache.arrows = [0.16, 0.5, 0.83].map((f) => {
+      const d = f * race.track.length;
+      return [...point(race.track.sample(d).p), heading(d)];
+    });
   }
-  const { point, outline, start } = mapCache;
-  ctx.clearRect(0, 0, 280, 260);
+  // The road, arrows and finish line never change in a race: draw them once
+  // per canvas size into a layer, then copy it each frame.
+  if (!mapCache.layer || mapCache.layer.width !== c.width || mapCache.layer.height !== c.height) {
+    mapCache.layer = document.createElement("canvas");
+    mapCache.layer.width = c.width;
+    mapCache.layer.height = c.height;
+    drawMapLayer(mapCache.layer.getContext("2d"), c.width, c.height);
+  }
+  const { point } = mapCache;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.drawImage(mapCache.layer, 0, 0);
+  ctx.setTransform(c.width / MAP_W, 0, 0, c.height / MAP_H, 0, 0);
   ctx.lineJoin = "round";
-  ctx.strokeStyle = "#edf6df90";
-  ctx.lineWidth = 12;
+  ctx.lineCap = "round";
+  drawRacersOnMap(ctx, point);
+}
+function drawMapLayer(ctx, w, h) {
+  const { outline, finish, arrows } = mapCache;
+  ctx.setTransform(w / MAP_W, 0, 0, h / MAP_H, 0, 0);
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "#0f241dcc";
+  ctx.lineWidth = 13;
   ctx.stroke(outline);
-  ctx.strokeStyle = "#4e7562";
-  ctx.lineWidth = 6;
+  ctx.strokeStyle = "#f7f2df";
+  ctx.lineWidth = 8;
   ctx.stroke(outline);
-  ctx.fillStyle = "#fff6c7";
-  ctx.fillRect(start[0] - 5, start[1] - 5, 10, 10);
-  [...race.racers].reverse().forEach((r) => {
-    const [x, y] = point(race.track.sample(r.distance).p);
+  // Direction of travel.
+  ctx.strokeStyle = "#5d8a70";
+  ctx.lineWidth = 2;
+  for (const [x, y, a] of arrows) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(a);
     ctx.beginPath();
-    ctx.arc(x, y, r.id === 0 ? 8 : 5, 0, Math.PI * 2);
-    ctx.fillStyle = r.id === 0 ? "#fff2a8" : r.character.color;
-    ctx.fill();
-    ctx.strokeStyle = r.id === 0 ? "#364f45" : "#fff";
-    ctx.lineWidth = r.id === 0 ? 3 : 1;
+    ctx.moveTo(-2.2, -2.8);
+    ctx.lineTo(1.6, 0);
+    ctx.lineTo(-2.2, 2.8);
     ctx.stroke();
+    ctx.restore();
+  }
+  // Chequered finish line across the road.
+  ctx.save();
+  ctx.translate(finish[0], finish[1]);
+  ctx.rotate(finish[2]);
+  for (let i = 0; i < 4; i++)
+    for (let j = 0; j < 2; j++) {
+      ctx.fillStyle = (i + j) % 2 ? "#1b1b1b" : "#ffffff";
+      ctx.fillRect(-3 + j * 3, -6 + i * 3, 3, 3);
+    }
+  ctx.strokeStyle = "#1b1b1b";
+  ctx.lineWidth = 0.8;
+  ctx.strokeRect(-3, -6, 6, 12);
+  ctx.restore();
+}
+function drawRacersOnMap(ctx, point) {
+  // Rivals, far ones first; within 30 m of you they are bigger and outlined.
+  const p = race.player,
+    rivals = race.racers
+      .filter((r) => r.id !== 0)
+      .map((r) => ({ r, g: Math.abs(race.gap(r.distance, p.distance)) }))
+      .sort((a, b) => b.g - a.g);
+  for (const { r, g } of rivals) {
+    const [x, y] = point(race.track.sample(r.distance, r.lane * 0.4).p),
+      close = g < 30 && r.finish === null && p.finish === null;
+    ctx.beginPath();
+    ctx.arc(x, y, close ? 6.6 : 5, 0, Math.PI * 2);
+    ctx.fillStyle = r.character.color;
+    ctx.fill();
+    ctx.lineWidth = close ? 2.6 : 1.4;
+    ctx.strokeStyle = close ? "#ffffff" : "#ffffffcc";
+    ctx.stroke();
+    if (specialTargets.includes(r.id)) {
+      const rr = 10.5 + Math.sin(clock * 10) * 1.3;
+      ctx.beginPath();
+      ctx.arc(x, y, rr, 0, Math.PI * 2);
+      ctx.strokeStyle = "#ff3b3b";
+      ctx.lineWidth = 2.6;
+      ctx.stroke();
+      for (let k = 0; k < 4; k++) {
+        const a = (k * Math.PI) / 2;
+        ctx.beginPath();
+        ctx.moveTo(x + Math.cos(a) * (rr - 1), y + Math.sin(a) * (rr - 1));
+        ctx.lineTo(x + Math.cos(a) * (rr + 4), y + Math.sin(a) * (rr + 4));
+        ctx.stroke();
+      }
+    }
+  }
+  // You: an arrow pointing the way you are going, with a soft glow.
+  const [px, py] = point(race.track.sample(p.distance, p.lane * 0.4).p);
+  ctx.save();
+  ctx.translate(px, py);
+  ctx.rotate(heading(p.distance));
+  ctx.beginPath();
+  ctx.arc(0, 0, 12.5, 0, Math.PI * 2);
+  ctx.fillStyle = "#fff2a84d";
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(9.5, 0);
+  ctx.lineTo(-6.5, -7);
+  ctx.lineTo(-3, 0);
+  ctx.lineTo(-6.5, 7);
+  ctx.closePath();
+  ctx.fillStyle = "#fff2a8";
+  ctx.fill();
+  ctx.lineWidth = 2.2;
+  ctx.strokeStyle = "#24413a";
+  ctx.stroke();
+  ctx.restore();
+}
+// Progress over the whole race for everyone, and the distance still to go.
+function updateProgress() {
+  const p = race.player,
+    total = race.laps * race.track.length;
+  race.racers.forEach((r, i) => {
+    const f = r.finish !== null ? 1 : clamp(r.distance / total, 0, 1);
+    if (progressDots[i]) progressDots[i].style.left = (f * 100).toFixed(2) + "%";
   });
+  $("progress").style.setProperty("--me", (clamp(p.distance / total, 0, 1) * 100).toFixed(2) + "%");
+  const left = Math.max(0, total - Math.max(0, p.distance));
+  $("to-finish").textContent =
+    p.finish !== null
+      ? "🏁 已冲线"
+      : "距终点 " + (left >= 1000 ? (left / 1000).toFixed(2) + " km" : Math.ceil(left) + " m");
+}
+// Rear radar: karts closing in from behind (within 25 m), placed left or right
+// by which side of you they are on, nearest first.
+const RADAR_RANGE = 25;
+function updateRadar() {
+  const p = race.player,
+    el = $("radar");
+  const behind =
+    p.finish !== null || race.phase !== "racing"
+      ? []
+      : race.racers
+          .filter((o) => o.id !== 0 && o.finish === null && o.rescue <= 0)
+          .map((o) => ({ o, g: race.gap(p.distance, o.distance) }))
+          .filter((x) => x.g > 1 && x.g < RADAR_RANGE)
+          .sort((a, b) => a.g - b.g)
+          .slice(0, 3);
+  while (el.children.length < behind.length) el.append(document.createElement("b"));
+  const placed = [];
+  [...el.children].forEach((chip, i) => {
+    const t = behind[i];
+    chip.hidden = !t;
+    if (!t) return;
+    const x = 50 + clamp((t.o.lane - p.lane) / 8, -1, 1) * 42,
+      // Two karts on the same side: stack the farther one above.
+      row = placed.filter((q) => Math.abs(q - x) < 14).length;
+    placed.push(x);
+    chip.style.left = x.toFixed(1) + "%";
+    chip.style.bottom = row * 26 + "px";
+    chip.style.setProperty("--c", t.o.character.color);
+    chip.style.opacity = (0.55 + 0.45 * (1 - t.g / RADAR_RANGE)).toFixed(2);
+    chip.classList.toggle("close", t.g < 8);
+    chip.textContent = Math.round(t.g) + "m";
+    chip.dataset.racer = t.o.id;
+  });
+  el.dataset.count = behind.length;
 }
 // ---------------------------------------------------------------------------
 // Race rendering
@@ -1462,7 +1776,7 @@ function renderRace(dt) {
   const playerKart = cars[0],
     boosting = (p.boost > 0 || p.star > 0 || p.rocket > 0) && p.rescue <= 0;
   if (boosting && !lastPlayerBoost && dt > 0) {
-    audio.cue("boost");
+    if (p.boostKind !== "nitro" && p.boostKind !== "draft") audio.cue("boost"); // those have their own cues
     const carry = kartVelocity(p),
       colour = NITRO[p.star > 0 ? "star" : p.boostKind || "item"].outer;
     for (const f of playerKart.userData.exhaust) {
@@ -1479,6 +1793,19 @@ function renderRace(dt) {
     nitroLight.position.lerp(playerKart.userData.exhaust[1].nozzle.getWorldPosition(wheelWorld), 0.5);
     nitroLight.color.setHex(NITRO[playerKart.userData.vis.kind]?.outer || 0x38c4ff);
   }
+  // Lock-on reticles over the karts the player's special would hit.
+  targetMarks.forEach((m, i) => {
+    const id = specialTargets[i],
+      k = id !== undefined ? cars[id] : null;
+    m.visible = !!k && mode !== "result";
+    if (!m.visible) return;
+    m.position.copy(k.position);
+    const far = k.position.distanceTo(camera.position);
+    m.position.y += 3 + Math.sin(clock * 6 + i) * 0.15;
+    m.quaternion.copy(camera.quaternion);
+    m.scale.setScalar(clamp(far / 22, 0.8, 4.5));
+    m.userData.reticle.rotation.z = clock * 2.2;
+  });
   // Boxes and coins are per racer: what you see is what you can still take.
   // One you just took regrows when it respawns for you; one another kart
   // took pops and regrows at once (it is still yours to take).
@@ -1703,6 +2030,11 @@ function frame(now) {
       }
     }
     renderRace(mode === "paused" || resumeTimer > 0 ? 0 : dt);
+    mapTimer += dt;
+    if (mapTimer >= 1 / 30) {
+      drawMap();
+      mapTimer = 0;
+    }
     uiTimer += dt;
     if (uiTimer > 0.1) {
       updateHUD();

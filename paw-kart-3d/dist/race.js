@@ -209,6 +209,22 @@ export const CORNER = { push: 0.098, max: 8.5, driftPush: 0.6, scrub: 0.05 };
 // can hold, so the tightest hairpins call for a drift but never fling a kart.
 export const cornerPush = (curve, speed, drifting) =>
   clamp(curve * speed * speed * CORNER.push, -CORNER.max, CORNER.max) * (drifting ? CORNER.driftPush : 1);
+// Speed race (竞速赛), KartRider style: no items, coins or specials; drifting
+// fills a nitro gauge that stores up to two charges, fired from a button.
+export const NITRO_RULES = { perDriftSecond: 32, release: [0, 6, 10, 15], max: 2, boost: 2.3, kick: 8, ai: 0.9 };
+// Bear's ram (熊抱冲撞): locks on to the nearest kart ahead within `range` m
+// and closes on it at least `closing` m/s faster than it is going.
+// The chase lasts until it connects (at most `chase` s; 3 s with no target).
+export const BEAR_RAM = { range: 60, closing: 18, top: 64, chase: 4.5, reach: 2.9 };
+// AI pace by class. Speed races have no items to slow the leaders down, so
+// 150cc runs a touch slower there to stay winnable for a good drifter.
+export const AI_PACE = {
+  item: { easy: 0.86, normal: 0.97, hard: 1.07 },
+  speed: { easy: 0.86, normal: 0.97, hard: 1.015 },
+};
+// Slipstream (尾流), both modes: sit close behind a kart in its line for a
+// moment and you are pulled past with a short boost.
+export const DRAFT = { min: 3.5, max: 16, lane: 1.8, charge: 1.1, boost: 1, kick: 3 };
 // Rocket start: hold drift / gas when the countdown shows "1".
 export const START = { window: 1.0, perfect: 0.45 };
 // Item box rows span the road; see the constructor.
@@ -269,7 +285,15 @@ export function sweptContact(ax, ay, bx, by, rx, ry) {
   return (ax + t * dx) ** 2 + (ay + t * dy) ** 2 <= 1;
 }
 export class Race {
-  constructor({ track = 0, character = "gold", difficulty = "normal", seed = Date.now(), laps = 3 } = {}) {
+  constructor({
+    track = 0,
+    character = "gold",
+    difficulty = "normal",
+    seed = Date.now(),
+    laps = 3,
+    rules = "item", // "item" (道具赛) or "speed" (竞速赛)
+  } = {}) {
+    this.rules = rules === "speed" ? "speed" : "item";
     this.track = new Track(track);
     this.rng = seeded(seed);
     this.difficulty = difficulty;
@@ -354,6 +378,13 @@ export class Race {
         charge: 0, // bear: seconds of the homing ram
         chargeTarget: null,
         shieldHits: 0, // hits the current shield still absorbs
+        nitro: 0, // speed race: gauge 0..100
+        nitroCharges: 0,
+        nitroUsed: 0,
+        aiNitro: 1 + this.rng() * 2,
+        draft: 0, // seconds spent in a slipstream
+        draftCooldown: 0,
+        drafts: 0,
       });
     }
     this.player = this.racers[0];
@@ -366,7 +397,9 @@ export class Race {
     // the others). V2 had three shared boxes per row on a 3 s respawn, so
     // the pack ahead emptied each row before the player, who starts at the
     // back, got there. `cooldown` still switches a box off for everyone.
-    for (const f of BOX_ROWS)
+    // A speed race has no item boxes or coins.
+    if (this.rules === "item")
+      for (const f of BOX_ROWS)
       for (const lane of BOX_LANES)
         this.boxes.push({
           id: this.nextId++,
@@ -375,8 +408,9 @@ export class Race {
           cooldown: 0,
           taken: new Float32Array(8),
         });
-    for (let row = 0; row < 12; row++)
-      for (let j = 0; j < 3; j++)
+    if (this.rules === "item")
+      for (let row = 0; row < 12; row++)
+        for (let j = 0; j < 3; j++)
         this.coins.push({
           id: this.nextId++,
           distance: this.track.length * (0.04 + row * 0.078) + j * 4,
@@ -473,6 +507,7 @@ export class Race {
       if (level) {
         this.startBoost(r, DRIFT.boost[level], "drift" + level, DRIFT.kick[level]);
         this.gain(r, GAUGE.drift[level]);
+        this.gainNitro(r, NITRO_RULES.release[level]);
         r.drifts++;
         this.event("drift", { racer: r.id, level });
       }
@@ -480,6 +515,7 @@ export class Race {
     }
     const was = driftLevel(r.drift);
     r.drift = Math.min(2.6, r.drift + dt * (0.75 + 0.5 * clamp(steer * r.driftDirection, -0.5, 1)));
+    this.gainNitro(r, NITRO_RULES.perDriftSecond * dt);
     const now = driftLevel(r.drift);
     if (now > was) this.event("driftLevel", { racer: r.id, level: now });
   }
@@ -528,7 +564,7 @@ export class Race {
   }
   // Special gauge.
   gain(r, amount) {
-    if (r.finish !== null) return;
+    if (r.finish !== null || this.rules !== "item") return;
     const before = r.special;
     r.special = Math.min(100, r.special + amount * (r.id === 0 ? 1 : GAUGE.ai));
     if (before < 100 && r.special >= 100) this.event("specialReady", { racer: r.id });
@@ -537,8 +573,14 @@ export class Race {
   // instant speed kick so the push is felt the moment it starts.
   startBoost(r, seconds, kind, kick = 0) {
     r.boost = Math.max(r.boost, seconds);
-    r.boostKind = kind;
-    if (kick > 0) r.speed = Math.min(Math.max(0, r.speed) + kick, 58);
+    if (!(r.rocket > 0) || kind === "rocket") r.boostKind = kind; // a rocket keeps its flames
+    // One kick per physics step: an item and a drift release landing in the
+    // same 1/60 s must not add up to a jolt. (A tap between steps, from the
+    // player, always kicks.)
+    if (kick > 0 && !(this.inStep && r.lastKick === this.stepNo)) {
+      r.lastKick = this.inStep ? this.stepNo : -1;
+      r.speed = Math.min(Math.max(0, r.speed) + kick, 58);
+    }
   }
   useItem(r = this.player) {
     if (this.phase !== "racing" || !r.item || r.roulette > 0 || r.finish !== null || r.rescue > 0)
@@ -647,8 +689,30 @@ export class Race {
       .slice(0, count)
       .map((x) => x.o);
   }
+  // --- Speed race: nitro --------------------------------------------------------
+  gainNitro(r, amount) {
+    if (this.rules !== "speed" || r.finish !== null || r.nitroCharges >= NITRO_RULES.max) return;
+    r.nitro += amount * (r.id === 0 ? 1 : NITRO_RULES.ai);
+    while (r.nitro >= 100 && r.nitroCharges < NITRO_RULES.max) {
+      r.nitro -= 100;
+      r.nitroCharges++;
+      this.event("nitroReady", { racer: r.id, charges: r.nitroCharges });
+    }
+    if (r.nitroCharges >= NITRO_RULES.max) r.nitro = 0;
+  }
+  useNitro(r = this.player) {
+    if (this.rules !== "speed" || this.phase !== "racing" || r.nitroCharges <= 0 || r.finish !== null || r.rescue > 0)
+      return false;
+    r.nitroCharges--;
+    r.nitroUsed++;
+    r.stun = 0;
+    this.startBoost(r, NITRO_RULES.boost, "nitro", NITRO_RULES.kick);
+    this.event("nitro", { racer: r.id });
+    return true;
+  }
   useSpecial(r = this.player) {
-    if (this.phase !== "racing" || r.special < 100 || r.finish !== null || r.rescue > 0) return false;
+    if (this.rules !== "item" || this.phase !== "racing" || r.special < 100 || r.finish !== null || r.rescue > 0)
+      return false;
     const kind = r.character.id;
     r.special = 0;
     r.stun = 0;
@@ -690,11 +754,11 @@ export class Race {
       this.clearDrift(r);
       this.startBoost(r, 2, "pad", 5);
     } else if (kind === "bear") {
-      const target = this.nearestAhead(r, 70)[0];
-      r.charge = 2.6;
+      const target = this.nearestAhead(r, BEAR_RAM.range)[0];
+      r.charge = target ? BEAR_RAM.chase : 3;
       r.chargeTarget = target?.id ?? null;
       this.clearDrift(r);
-      this.startBoost(r, 2.6, "item", 7);
+      this.startBoost(r, 3, "item", 7);
     } else if (kind === "nova") {
       this.nearestAhead(r, 220, 3).forEach((o, i) =>
         this.meteors.push({ id: this.nextId++, owner: r.id, target: o.id, t: 0.75 + i * 0.25 }),
@@ -713,7 +777,7 @@ export class Race {
     if (p.finish !== null) return false;
     if (what === "bolt") return this.gap(p.distance, r.distance) > 0;
     if (what === "shell" || what === "special:bear" || what === "special:mario")
-      return this.nearestAhead(r, what === "shell" ? 180 : 70)[0] === p;
+      return this.nearestAhead(r, what === "shell" ? 180 : what === "special:bear" ? BEAR_RAM.range : 70)[0] === p;
     if (what === "special:nova") return this.nearestAhead(r, 220, 3).includes(p);
     return false;
   }
@@ -721,11 +785,34 @@ export class Race {
   aiSpecialUseful(r) {
     const kind = r.character.id;
     if (kind === "mario") return this.nearestAhead(r, 60).length > 0;
-    if (kind === "bear") return this.nearestAhead(r, 60).length > 0;
+    if (kind === "bear") return this.nearestAhead(r, BEAR_RAM.range).length > 0;
     if (kind === "nova") return this.nearestAhead(r, 220).length > 0;
     if (kind === "dora") return !r.item2;
     if (kind === "white") return Math.abs(this.track.curvature(r.distance + 25)) > 0.012;
     return true;
+  }
+  // Who an attack special would hit if fired now (racer ids), so the HUD can
+  // mark them before the player commits: the bear's charge target, Nova's
+  // three meteor targets, and karts in the fireballs' three lines.
+  specialTargets(r = this.player) {
+    const kind = r.character.id;
+    if (kind === "bear") return this.nearestAhead(r, BEAR_RAM.range).map((o) => o.id);
+    if (kind === "nova") return this.nearestAhead(r, 220, 3).map((o) => o.id);
+    if (kind === "mario")
+      return this.nearestAhead(r, 70, 7)
+        .filter((o) => Math.abs(o.lane - r.lane) < 4.7)
+        .map((o) => o.id);
+    return [];
+  }
+  // Why firing the special now would be wasted, or null. Meteors and
+  // fireballs with nobody ahead do nothing; the pocket with both item slots
+  // full would throw an item away.
+  specialWasted(r = this.player) {
+    const kind = r.character.id;
+    if (kind === "nova" && !this.nearestAhead(r, 220).length) return "noTarget";
+    if (kind === "mario" && !this.nearestAhead(r, 70).length) return "noTarget";
+    if (kind === "dora" && r.item && r.item2 && r.roulette <= 0 && r.roulette2 <= 0) return "slotsFull";
+    return null;
   }
   // A star or rocket knocks the kart it touches aside (spin-out plus a
   // sideways shove), so it clears the way instead of pushing it along.
@@ -764,6 +851,15 @@ export class Race {
     }
   }
   step(dt, input = {}) {
+    this.stepNo = (this.stepNo || 0) + 1;
+    this.inStep = true;
+    try {
+      this.advance(dt, input);
+    } finally {
+      this.inStep = false;
+    }
+  }
+  advance(dt, input) {
     dt = clamp(dt, 0, 0.05);
     this.events = [];
     if (this.phase === "finished") return;
@@ -934,6 +1030,10 @@ export class Race {
             r.aiItem = 1.5 + this.rng() * 2;
           } else this.useItem(r);
         }
+        if (r.nitroCharges > 0 && (r.aiNitro -= dt) <= 0) {
+          r.aiNitro = 0.8 + this.rng() * 2.5;
+          if (Math.abs(this.track.curvature(r.distance + 25)) < 0.012 && r.stun <= 0) this.useNitro(r);
+        }
         if (r.special >= 100 && (r.aiSpecial -= dt) <= 0) {
           r.aiSpecial = 1 + this.rng() * 3;
           const attack = this.aimsAtPlayer(r, "special:" + r.character.id);
@@ -946,11 +1046,13 @@ export class Race {
         if (r.cornerDrift > 0) {
           r.cornerDrift += dt;
           r.drift = Math.min(2.6, r.cornerDrift);
+          this.gainNitro(r, NITRO_RULES.perDriftSecond * dt);
           if (Math.abs(curve) < 0.004 || r.cornerDrift > 1.9 || r.stun > 0 || r.speed < 14) {
             if (r.stun <= 0 && r.cornerDrift >= DRIFT.levels[1]) {
               const level = r.perfectDrift > 0 ? 3 : Math.min(2, driftLevel(r.cornerDrift));
               this.startBoost(r, DRIFT.boost[level], "drift" + level, DRIFT.kick[level]);
               this.gain(r, GAUGE.drift[level]);
+              this.gainNitro(r, NITRO_RULES.release[level]);
               this.event("drift", { racer: r.id, level });
             }
             r.cornerDrift = 0;
@@ -987,15 +1089,41 @@ export class Race {
       // Bear's ram: homes in on its target's line.
       if (r.charge > 0) {
         const t = this.racers[r.chargeTarget];
-        steer = t && t.finish === null ? clamp((t.lane - r.lane) * 0.6, -1, 1) : 0;
+        // The chase ends once its target is gone or has been passed.
+        if (r.chargeTarget !== null && (!t || t.finish !== null || t.rescue > 0 || this.gap(t.distance, r.distance) < -2)) {
+          r.chargeTarget = null;
+          r.charge = Math.min(r.charge, 0.3);
+        }
+        steer = t && t.finish === null ? clamp((t.lane - r.lane) * 0.9, -1, 1) : 0;
         drift = false;
         throttle = true;
         r.cornerDrift = 0;
       }
+      // Slipstream (尾流): close behind a kart in its line, charge up; then a
+      // short boost pulls you past.
+      r.draftCooldown = Math.max(0, r.draftCooldown - dt);
+      let drafting = false;
+      if (r.draftCooldown <= 0 && r.speed > 20 && r.stun <= 0 && r.boost <= 0 && r.finish === null)
+        for (const o of this.racers) {
+          if (o === r || o.finish !== null || o.rescue > 0 || o.jump > 0) continue;
+          const g = this.gap(o.distance, r.distance);
+          if (g > DRAFT.min && g < DRAFT.max && Math.abs(o.lane - r.lane) < DRAFT.lane) {
+            drafting = true;
+            break;
+          }
+        }
+      r.draft = drafting ? r.draft + dt : Math.max(0, r.draft - dt * 2);
+      if (r.draft >= DRAFT.charge) {
+        r.draft = 0;
+        r.draftCooldown = 2.5;
+        r.drafts++;
+        this.startBoost(r, DRAFT.boost, "draft", DRAFT.kick);
+        this.event("draft", { racer: r.id });
+      }
       let base = 35 * r.character.speed + Math.min(10, r.coins) * 0.22;
       if (!isPlayer && r.finish === null)
         base *=
-          ({ easy: 0.86, normal: 0.97, hard: 1.07 }[this.difficulty] || 0.97) +
+          (AI_PACE[this.rules][this.difficulty] || 0.97) +
           (r.id - 4) * 0.006 +
           clamp((this.player.distance - r.distance) / 220, -0.025, 0.035);
       // Close behind a kart still in our line: ease off to its pace rather
@@ -1015,7 +1143,7 @@ export class Race {
         sliding = (isPlayer && r.drifting && r.cornerDrift <= 0) || r.cornerDrift > 0;
       if (offroad && !boosted) base *= 0.6;
       if (r.small > 0) base *= 0.74;
-      if (r.rocket > 0) base *= 1.62;
+      if (r.rocket > 0 || r.charge > 0) base *= 1.62; // rocket and bear's ram
       else if (r.boost > 0) base *= 1.4;
       else if (r.star > 0) base *= 1.25;
       // Bends cost speed unless you drift through them; hard steering scrubs
@@ -1023,6 +1151,13 @@ export class Race {
       base *= 1 - Math.min(0.12, Math.abs(curve) * 2.5) * (sliding ? 0.25 : 1);
       if (isPlayer && !sliding) base *= 1 - CORNER.scrub * Math.abs(r.steer) * clamp(r.speed / 35, 0, 1);
       if (r.stun > 0) base *= 0.25;
+      // The bear's ram always closes on its target, even one boosting away,
+      // so a locked-on charge connects.
+      if (r.charge > 0 && r.stun <= 0) {
+        const t = this.racers[r.chargeTarget];
+        if (t && t.finish === null && this.gap(t.distance, r.distance) > 0)
+          base = Math.max(base, Math.min(t.speed + BEAR_RAM.closing, BEAR_RAM.top));
+      }
       const braking = !throttle || (input.brake && isPlayer);
       if (braking) base = 0;
       // Boosts pull hard toward their top speed; afterwards the kart glides
@@ -1099,6 +1234,18 @@ export class Race {
           this.event("pad", { racer: r.id });
         }
     }
+    // Bear hug: a charging bear that reaches its target alongside (within a
+    // wider reach than an ordinary bump, as a hug would) knocks it.
+    for (const r of this.racers) {
+      if (!(r.charge > 0) || r.chargeTarget === null || r.stun > 0) continue;
+      const t = this.racers[r.chargeTarget];
+      if (!t || t.finish !== null || t.rescue > 0 || t.jump > 0) continue;
+      if (this.contact(t, r, 2.65, BEAR_RAM.reach)) {
+        this.knock(t, r);
+        r.chargeTarget = null;
+        r.charge = Math.min(r.charge, 0.3);
+      }
+    }
     // Kart contact. V2 removed the whole overlap in one step (up to ~0.45 m of
     // instant sideways/forward jump) and clamped the rear kart's speed to the
     // front one's (up to 32 m/s lost in one step), which read as karts
@@ -1135,6 +1282,11 @@ export class Race {
               side = Math.sign(vic.lane - att.lane) || (vic.id % 2 ? 1 : -1),
               pen = Math.sqrt(Math.max(0, 1 - (dx / rx) ** 2)) * ry - Math.abs(dy);
             this.knock(vic, att);
+            // The bear's ram has done its job once it lands on its target.
+            if (att.charge > 0 && att.chargeTarget === vic.id) {
+              att.chargeTarget = null;
+              att.charge = Math.min(att.charge, 0.3);
+            }
             if (!handled.has(i * 8 + j)) {
               handled.add(i * 8 + j); // once per step: a firm shove, never a jump
               vic.lane += side * Math.min(Math.max(0, pen), 0.09);
