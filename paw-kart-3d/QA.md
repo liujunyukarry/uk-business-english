@@ -212,3 +212,43 @@ Chrome's `Emulation.setSafeAreaInsetsOverride` with real inset values, portrait 
 ## Not verified — needs a real phone
 
 Readability of the map and radar at arm's length on the 14 Pro Max; touch feel of the round special button and the N₂O button; sound; frame rate and heat with the map redrawn up to 30 times a second (it copies a cached track layer and draws only the dots).
+
+# v2.5 Verification — 2026-11-04
+
+Build id at the bottom of the pause / help dialogs ("版本 2.5 · <id>"). Same container environment (headless Chrome, CPU renderer for the regression tests, SwiftShader WebGL for screenshots and draw-call counts; no phone).
+
+## What changed and how it was checked
+
+| Request | Change | Evidence |
+|---|---|---|
+| Tap the screen at zero for a start boost (KartRider) | The latest press counts, not a hold through GO. Any touch on the steering halves or the drift button (↑ / Space / Shift on a keyboard). Perfect within 0.3 s before GO or 0.12 s after; good from 0.9 s before to 0.35 s after; earlier, or held from earlier, is no boost and a "按早啦" toast. A tap is latched until the next physics step, so a quick tap between two frames on a slow phone is not lost. In the last 0.9 s a yellow "就是现在！" hint replaces the steering labels | `tests/v25.test.js` (tap 0.2 s before → perfect with its own flames; 0.6 s → good; 0.04 s after → perfect; 0.25 s after → good; 0.5 s after → nothing; early tap → no boost + told; held from 2 s → no boost; early tap then a tap in time → perfect). `tests/e2e/v25.test.js` (a real touch on the right half at 0.2 s → perfect, banner, hint shown with the labels hidden; a touch that starts and ends with no frame in between → still a start; a touch at 2 s → too early, toast). The old "hold when 1 shows" test (`tests/v22.test.js`) still passes |
+| A cooler boost | Every new boost (also one on top of another) fires a shock ring behind the kart, a flame pop and a nose lift (bigger for start / nitro / purple / mushroom / rocket), and lays two light trails from the rear wheels along the road; the camera punch also fires for a boost on top of a boost; the premium bodies' neon and underglow flare up | Screenshots `docs/qa-2.5/start-and-boost.jpg` (WebGL). Trails, ring and flares are off in the CPU renderer (no blending there) |
+| Charging felt slow (集气) | Nitro: 42 per second of drifting (was 32), 8 / 13 / 19 on release (was 6 / 10 / 15), +20 from a slipstream; AI factor 0.9 → 0.72. Special gauge: drift boosts 9 / 13 / 19 (was 6 / 9 / 13), coin 6, landed hit 15, being hit 12, 1.5 per second (was 1.2); AI factor 0.45 → 0.34 | Simulation below: the always-drift bot fires about 10 nitros per speed race (was 7.6) and about 4.5 specials per item race (was about 3); AI stay at about 5–6 nitros and 1 special each |
+| Premium karts to choose | Garage tab 车型 with four bodies: 经典卡丁 (the Kenney kart), 闪电 GT, 喷射火箭, 幻影星舰, each built from merged extrusions / lathes (a handful of draw calls each), with their own exhaust layout, wheels and neon. Small trade-offs (player only): GT top speed +1.5 % / acceleration −12 %; 火箭 boosts +12 % / grip −6 %; 幻影 charging +15 % / grip +8 %. The choice is saved; the lobby preview and the stat bars (▲▼) follow it. AI ride assorted bodies for looks, untuned | `tests/v25.test.js` (tuned copy of the driver, CHARACTERS untouched, AI untuned, jet boost and phantom charge factors), `tests/e2e/v25.test.js` (tab, four rendered thumbnails, choice saved and raced, four wheels and exhaust on every kart, assorted field) |
+
+## Balance (simulation, always-drift bot, 9 races per row, three tracks)
+
+| Body | Item 100cc | Item 150cc | Speed 100cc | Speed 150cc |
+|---|---|---|---|---|
+| 经典卡丁 | 59.0 s · 1.4 | 57.0 s · 3.3 | 56.2 s · 1.1 | 55.8 s · 2.4 |
+| 闪电 GT | 57.2 s · 1.1 | 56.8 s · 3.8 | 55.3 s · 1.0 | 55.5 s · 2.7 |
+| 喷射火箭 | 56.8 s · 1.0 | 57.4 s · 3.3 | 55.8 s · 1.0 | 55.8 s · 3.3 |
+| 幻影星舰 | 57.5 s · 1.1 | 57.0 s · 2.8 | 55.3 s · 1.0 | 55.4 s · 2.2 |
+
+(time · average place). A first tuning made 闪电 GT and 喷射火箭 2 s faster than the classic in speed races and nitro too plentiful (12–15 a race, 150cc speed races won every time); both were toned down to the table above. Hits on the player stay at 3–4.5 per item race.
+
+## Draw calls
+
+WebGL, 932×430, high quality: about 500–545 per frame with assorted bodies in the field (v2.4: about 410 with classic karts only); the premium bodies merge their parts per material and their wheels use two materials.
+
+## Mobile layout audit (emulated safe areas)
+
+Same nine devices and safe areas as v2.4, portrait and landscape: home with the 车手 tab and with the 车型 tab (four kart cards), item race HUD (special ready, lock badge, radar), pause, speed race HUD, settings. Fixed on the way: the garage tabs and cards under the home indicator on notched iPhones (portrait), a radar chip touching the drift button (13 mini landscape). Also fixed, outside the audit: on laptop-height desktops (≤ 800 px tall) the hero blurb ran under the setup panel, and in landscape the three race-mode buttons wrapped onto two lines. Result: no issues on any device. `docs/qa-2.5/garage-karts.jpg` shows the 车型 tab on the 14 Pro Max in both orientations.
+
+## Tests and play
+
+`npm test` 78/78 and `npm run test:e2e` 35/35 on the final build (screen acceleration p95 0.13 NDC/s²). Real-time touch playthroughs to the results screen on the final build, starting with a real tap on a steering half: 430×932 星光云端公路 150cc item race with 小金毛 on 喷射火箭 (good start, 2nd, 60.5 s, 19 items, 4 specials, 10 drift boosts, hit 4 times) and 932×430 花田晴空环线 100cc speed race with 薄荷熊 on 经典卡丁 (1st, 54.5 s, 10 nitros, 12 drift boosts, 2 slipstreams; AI 4–6 nitros). Earlier v2.5 builds: 430×932 item race on 闪电 GT (good start, 3rd) and 932×430 speed race on 幻影星舰 (1st, 16 nitros). No page errors in any run. In this test browser a frame takes up to a quarter of a second, so a tap timed in real time can miss the 1.25 s start window; the e2e tests hold race time still while the finger lands.
+
+## Not verified — needs a real phone
+
+The start-boost timing feel on the 14 Pro Max (60 / 120 Hz), how the light trails and neon read on the phone screen, touch feel of the garage tabs, frame rate and heat with the premium bodies.
