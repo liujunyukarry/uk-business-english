@@ -47,7 +47,9 @@ test("no kart jumps: per-step motion stays continuous outside item hits and resc
         }),
       );
   // V2: 0.44 m sideways, 0.40 m along-track and 31.9 m/s in a single 1/60 s step.
-  assert(worstLane < 0.3, `sideways step ${worstLane.toFixed(3)} m`);
+  // v2.3 bends push karts wide (up to 12 m/s of slide, 0.2 m a step) and a
+  // side contact can add up to 0.135 m of correction on top: 0.35 m.
+  assert(worstLane < 0.35, `sideways step ${worstLane.toFixed(3)} m`);
   assert(worstAlong < 0.15, `along-track correction ${worstAlong.toFixed(3)} m`);
   assert(worstSpeed < 12, `speed change ${worstSpeed.toFixed(1)} m/s in one step`);
 });

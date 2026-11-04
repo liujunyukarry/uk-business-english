@@ -1,15 +1,17 @@
 import * as T from "./vendor/three.module.js";
 import { RoomEnvironment } from "./vendor/RoomEnvironment.js";
-import { Race, Track, TRACKS, CHARACTERS, ITEMS, DRIFT, driftLevel, clamp } from "./race.js?v=da391d9a";
+import { Race, Track, TRACKS, CHARACTERS, ITEMS, SPECIALS, DRIFT, driftLevel, clamp } from "./race.js?v=5250c1b5";
 import {
   createKart,
   animateKart,
   createWorld,
   createLobby,
-  makeItemBox,
-  makeCoin,
+  itemBoxField,
+  coinField,
   makeBanana,
   makeShell,
+  makeFireball,
+  makeMeteor,
   updateBoxShimmer,
   kartMood,
   setKartFade,
@@ -18,10 +20,10 @@ import {
   box,
   mat,
   label,
-} from "./art.js?v=da391d9a";
-import { KartAudio } from "./audio.js?v=da391d9a";
-import { bindTouchControls, CONTROLS } from "./input.js?v=da391d9a";
-import { SoftwareRenderer } from "./software-renderer.js?v=da391d9a";
+} from "./art.js?v=5250c1b5";
+import { KartAudio } from "./audio.js?v=5250c1b5";
+import { bindTouchControls, CONTROLS } from "./input.js?v=5250c1b5";
+import { SoftwareRenderer } from "./software-renderer.js?v=5250c1b5";
 // Build id stamped by tools/stamp.mjs; shown in the pause and help dialogs so
 // a tester can tell exactly which version is running.
 const BUILD = document.querySelector('meta[name="paw-build"]')?.content || "dev";
@@ -126,6 +128,8 @@ let world = null,
   cars = [],
   pickupMeshes = [],
   coinMeshes = [],
+  boxField = null,
+  coins = null,
   dynamicMeshes = new Map(),
   mode = "home",
   raceMode = "single",
@@ -397,6 +401,84 @@ function kartVelocity(r) {
   const s = race.track.sample(r.distance);
   return s.t.clone().multiplyScalar(r.speed * 0.92);
 }
+// Item-box shards: little rainbow cubes that fly apart and tumble when a box
+// is taken (the "you got it" moment), carried along with the kart.
+const shards = [],
+  shardMesh = new T.InstancedMesh(
+    new T.BoxGeometry(0.3, 0.3, 0.3),
+    new T.MeshStandardMaterial({ roughness: 0.25, metalness: 0.1, transparent: true, opacity: 0.85 }),
+    120,
+  ),
+  shardColour = new T.Color(),
+  shardQ = new T.Quaternion(),
+  shardAxis = new T.Vector3();
+shardMesh.instanceMatrix.setUsage(T.DynamicDrawUsage);
+shardMesh.frustumCulled = false;
+shardMesh.count = 0;
+scene.add(shardMesh);
+function shatter(at, n, carry = null) {
+  for (let i = 0; i < n && shards.length < 120; i++) {
+    const v = new T.Vector3((Math.random() - 0.5) * 9, 3 + Math.random() * 6, (Math.random() - 0.5) * 9);
+    if (carry) v.addScaledVector(carry, 0.85);
+    shards.push({
+      p: at.clone(),
+      v,
+      axis: new T.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize(),
+      spin: 6 + Math.random() * 10,
+      angle: 0,
+      life: 0.7 + Math.random() * 0.4,
+      hue: Math.random(),
+    });
+  }
+}
+function shardUpdate(dt) {
+  const drag = Math.exp(-dt * 1.6);
+  for (let i = shards.length - 1; i >= 0; i--) {
+    const s = shards[i];
+    s.life -= dt;
+    if (s.life <= 0) {
+      shards.splice(i, 1);
+      continue;
+    }
+    s.v.multiplyScalar(drag);
+    s.v.y -= dt * 14;
+    s.p.addScaledVector(s.v, dt);
+    s.angle += s.spin * dt;
+  }
+  shards.forEach((s, i) => {
+    dummy.position.copy(s.p);
+    dummy.quaternion.copy(shardQ.setFromAxisAngle(shardAxis.copy(s.axis), s.angle));
+    const lens = clamp((s.p.distanceTo(camera.position) - 2.5) / 3, 0, 1);
+    dummy.scale.setScalar(Math.min(1, s.life * 2.5) * lens);
+    dummy.updateMatrix();
+    shardMesh.setMatrixAt(i, dummy.matrix);
+    shardMesh.setColorAt(i, shardColour.setHSL((s.hue + clock * 0.3) % 1, 0.8, 0.65));
+  });
+  dummy.quaternion.identity();
+  shardMesh.count = shards.length;
+  shardMesh.instanceMatrix.needsUpdate = true;
+  if (shardMesh.instanceColor) shardMesh.instanceColor.needsUpdate = true;
+}
+// Special cut-in, KartRider style: the driver's name and the move slide in.
+const cutInEl = document.createElement("div");
+cutInEl.id = "cutin";
+cutInEl.setAttribute("aria-hidden", "true");
+document.body.append(cutInEl);
+function cutIn(racer, sp) {
+  cutInEl.innerHTML = "";
+  const icon = document.createElement("span"),
+    text = document.createElement("b"),
+    who = document.createElement("small");
+  icon.textContent = sp.icon;
+  text.textContent = sp.name;
+  who.textContent = racer.name + " · 必杀技";
+  cutInEl.append(icon, text, who);
+  cutInEl.style.setProperty("--accent", racer.character.color);
+  cutInEl.classList.remove("on");
+  void cutInEl.offsetWidth;
+  if (!save.reduced) cutInEl.classList.add("on");
+  else banner(sp.icon + " " + sp.name, racer.name, 1.2);
+}
 function particleUpdate(dt) {
   const drag = Math.exp(-dt * 2.2);
   for (let i = particles.length - 1; i >= 0; i--) {
@@ -439,6 +521,7 @@ function clearRace() {
   pickupMeshes = [];
   coinMeshes = [];
   particles.length = 0;
+  shards.length = 0;
 }
 function startRace(trackIndex = save.track) {
   inputClear();
@@ -477,22 +560,26 @@ function startRace(trackIndex = save.track) {
     raceGroup.add(k);
     return k;
   });
+  // Boxes and coins are drawn as instanced meshes; these placeholders hold
+  // each one's position and pop / regrow state.
+  boxField = itemBoxField(race.boxes.length);
+  raceGroup.add(boxField.group);
   pickupMeshes = race.boxes.map((b) => {
-    const mesh = makeItemBox(),
+    const o = new T.Object3D(),
       s = race.track.sample(b.distance, b.lane);
-    mesh.position.copy(s.p);
-    mesh.position.y += 1.6;
-    mesh.userData.baseY = mesh.position.y;
-    raceGroup.add(mesh);
-    return mesh;
+    o.position.copy(s.p);
+    o.position.y += 1.6;
+    o.userData.baseY = o.position.y;
+    return o;
   });
+  coins = coinField(race.coins.length);
+  raceGroup.add(coins.group);
   coinMeshes = race.coins.map((c) => {
-    const mesh = makeCoin(),
+    const o = new T.Object3D(),
       s = race.track.sample(c.distance, c.lane);
-    mesh.position.copy(s.p);
-    mesh.position.y += 0.95;
-    raceGroup.add(mesh);
-    return mesh;
+    o.position.copy(s.p);
+    o.position.y += 0.95;
+    return o;
   });
   for (const pad of race.pads) {
     const s = race.track.sample(pad.distance, pad.lane),
@@ -520,6 +607,7 @@ function startRace(trackIndex = save.track) {
     ? "PAW CUP · 第 " + (cup.round + 1) + " / 3 站"
     : "QUICK RACE · " + { easy: "50", normal: "100", hard: "150" }[save.difficulty] + "cc";
   $("item-key").textContent = touchLayout() ? "点击使用" : "SPACE";
+  $("special-key").textContent = touchLayout() ? "满了点我" : "E 键";
   show("accelerate", !save.autoGas);
   document.body.classList.toggle("manual-gas", !save.autoGas);
   show("countdown", true);
@@ -579,7 +667,7 @@ function pause() {
   inputClear();
   show("countdown", false);
   modal(
-    '<span class="dialog-eyebrow">A LITTLE PIT STOP</span><h2>进站，歇一会儿。</h2><p>比赛已暂停。准备好了，继续向终点出发。</p><div class="dialog-actions"><button class="primary" id="resume">继续比赛</button><button class="secondary" id="restart">重新开始</button></div><div class="dialog-actions"><button class="secondary" id="race-settings">驾驶设置</button><button class="secondary" id="home">返回车库</button></div><div class="modal-footer">版本 2.2 · ' + BUILD + '</div>',
+    '<span class="dialog-eyebrow">A LITTLE PIT STOP</span><h2>进站，歇一会儿。</h2><p>比赛已暂停。准备好了，继续向终点出发。</p><div class="dialog-actions"><button class="primary" id="resume">继续比赛</button><button class="secondary" id="restart">重新开始</button></div><div class="dialog-actions"><button class="secondary" id="race-settings">驾驶设置</button><button class="secondary" id="home">返回车库</button></div><div class="modal-footer">版本 2.3 · ' + BUILD + '</div>',
   );
   $("resume").onclick = resume;
   $("restart").onclick = () => startRace(race.track.index);
@@ -604,11 +692,11 @@ $("pause").addEventListener("pointerup", (e) => {
 function help() {
   if (mode === "race") pause();
   modal(
-    '<button class="dialog-close" id="close-dialog" aria-label="关闭">×</button><span class="dialog-eyebrow">YOUR FIRST LAP</span><h2>快乐超车，从这里开始。</h2><p>默认自动油门，专心转向和使用道具。跑完三圈即冲线，杯赛累积三站积分。</p><div class="help-grid"><div><b>01 / 转向</b><p>手机：按住屏幕左半边左转，右半边右转，两边都按时以后按的为准。键盘 ← → 或 A / D。</p></div><div><b>02 / 漂移</b><p>手机：弯道里按住方向会自动漂移，火花变蓝、橙、紫后松开，冲刺一次比一次猛。也可以按住漂移键手动漂移；键盘用 Shift。</p></div><div><b>03 / 道具</b><p>撞进问号箱抽道具，点道具框（键盘空格）使用。问号箱每人一份，前面的车吃过你照样能吃；越落后道具越强，最后几名还可能抽到火箭。</p></div><div><b>04 / 起步与加速</b><p>倒计时到「1」时按住漂移键，起步加速。金币略微提高极速，踩加速带冲刺，受击后有短暂无敌保护。</p></div></div><div class="help-items">' +
+    '<button class="dialog-close" id="close-dialog" aria-label="关闭">×</button><span class="dialog-eyebrow">YOUR FIRST LAP</span><h2>快乐超车，从这里开始。</h2><p>默认自动油门，专心转向和使用道具。跑完三圈即冲线，杯赛累积三站积分。</p><div class="help-grid"><div><b>01 / 转向与过弯</b><p>手机：按住屏幕左半边左转，右半边右转。急弯会把车往外甩，只靠方向会掉速、贴外侧，漂移过弯更快。键盘 ← → 或 A / D。</p></div><div><b>02 / 漂移</b><p>手机：进弯按住方向就会漂移，一直按着保持，火花变蓝、橙、紫后松开，冲刺一次比一次猛；也可以点一下漂移键开始。键盘：转向时按住 Shift。</p></div><div><b>03 / 道具（两个槽）</b><p>撞碎问号箱抽道具，最多存两个，点道具框（键盘空格）使用。问号箱每人一份；越落后道具越强，最后几名还可能抽到火箭。</p></div><div><b>04 / 必杀技</b><p>每位车手都有专属必杀技。漂移加速、吃金币、打中对手都会给必杀槽充能，满了点必杀键（键盘 E）释放。倒计时到「1」时按住漂移键可以起步加速。</p></div></div><div class="help-items">' +
       Object.entries(ITEMS)
         .map(([k, v]) => "<div><span>" + v.icon + "</span><b>" + v.name + "</b>" + v.desc + "</div>")
         .join("") +
-      '</div><p>关闭自动油门后：W / ↑ 或屏幕油门键加速，S / ↓ 刹车。P / Esc 暂停；切换应用会自动暂停。</p><div class="dialog-actions sticky-actions"><button id="got-it" class="primary">准备好啦</button></div><div class="modal-footer">非官方同人作品 · 角色造型参考，原创赛道与音乐 · 版本 2.2 · ' + BUILD + '</div>',
+      '</div><p>关闭自动油门后：W / ↑ 或屏幕油门键加速，S / ↓ 刹车。P / Esc 暂停；切换应用会自动暂停。</p><div class="dialog-actions sticky-actions"><button id="got-it" class="primary">准备好啦</button></div><div class="modal-footer">非官方同人作品 · 角色造型参考，原创赛道与音乐 · 版本 2.3 · ' + BUILD + '</div>',
   );
   $("got-it").onclick = closeModal;
   $("close-dialog").onclick = closeModal;
@@ -624,7 +712,7 @@ function settings() {
     '<button class="dialog-close" id="close-dialog" aria-label="关闭">×</button><span class="dialog-eyebrow">MAKE YOURSELF COMFORTABLE</span><h2>按你的节奏来。</h2>' +
       [
         ["autoGas", "自动油门", "推荐开启，只管转向和漂移"],
-        ["autoDrift", "弯道自动漂移", "弯道里按住方向就会漂移，松手加速"],
+        ["autoDrift", "弯道自动漂移", "进弯按住方向就会漂移，按着保持，松开加速"],
         ["assist", "辅助转向", "在赛道边缘轻轻帮你一把"],
         ["reduced", "减少镜头变化", "关闭冲刺镜头拉远和屏幕光效"],
       ]
@@ -688,6 +776,15 @@ function useItem() {
     updateHUD();
   }
 }
+function useSpecial() {
+  if (mode !== "race" || resumeTimer > 0 || race.phase !== "racing") return;
+  const p = race.player;
+  if (!race.useSpecial()) notify("必杀槽 " + Math.floor(p.special) + "% · 漂移、吃金币、打中对手都能加速充能", 1.6);
+  else {
+    processEvents();
+    updateHUD();
+  }
+}
 const controls = bindTouchControls({
   root: $("touch-controls"),
   buttons: Object.fromEntries(
@@ -700,6 +797,8 @@ const controls = bindTouchControls({
   },
   itemButton: $("item-button"),
   onItem: useItem,
+  specialButton: $("special-button"),
+  onSpecial: useSpecial,
 });
 addEventListener("keydown", (e) => {
   if (
@@ -719,6 +818,7 @@ addEventListener("keydown", (e) => {
   if (mode !== "race") return;
   keys.add(e.code);
   if (e.code === "Space" && !e.repeat) useItem();
+  if (e.code === "KeyE" && !e.repeat) useSpecial();
 });
 addEventListener("keyup", (e) => keys.delete(e.code));
 // Leaving the page in any way releases every key and finger.
@@ -792,7 +892,16 @@ function processEvents() {
   for (const e of race.events) {
     if (e.racer === 0 || e.type === "go") {
       audio.cue(e.type, e);
-      if (e.type === "pickup") notify(touchLayout() ? "获得道具！点道具框使用" : "获得道具！按空格使用", 1.6);
+      if (e.type === "pickup") {
+        $("item-button").classList.remove("got");
+        void $("item-button").offsetWidth;
+        $("item-button").classList.add("got");
+        if (race.player.itemsUsed === 0 && e.slot === 1) notify(touchLayout() ? "获得道具！点道具框使用" : "获得道具！按空格使用", 1.6);
+      }
+      if (e.type === "specialReady") {
+        notify(SPECIALS[race.player.character.id].icon + " 必杀技就绪！" + (touchLayout() ? "点必杀键释放" : "按 E 释放"), 1.6);
+      }
+      if (e.type === "dash") burst(cars[0].position.clone().add(new T.Vector3(0, 1, 0)), 14, 0xffd36b, kartVelocity(race.player));
       if (e.type === "item") {
         notify(ITEMS[e.item].icon + " " + ITEMS[e.item].name + "！", 1.3);
         if (e.item === "bolt") burst(cars[0].position.clone().add(new T.Vector3(0, 2, 0)), 25, 0xffec8c, kartVelocity(race.player));
@@ -857,14 +966,37 @@ function processEvents() {
       burst(at, 14, 0xffe0a6, kartVelocity(race.racers.find((r) => Math.abs(r.distance - e.distance) < 0.01) || race.player));
       if (near(e.distance, 40)) audio.cue("pop");
     }
-    if (e.type === "pickup" && e.box != null) {
+    if ((e.type === "pickup" || e.type === "boxBreak") && e.box != null) {
       const i = race.boxes.findIndex((b) => b.id === e.box);
       if (i >= 0 && near(race.boxes[i].distance, 60)) {
-        burst(pickupMeshes[i].position, e.racer === 0 ? 16 : 7, e.racer === 0 ? 0xbff3ff : 0xffffff);
+        // The box bursts into rainbow shards; yours flies apart bigger.
+        const mine = e.racer === 0;
+        shatter(pickupMeshes[i].position, mine ? 14 : 7, mine ? kartVelocity(race.player) : null);
+        burst(pickupMeshes[i].position, mine ? 10 : 4, 0xffffff);
         // Someone else's pickup: the box pops and regrows at once (it is
         // still there for you; boxes are per racer).
-        if (e.racer !== 0) pickupMeshes[i].userData.pop = 0;
+        if (!mine) pickupMeshes[i].userData.pop = 0;
       }
+    }
+    if (e.type === "special") {
+      const who = race.racers[e.racer],
+        sp = SPECIALS[e.kind];
+      if (e.racer === 0) {
+        cutIn(who, sp); // (its sound plays with the player's other events above)
+        burst(cars[0].position.clone().add(new T.Vector3(0, 1.6, 0)), 30, new T.Color(who.character.color).getHex(), kartVelocity(who));
+      } else if (near(who.distance, 60)) {
+        notify(sp.icon + " " + who.name + " · " + sp.name + "！", 1.2);
+        audio.cue("specialFar");
+      }
+      if (e.kind === "bear" && who.chargeTarget === 0 && e.racer !== 0) notify("⚠ " + who.name + "冲过来了！快躲开", 1.6);
+      if (e.kind === "nova" && e.racer !== 0 && race.meteors.some((m) => m.target === 0)) notify("☄ 流星来袭！", 1.4);
+    }
+    if (e.type === "meteor" && near(e.distance, 90)) {
+      const at = race.track.sample(e.distance, e.lane).p.add(new T.Vector3(0, 0.6, 0));
+      burst(at, 22, 0xff8a3a);
+      burst(at, 10, 0xffe08a);
+      if (e.racer !== 0) audio.cue("meteor");
+      else cam.shake = save.reduced ? 0 : 1;
     }
     if (e.type === "coin" && e.racer !== 0 && e.coin != null) {
       const i = race.coins.findIndex((c) => c.id === e.coin);
@@ -933,8 +1065,10 @@ function showResult() {
       timeText(p.finish) +
       "</b></div><div><small>漂移加速</small><b>" +
       p.drifts +
-      " 次</b></div><div><small>使用道具</small><b>" +
+      " 次</b></div><div><small>道具 · 必杀</small><b>" +
       p.itemsUsed +
+      " · " +
+      p.specialsUsed +
       ' 次</b></div></div><table class="result-table"><tbody>' +
       (finalCup ? overall : standings)
         .map(
@@ -991,6 +1125,18 @@ function updateHUD() {
   $("item-icon").textContent = item ? ITEMS[item].icon : "?";
   $("item-name").textContent = p.roulette > 0 ? "惊喜抽取中…" : item ? ITEMS[item].name : "寻找道具箱";
   $("item-button").classList.toggle("ready", !!p.item && p.roulette === 0);
+  $("item-button").classList.toggle("spinning", p.roulette > 0);
+  const next = p.roulette2 > 0 ? itemKeys[Math.floor(clock * 14 + 3) % itemKeys.length] : p.item2;
+  $("item-next").textContent = next ? ITEMS[next].icon : "";
+  $("item-next").classList.toggle("on", !!next);
+  const sp = SPECIALS[p.character.id],
+    sb = $("special-button");
+  $("special-icon").textContent = sp.icon;
+  $("special-name").textContent = p.special >= 100 ? sp.name : "必杀 " + Math.floor(p.special) + "%";
+  sb.style.setProperty("--gauge", Math.floor(p.special) + "%");
+  sb.style.setProperty("--accent", p.character.color);
+  sb.classList.toggle("ready", p.special >= 100 && race.phase === "racing");
+  sb.setAttribute("aria-label", p.special >= 100 ? "释放必杀技：" + sp.name : "必杀技充能 " + Math.floor(p.special) + "%");
   $("item-button").setAttribute(
     "aria-label",
     p.item ? "使用" + ITEMS[p.item].name : "道具槽为空，寻找问号箱",
@@ -1002,12 +1148,12 @@ function updateHUD() {
   fill.style.boxShadow = "0 0 9px " + DRIFT_COLOURS[level];
   $("drift-label").textContent =
     level > 0
-      ? (p.driftAuto ? "松开方向！" : "松手！") + "释放" + ["", "蓝色", "橙色超级", "紫色完美"][level] + "加速"
+      ? (p.driftAuto || save.autoDrift ? "松开方向！" : "松手！") + "释放" + ["", "蓝色", "橙色超级", "紫色完美"][level] + "加速"
       : p.drifting
         ? "保持住，火花变色就能加速"
         : touchLayout()
           ? save.autoDrift
-            ? "弯道里按住方向自动漂移 · 松开加速"
+            ? "进弯按住方向就会漂移 · 按着保持 · 松开加速"
             : "转向时按住漂移键 · 松手加速"
           : "按住 Shift 转向漂移 · 松手加速";
   const incoming = race.projectiles.some(
@@ -1284,7 +1430,10 @@ function renderRace(dt) {
       s = race.track.sample(at.d, at.l),
       k = cars[i];
     k.position.copy(s.p);
-    k.position.y += 0.08 + (r.rescue > 0 ? Math.sin((r.rescue / 1.1) * Math.PI) * 2 : 0);
+    k.position.y +=
+      0.08 +
+      (r.rescue > 0 ? Math.sin((r.rescue / 1.1) * Math.PI) * 2 : 0) +
+      (r.jump > 0 ? Math.sin((1 - r.jump / 1.6) * Math.PI) * 2.6 : 0); // bunny's big hop
     k.rotation.set(-Math.asin(s.t.y), s.yaw, 0, "YXZ");
     // Invincibility blink, as before; karts are never hidden for being close.
     k.visible = r.id === 0 || (r.invincible > 0 && r.star <= 0 && r.stun <= 0 ? Math.floor(clock * 10) % 5 !== 0 : true);
@@ -1342,11 +1491,14 @@ function renderRace(dt) {
     if (dt > 0) u.pop = Math.min(1, (u.pop ?? 1) + dt * 2.4);
     const grow = mine ? backOut(u.pop) : 0;
     m.visible = grow > 0.02;
-    m.scale.setScalar(Math.max(0.02, grow));
+    m.scale.setScalar(m.visible ? grow : 0);
     m.rotation.y = clock * 0.8 + i;
     m.rotation.z = Math.sin(clock * 1.3 + i) * 0.12;
     m.position.y = u.baseY + Math.sin(clock * 2 + i) * 0.15;
+    m.updateMatrix();
+    boxField.set(i, m.matrix);
   });
+  boxField.commit();
   updateBoxShimmer(clock);
   coinMeshes.forEach((m, i) => {
     const c = race.coins[i],
@@ -1357,24 +1509,50 @@ function renderRace(dt) {
     if (dt > 0) u.pop = Math.min(1, (u.pop ?? 1) + dt * 3);
     const grow = mine ? backOut(u.pop) : 0;
     m.visible = grow > 0.02;
-    m.scale.setScalar(Math.max(0.02, grow));
+    m.scale.setScalar(m.visible ? grow : 0);
     m.rotation.y = clock * 2 + i;
+    m.updateMatrix();
+    coins.set(i, m.matrix);
   });
+  coins.commit();
   const live = new Set();
   for (const item of [
     ...race.hazards.map((x) => ({ ...x, type: "banana" })),
-    ...race.projectiles.map((x) => ({ ...x, type: "shell" })),
+    ...race.projectiles.map((x) => ({ ...x, type: x.kind === "fire" ? "fire" : "shell" })),
   ]) {
     live.add(item.id);
     let mesh = dynamicMeshes.get(item.id);
     if (!mesh) {
-      mesh = item.type === "banana" ? makeBanana() : makeShell();
+      mesh = item.type === "banana" ? makeBanana() : item.type === "fire" ? makeFireball() : makeShell();
       dynamicMeshes.set(item.id, mesh);
       raceGroup.add(mesh);
     }
     mesh.position.copy(race.track.sample(item.distance, item.lane).p);
-    mesh.position.y += 0.12;
-    mesh.rotation.y = clock * (item.type === "shell" ? 8 : 1);
+    mesh.position.y += item.type === "fire" ? 0.75 + Math.abs(Math.sin(clock * 9 + item.id)) * 0.6 : 0.12;
+    mesh.rotation.y = clock * (item.type === "banana" ? 1 : 8);
+    if (item.type === "fire" && dt > 0 && Math.random() < dt * 30) spark(mesh.position, Math.random() < 0.5 ? 0xff7a1a : 0xffd65a, 0, null);
+  }
+  // Meteors: a warning ring on the target, the rock falling onto it.
+  for (const m of race.meteors) {
+    const t = race.racers[m.target];
+    if (!t) continue;
+    live.add(m.id);
+    let mesh = dynamicMeshes.get(m.id);
+    if (!mesh) {
+      mesh = makeMeteor();
+      dynamicMeshes.set(m.id, mesh);
+      raceGroup.add(mesh);
+    }
+    const at = shown(t, m.target),
+      p0 = race.track.sample(at.d, at.l).p;
+    mesh.position.copy(p0);
+    mesh.userData.ring.position.y = 0.1;
+    mesh.userData.rock.position.set(0, 1 + m.t * 34, -m.t * 10);
+    mesh.userData.ring.scale.setScalar(1.6 + Math.sin(clock * 12) * 0.15);
+    if (dt > 0 && Math.random() < dt * 40) {
+      mesh.userData.rock.getWorldPosition(wheelWorld);
+      spark(wheelWorld, 0xff9a3a, 0, null);
+    }
   }
   for (const [id, m] of dynamicMeshes)
     if (!live.has(id)) {
@@ -1429,8 +1607,13 @@ function renderRace(dt) {
     }
     const now = k.userData.fade ?? 1,
       next = dt > 0 ? easeTo(now, target, 10, dt) : now;
-    if (renderer.software) k.visible = k.visible && next > 0.5;
-    else setKartFade(k, next);
+    if (renderer.software) {
+      // CPU renderer: no dissolve, so hide below half. Keep the eased value
+      // (V2.2 recomputed it from 1 every frame, so a kart flickered with the
+      // frame time instead of fading once).
+      k.userData.fade = next;
+      k.visible = k.visible && next > 0.5;
+    } else setKartFade(k, next);
   }
   sun.position.copy(s.p).add(new T.Vector3(-22, 46, 24));
   sun.target.position.copy(s.p);
@@ -1527,6 +1710,7 @@ function frame(now) {
     }
   }
   particleUpdate(mode === "paused" ? 0 : dt);
+  shardUpdate(mode === "paused" ? 0 : dt);
   const pl = race?.player;
   audio.update(pl?.speed || 0, mode === "race" && race.phase === "racing" && resumeTimer <= 0, {
     boost: !!pl && (pl.boost > 0 || pl.star > 0 || pl.rocket > 0),

@@ -112,6 +112,7 @@ header {
   font-weight: 800;
   font-size: 19px;
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .round:hover {
   background: #fff5dc;
@@ -348,6 +349,7 @@ header {
   background: #fbfaf1de;
   border-top: 1px solid #fffdf2;
   backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   z-index: 4;
 }
 .garage-title {
@@ -586,6 +588,7 @@ header {
   background: #294e413d;
   border-radius: 5px;
   backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 .ranking div.me {
   background: #fff4c7;
@@ -610,6 +613,7 @@ header {
   height: 156px;
   background: #294b3a26;
   backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
   border: 1px solid #ffffff35;
   border-radius: 20px;
 }
@@ -680,6 +684,7 @@ kbd {
   border: 2px solid #fff9e3ad;
   background: #344c4c76;
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: white;
   pointer-events: auto;
   text-shadow: none;
@@ -728,6 +733,7 @@ kbd {
   background: #fff9e9b8;
   border: 1px solid #fff3cbbf;
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: #385344;
   box-shadow: 0 4px 0 #37534433;
 }
@@ -888,6 +894,7 @@ dialog {
 dialog::backdrop {
   background: #203a3a66;
   backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
 }
 .dialog-eyebrow {
   font-size: 9px;
@@ -1704,6 +1711,7 @@ dialog p {
   header {
     background: #e3ede085;
     backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
   .setup {
     background: #e2ebd7bb;
@@ -2033,7 +2041,7 @@ button {
   /* "Tap here" coaching, shown during the countdown only. */
   .zone span {
     position: absolute;
-    top: 46%;
+    top: 36%;
     left: 50%;
     transform: translate(-50%, -50%);
     padding: 9px 14px;
@@ -2225,4 +2233,327 @@ button {
 #status-effect,
 #hit-vignette {
   pointer-events: none;
+}
+
+/* ------------------------------------------------------------------------
+   v2.3: special (必杀技) button with its gauge ring, the second item slot,
+   item pickup pop, and the special cut-in.
+   ------------------------------------------------------------------------ */
+.special-slot {
+  position: absolute;
+  right: 32px;
+  top: 232px;
+  width: 110px;
+  height: 84px;
+  border-radius: 22px;
+  border: 2px solid #fff9e3ad;
+  background: #344c4c76;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #fff;
+  pointer-events: auto;
+  touch-action: none;
+  padding: 8px 6px;
+  z-index: 3;
+  box-shadow: 0 5px 0 #273b393d;
+  --gauge: 0%;
+  --accent: #eeae55;
+  overflow: hidden;
+  isolation: isolate;
+}
+/* Gauge: fills from the bottom in the driver's colour. */
+.special-slot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(to top, var(--accent) var(--gauge), transparent var(--gauge));
+  opacity: 0.55;
+}
+.special-slot > span {
+  display: block;
+  font-size: 30px;
+  line-height: 1;
+  filter: grayscale(0.6);
+  opacity: 0.75;
+}
+.special-slot b {
+  display: block;
+  font-size: 10px;
+  margin-top: 6px;
+  white-space: nowrap;
+}
+.special-slot small {
+  display: block;
+  font-size: 8px;
+  opacity: 0.7;
+  margin-top: 3px;
+  letter-spacing: 1px;
+}
+.special-slot.ready {
+  background: #fff5d9;
+  color: #3e4f45;
+  border-color: var(--accent);
+  animation: special-ready 0.9s ease-in-out infinite;
+}
+.special-slot.ready::before {
+  opacity: 0.35;
+}
+.special-slot.ready > span {
+  filter: none;
+  opacity: 1;
+}
+@keyframes special-ready {
+  0%,
+  100% {
+    box-shadow:
+      0 5px 0 #273b393d,
+      0 0 0 0 var(--accent);
+  }
+  50% {
+    box-shadow:
+      0 5px 0 #273b393d,
+      0 0 0 7px color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+}
+/* Second item slot: a small badge on the item frame. */
+#item-next {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #fff8e2;
+  border: 2px solid #e2b969;
+  font-style: normal;
+  font-size: 19px;
+  line-height: 30px;
+  text-align: center;
+  box-shadow: 0 3px 0 #273b393d;
+  transform: scale(0);
+  transition: transform 0.2s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+#item-next.on {
+  transform: scale(1);
+}
+.item-slot {
+  overflow: visible;
+}
+.item-slot.spinning > span {
+  animation: reel 0.12s linear infinite;
+}
+@keyframes reel {
+  0% {
+    transform: translateY(-6px);
+    filter: blur(1.5px);
+  }
+  100% {
+    transform: translateY(6px);
+    filter: blur(1.5px);
+  }
+}
+.item-slot.got {
+  animation: got-item 0.45s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+@keyframes got-item {
+  0% {
+    transform: scale(1.28);
+    box-shadow: 0 0 0 10px #fff3b0aa;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+/* Special cut-in band. */
+#cutin {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 24%;
+  z-index: 7;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 14px 20px;
+  background: linear-gradient(90deg, transparent, var(--accent, #eeae55) 18%, var(--accent, #eeae55) 82%, transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent, #eeae55) 88%, #fff) 18%, var(--accent, #eeae55) 82%, transparent);
+  color: #fffdf3;
+  text-shadow: 0 2px 0 #00000040;
+  transform: translateX(-120%) skewX(-12deg);
+  opacity: 0;
+}
+#cutin span {
+  font-size: 46px;
+  line-height: 1;
+}
+#cutin b {
+  font-size: 30px;
+  font-style: italic;
+  font-weight: 950;
+  letter-spacing: 2px;
+}
+#cutin small {
+  font-size: 12px;
+  font-weight: 800;
+  opacity: 0.9;
+}
+#cutin.on {
+  animation: cut-in 1.3s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+@keyframes cut-in {
+  0% {
+    transform: translateX(-120%) skewX(-12deg);
+    opacity: 1;
+  }
+  16%,
+  78% {
+    transform: translateX(0) skewX(-12deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(120%) skewX(-12deg);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .special-slot.ready,
+  .item-slot.spinning > span,
+  .item-slot.got {
+    animation: none;
+  }
+}
+/* Touch layouts: the special sits opposite the item frame in portrait, and
+   just above it in landscape. */
+@media (orientation: portrait) and (pointer: coarse), (orientation: portrait) and (max-width: 900px) {
+  .special-slot {
+    right: auto;
+    top: auto;
+    left: max(14px, env(safe-area-inset-left));
+    bottom: 33%;
+    width: 86px;
+    height: 90px;
+  }
+  #accelerate {
+    bottom: calc(33% + 104px);
+  }
+  #cutin b {
+    font-size: 24px;
+  }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .special-slot {
+    right: auto;
+    top: auto;
+    left: max(150px, calc(env(safe-area-inset-left) + 132px));
+    bottom: calc(max(12px, env(safe-area-inset-bottom)) + 92px);
+    width: 76px;
+    height: 70px;
+    padding: 5px 4px;
+  }
+  .special-slot > span {
+    font-size: 24px;
+  }
+  .special-slot b {
+    font-size: 9px;
+    margin-top: 4px;
+  }
+  .special-slot small {
+    display: none;
+  }
+  #cutin {
+    top: 18%;
+  }
+}
+/* Landscape, revised for v2.3: the thumbs rest low on each half, so the item,
+   special and drift buttons move up out of their way (item and special top
+   left, drift top right) and the lower part of both halves is all steering. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .item-slot {
+    left: max(104px, calc(env(safe-area-inset-left) + 92px));
+    top: calc(max(12px, env(safe-area-inset-top)) + 64px);
+    bottom: auto;
+  }
+  .special-slot {
+    left: max(20px, calc(env(safe-area-inset-left) + 8px));
+    top: calc(max(12px, env(safe-area-inset-top)) + 64px);
+    bottom: auto;
+  }
+  #drift-button {
+    right: max(20px, calc(env(safe-area-inset-right) + 8px));
+    left: auto;
+    top: calc(max(12px, env(safe-area-inset-top)) + 64px);
+    bottom: auto;
+    width: 76px;
+    height: 76px;
+  }
+}
+
+/* v2.3 mobile audit fixes (iPhone SE to 16 Pro Max, Android, iPad, with the
+   notch / Dynamic Island / home-indicator safe areas). */
+header {
+  padding-top: max(28px, env(safe-area-inset-top));
+}
+@media (max-height: 520px) {
+  header {
+    padding-top: max(12px, env(safe-area-inset-top));
+  }
+  /* Landscape garage: keep the setup panel and the driver strip clear of
+     the Dynamic Island side and the home indicator. */
+  .setup {
+    right: max(4%, calc(env(safe-area-inset-right) + 12px));
+  }
+  .garage {
+    padding-left: max(4%, calc(env(safe-area-inset-left) + 12px));
+    padding-right: max(4%, calc(env(safe-area-inset-right) + 12px));
+    padding-bottom: max(9px, env(safe-area-inset-bottom));
+  }
+  #minimap {
+    right: max(19px, calc(env(safe-area-inset-right) + 8px));
+  }
+}
+@media (orientation: portrait) and (pointer: coarse), (orientation: portrait) and (max-width: 900px) {
+  /* Short phones (SE): keep the item and special frames above the minimap. */
+  .item-slot,
+  .special-slot {
+    bottom: max(33%, 268px);
+  }
+  /* The drift meter sits just above the drift button. */
+  .drift-meter {
+    bottom: calc(max(20px, calc(env(safe-area-inset-bottom) + 6px)) + 100px);
+  }
+}
+/* Tablets in landscape (touch, taller than a phone): a right-hand column of
+   item, special and drift, clear of the minimap and the safe areas. */
+@media (orientation: landscape) and (pointer: coarse) and (min-height: 521px) {
+  .item-slot {
+    right: max(32px, calc(env(safe-area-inset-right) + 16px));
+    top: calc(max(16px, env(safe-area-inset-top)) + 84px);
+  }
+  .special-slot {
+    right: max(32px, calc(env(safe-area-inset-right) + 16px));
+    top: calc(max(16px, env(safe-area-inset-top)) + 216px);
+  }
+  #drift-button {
+    left: auto;
+    right: max(44px, calc(env(safe-area-inset-right) + 28px));
+    top: calc(max(16px, env(safe-area-inset-top)) + 318px);
+    bottom: auto;
+  }
+  #minimap {
+    bottom: max(28px, calc(env(safe-area-inset-bottom) + 8px));
+    right: max(28px, calc(env(safe-area-inset-right) + 8px));
+  }
+}
+@media (orientation: portrait) and (pointer: coarse), (orientation: portrait) and (max-width: 900px) {
+  /* Minimap above the drift meter; item / special above the minimap. */
+  #minimap {
+    bottom: calc(max(20px, calc(env(safe-area-inset-bottom) + 6px)) + 134px);
+  }
+  .item-slot,
+  .special-slot {
+    bottom: max(33%, calc(max(20px, calc(env(safe-area-inset-bottom) + 6px)) + 250px));
+  }
 }

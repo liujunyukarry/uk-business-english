@@ -123,7 +123,14 @@ test("drift tiers: each release grants its boost time and an instant kick", () =
     p.lane = p.previousLane = -6;
     steps(r, 90, { assist: true }); // cruise
     const hold = Math.ceil(((DRIFT.levels[level] + 0.06) / 1.25) * 60) + 8;
-    const ev = steps(r, hold, { steer: 1, drift: true, assist: true });
+    // Keep the kart in the middle of the road while it charges: this checks
+    // the tiers, not the drift's line across the road.
+    const ev = [];
+    for (let i = 0; i < hold; i++) {
+      p.lane = p.previousLane = 0;
+      r.step(1 / 60, { steer: 1, drift: true, assist: true });
+      ev.push(...r.events);
+    }
     assert.equal(driftLevel(p.drift), level, `charged to tier ${level} (${p.drift.toFixed(2)})`);
     const ups = ev.filter((e) => e.type === "driftLevel").map((e) => e.level);
     assert.deepEqual(ups, [1, 2, 3].slice(0, level), "one sound cue per tier");
@@ -140,7 +147,7 @@ test("a drift boost is felt for longer than it lasts: glide back to cruising", (
   // Same race twice from the same moment, with and without the boost.
   const make = () => {
     const r = quiet();
-    r.player.distance = 100;
+    r.player.distance = 300; // clear of the boost pads
     r.player.lane = 0;
     steps(r, 120, { assist: true });
     return r;
@@ -159,16 +166,18 @@ test("a drift boost is felt for longer than it lasts: glide back to cruising", (
   assert(p.speed > q.speed + 4, `still carrying ${(p.speed - q.speed).toFixed(1)} m/s`);
 });
 
-test("auto-drift: holding a direction through a bend drifts, letting go boosts", () => {
+// In a bend with curvature c the inside is the -sign(c) side, so steering
+// "into the bend" means steer = -sign(c).
+test("auto-drift: holding a direction into a bend drifts, letting go boosts", () => {
   for (const sign of [-1, 1]) {
     const r = quiet(),
       p = r.player;
     p.distance = bend(r, sign) - 12;
-    p.lane = p.previousLane = -sign * 3;
+    p.lane = p.previousLane = sign * 3; // start on the outside
     p.speed = 33;
-    const ev = steps(r, 66, { steer: sign, autoDrift: true, assist: true });
+    const ev = steps(r, 66, { steer: -sign, autoDrift: true, assist: true });
     assert(ev.some((e) => e.type === "driftStart"), "started on its own");
-    assert(p.drifting && p.driftAuto && p.driftDirection === sign);
+    assert(p.drifting && p.driftAuto && p.driftDirection === -sign, "drifting toward the inside");
     const out = steps(r, 12, { steer: 0, autoDrift: true, assist: true });
     assert.equal(p.drifting, false, "released");
     assert(out.some((e) => e.type === "drift"), "boost on release");
@@ -187,9 +196,9 @@ test("auto-drift stays off on straights, against the bend, and when switched off
   const r1 = quiet(),
     p1 = r1.player;
   p1.distance = bend(r1, 1) - 12;
-  p1.lane = p1.previousLane = 4;
+  p1.lane = p1.previousLane = -4;
   p1.speed = 33;
-  steps(r1, 60, { steer: -1, autoDrift: true, assist: true });
+  steps(r1, 60, { steer: 1, autoDrift: true, assist: true });
   assert.equal(p1.drifting, false, "steering out of a bend is not a drift");
   const r2 = quiet(),
     p2 = r2.player;
@@ -208,7 +217,7 @@ test("drift button in a bend without steering drifts toward the inside", () => {
     p.speed = 33;
     steps(r, 20, { steer: 0, drift: true, assist: true });
     assert(p.drifting, "drifting");
-    assert.equal(p.driftDirection, sign);
+    assert.equal(p.driftDirection, -sign, "toward the inside of the bend");
   }
 });
 

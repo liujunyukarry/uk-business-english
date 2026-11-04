@@ -1,11 +1,15 @@
-import {sprintMotion} from './sprint.js?v=da391d9a';
+import {sprintMotion} from './sprint.js?v=5250c1b5';
 import * as T from './vendor/three.module.js';
 import {Group,Tween,Easing} from './vendor/tween.esm.js';
 const shapeParts=Array.from({length:10},(_,i)=>`./assets/packed/dog-rules18.gz.part${String(i).padStart(2,'0')}`);
 async function loadShapes(){
  const buffers=await Promise.all(shapeParts.map(async url=>{const response=await fetch(url);if(!response.ok)throw Error('Model part unavailable');return response.arrayBuffer();}));
- const stream=new Blob(buffers).stream().pipeThrough(new DecompressionStream('gzip'));
- const source=await new Response(stream).text(),moduleUrl=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
+ let source;
+ if(typeof DecompressionStream==='function'){const stream=new Blob(buffers).stream().pipeThrough(new DecompressionStream('gzip'));source=await new Response(stream).text();}
+ else{// iOS Safari before 16.4 has no DecompressionStream: decode in JS instead.
+  const {gunzip}=await import('./inflate.js?v=5250c1b5');const all=new Uint8Array(buffers.reduce((n,b)=>n+b.byteLength,0));let o=0;for(const b of buffers){all.set(new Uint8Array(b),o);o+=b.byteLength;}
+  source=new TextDecoder().decode(gunzip(all));}
+ const moduleUrl=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
  try{return (await import(moduleUrl)).SHAPES;}finally{URL.revokeObjectURL(moduleUrl);}
 }
 const SHAPES=await loadShapes();
