@@ -180,3 +180,35 @@ Chrome's `Emulation.setSafeAreaInsetsOverride` with real inset values, portrait 
 ## Not verified — needs a real phone
 
 Touch feel of one-thumb drifting and the button positions on the 14 Pro Max; sound on the phone speaker; frame rate and heat (draw calls are now ~410 per frame).
+
+# v2.4 Verification — 2026-11-04
+
+Build id at the bottom of the pause / help dialogs ("版本 2.4 · <id>"). Same container environment (headless Chrome 153, CPU renderer for the regression tests, SwiftShader WebGL for screenshots; no phone).
+
+## What changed and how it was checked
+
+| Request | Change | Evidence |
+|---|---|---|
+| Special button hard to notice | Round 92–96 px button with a charge ring in the driver's colour; when full it brightens, the ring spins, the label reads 放必杀！; a coaching bubble points at it the first few times | `tests/e2e/items.test.js` (gauge text, fires only when full, cut-in), `tests/e2e/v24.test.js` (bubble shown when first ready) |
+| Specials fired blindly | Attack specials (流星雨, 熊抱冲撞, 火球连发) mark their targets with red reticles over the karts and on the map, plus a lock count on the button; 流星雨 / 火球 with nobody ahead, or 四次元口袋 with both item slots full, are held back with a message instead of being wasted | `tests/v24.test.js` (targets are exactly the karts the special hits; wasted cases), `tests/e2e/v24.test.js` (Nova with two karts ahead: a reticle over each and "🎯 2"; nobody ahead → 前方没人, tap does nothing; someone ahead → fires) |
+| Map in a top corner; distance to the finish; where everyone is | Map panel top right: chequered finish line, direction arrows, player arrow, rivals in their colours (within 30 m outlined); a whole-race progress strip with a marker per racer; 距终点 X km / m. Canvas drawn at device resolution; the static track layer is cached; touches pass through to steering | `tests/e2e/v24.test.js`: inside the iPhone 14 Pro Max safe area in both orientations, no overlap with pause / item / special / drift / rank, canvas backed at device pixels, 8 progress markers, marker at 50 % and distance within 40 m of the truth at mid-race, a touch on the map still steers right |
+| Overtaken without warning | Rear radar: karts within 25 m behind show as a chip in their colour on their side, with the distance (pulsing within 8 m; same-side chips stack) | `tests/e2e/v24.test.js`: right / left side follows the rival's lane, nothing shown for a kart 60 m back |
+| Speed race (竞速赛) | Third mode on the home screen (remembered). No boxes, coins or specials; drifting fills a nitro gauge (32 / s while drifting plus 6 / 10 / 15 on release), up to two charges, the item frame becomes the N₂O button (Space on a keyboard), 2.3 s boost; AI use nitro on straights. Separate best times (`speed-<track>-<class>`); results show nitro / slipstream counts | `tests/v24.test.js` (rules, gauge, two charges, AI use nitro on all tracks, everyone finishes), `tests/e2e/v24.test.js` (mode, hidden special / coins, N₂O button fires exactly the stored charges, results text, record key, home screen remembers the mode) |
+| Slipstream (both modes) | 3.5–16 m behind a kart within 1.8 m of its line for 1.1 s → 1 s boost; wind streaks and a charge readout while tucked in | `tests/v24.test.js` |
+| — | Two boosts in the same physics step give one speed kick (no 13 m/s jumps). The bear's ram (marked as a lock-on) now always connects: it locks the nearest kart within 60 m, chases until it lands (at most 4.5 s, at least 18 m/s faster than the target) and a hug reaches 2.9 m sideways. Before, a target boosting away from 40 m was missed: the bear arrived 1.3–2.3 m to its side at 64 m/s and passed it | `tests/v24.test.js` (targets 25 / 45 / 58 m ahead while boosting: rammed within 4.5 s, the charge ends on contact; no target: plain 3 s dash) |
+
+## Balance (simulation, 9–15 races per row, three tracks)
+
+Bots as in v2.3 (always-drift = holds into every bend, which is what auto-drift does on a phone). Item race 100cc: always-drift 1st on average, steering-only 3.6; 150cc: 3.0 / 6.8. Speed race 100cc: always-drift 1.2, 7–8 nitros per race (AI 4–5). 150cc speed race at the item-race AI pace put the always-drift bot 6.7th with no wins, because nothing slows the leaders without items; 150cc speed-race AI pace is now 1.015 (item races keep 1.07): always-drift 2.8th on average, 2 wins in 15. Steering-only finishes last in speed races at 100cc: drifting is the point of that mode. Final build (after the bear change): item race always-drift 1.2 (100cc) / 2.7 (150cc), 2.7–3.9 hits on the player per race; speed race 1.2 / 3.0.
+
+## Mobile layout audit (emulated safe areas)
+
+Chrome's `Emulation.setSafeAreaInsetsOverride` with real inset values, portrait and landscape: iPhone 14 Pro Max, 16 Pro Max, 15, 13 mini, SE, Pixel 7, 360-wide Android, iPad mini, iPad Air. Screens checked: home (three race modes), item race HUD with the special ready (coaching bubble and lock badge showing) and karts behind (radar chips), pause, speed race HUD (two nitro charges), settings. Checks: every control and panel inside the safe area, no overlaps, buttons ≥ 44 px. Fixed on the way: speed readout vs drift meter (narrow portrait phones), radar vs speed readout (SE), status line vs drift meter (portrait) and vs radar (landscape), N₂O badge in the notch side (13 mini landscape), coaching bubble off screen (iPad landscape), toasts over the map and the coin readout (portrait), radar chips under the bottom-right buttons (desktop). Result: no issues left on any device. Desktop (1024–1440 wide): map top right, item and special bottom right, radar under the kart. `docs/qa-2.4/hud-iphone-14-pro-max.jpg` (item race: lock-on, map, radar) and `docs/qa-2.4/speed-race.jpg` (N₂O button, slipstream) were taken with WebGL at 14 Pro Max sizes; the two licensed-character karts were checked to be off screen.
+
+## Tests and play
+
+`npm test` 71/71, `npm run test:e2e` 31/31 on the final build (screen acceleration p95 0.12, worst 0.17 NDC/s²). The jitter test now clears the boost pads and waits for any running boost to end before measuring: with v2.4's slipstream off the start the player sometimes reached the first pad inside the window, and the pad's FOV punch (unchanged since v2.2; v2.3 measures the same 2.6–3.2 when a pad is forced into the window) read as jitter. Six repeats afterwards: p95 0.08–0.12. Real-time touch playthroughs to the results screen on the final build: 430×932 星光云端公路 150cc speed race with 小白 (5th, 57.4 s, 10 nitros, 18 drift boosts, 1 slipstream; AI 5–6 nitros each) and 932×430 花田晴空环线 100cc item race with 薄荷熊 (1st, 53.6 s, 20 items, 3 rams, 11 drift boosts, hit twice). Earlier builds: 430×932 花田晴空环线 100cc speed race (1st, 8 nitros) and 932×430 蜜桃糖果海湾 100cc item race with 星星队长 (1st, 3 specials, all fired with targets ahead). No page errors in any run.
+
+## Not verified — needs a real phone
+
+Readability of the map and radar at arm's length on the 14 Pro Max; touch feel of the round special button and the N₂O button; sound; frame rate and heat with the map redrawn up to 30 times a second (it copies a cached track layer and draws only the dots).
