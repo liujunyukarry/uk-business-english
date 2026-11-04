@@ -43,9 +43,13 @@ async function record(page, seconds) {
           lastClock = window.__pk.clock;
           v.copy(cars[0].position).project(camera);
           samples.push({
+            t: window.__pk.clock,
             x: v.x,
             y: v.y,
             visible: cars.map((k) => k.visible),
+            // The near-camera fade (a dissolve with WebGL; on/off at 50 % in
+            // the CPU renderer these tests use) is intended, not a pop-in.
+            fading: cars.map((k) => (k.userData.fade ?? 1) < 0.999),
             invincible: race.racers.map((r) => r.invincible > 0 && r.star <= 0 && r.stun <= 0),
             near: race.racers.map((r) => Math.abs(race.gap(r.distance, race.player.distance)) < 15),
             // A real rail or kart impact is supposed to be felt; exclude it.
@@ -91,7 +95,9 @@ test("nearby karts never vanish and pop back in", async (t) => {
         samples[i].visible[k] &&
         samples[i].near[k] &&
         !samples[i].invincible[k] &&
-        !samples[i - 1].invincible[k]
+        !samples[i - 1].invincible[k] &&
+        !samples[i].fading[k] &&
+        !samples[i - 1].fading[k]
       )
         pops++;
   assert.equal(pops, 0, `${pops} pop-ins of karts within 15 m`);
@@ -112,18 +118,26 @@ test("the player kart holds still on screen when frames are dropped", async (t) 
     r.hazards.length = r.projectiles.length = 0;
   });
   const samples = await record(page, 6);
+  // Time-aware acceleration of the kart's screen position (NDC units / s²):
+  // velocity between drawn frames divided by the real time between them, so
+  // smooth motion across the screen (v2.3 bends make an idle kart slide
+  // wide) does not count, while frame-to-frame jitter does. Measured on the
+  // same machine: V2 p95 ≈ 2 (worst ≈ 2.6), v2.3 p95 ≈ 0.2.
   const jumps = [];
   for (let i = 2; i < samples.length; i++) {
     if (samples.slice(Math.max(0, i - 4), i + 1).some((x) => x.impact)) continue;
-    // Second difference: how much the kart's screen position jerks frame to frame.
-    const ax = samples[i].x - 2 * samples[i - 1].x + samples[i - 2].x,
-      ay = samples[i].y - 2 * samples[i - 1].y + samples[i - 2].y;
+    const [a, b, c] = [samples[i - 2], samples[i - 1], samples[i]],
+      d1 = b.t - a.t,
+      d2 = c.t - b.t;
+    if (d1 <= 0 || d2 <= 0) continue;
+    const ax = ((c.x - b.x) / d2 - (b.x - a.x) / d1) / ((d1 + d2) / 2),
+      ay = ((c.y - b.y) / d2 - (b.y - a.y) / d1) / ((d1 + d2) / 2);
     jumps.push(Math.hypot(ax, ay));
   }
   jumps.sort((a, b) => a - b);
   const p95 = jumps[Math.floor(jumps.length * 0.95)],
     worst = jumps[jumps.length - 1];
-  console.log(`screen jerk p95=${p95.toFixed(4)} worst=${worst.toFixed(4)} over ${jumps.length} frames`);
-  assert(p95 < 0.003, `p95 screen jerk ${p95.toFixed(4)} (NDC units)`);
-  assert(worst < 0.01, `worst screen jerk ${worst.toFixed(4)}`);
+  console.log(`screen acceleration p95=${p95.toFixed(2)} worst=${worst.toFixed(2)} NDC/s² over ${jumps.length} frames`);
+  assert(p95 < 0.8, `p95 screen acceleration ${p95.toFixed(2)} NDC/s²`);
+  assert(worst < 1.5, `worst screen acceleration ${worst.toFixed(2)} NDC/s²`);
 });

@@ -433,6 +433,7 @@ export class KartAudio {
         this.tone(180, 0.35, "sawtooth", 0.05, 70);
         return;
       case "pickup":
+        this.noise(0.16, 3200, 1800, 0.1, 1.2); // the box shattering
         // Item roulette: quick ticks, then a bright "ding" as it lands.
         for (let i = 0; i < 6; i++) this.tone(1200 + (i % 2) * 300, 0.04, "square", 0.03, 0, now + i * 0.1);
         this.tone(1568, 0.2, "triangle", 0.08, 0, now + 0.7);
@@ -450,6 +451,35 @@ export class KartAudio {
         else this.tone(330, 0.25, "triangle", 0.1, 800);
         return;
       }
+      case "special": {
+        // Cut-in sting: a rising arpeggio plus a whoosh, then the move's own
+        // sound.
+        [72, 76, 79, 84].forEach((n, i) => this.lead(n, now + i * 0.05, 0.16, "square", 0.06));
+        this.noise(0.5, 600, 3200, 0.18, 0.7);
+        if (e.kind === "mario") for (let i = 0; i < 3; i++) this.noise(0.25, 2400, 600, 0.12, 0.8, now + 0.25 + i * 0.08);
+        if (e.kind === "nova") this.tone(1760, 0.6, "sine", 0.05, 220, now + 0.2);
+        if (e.kind === "bunny") this.tone(300, 0.35, "sine", 0.1, 900, now + 0.15);
+        if (e.kind === "bear") this.tone(90, 0.5, "sawtooth", 0.08, 60, now + 0.15);
+        if (e.kind === "milo") this.tone(520, 0.4, "sine", 0.08, 1040, now + 0.15);
+        return;
+      }
+      case "specialFar":
+        this.tone(880, 0.12, "triangle", 0.05);
+        this.tone(1175, 0.16, "triangle", 0.04, 0, now + 0.08);
+        return;
+      case "specialReady":
+        [76, 83, 88].forEach((n, i) => this.tone(midi(n), 0.14, "triangle", 0.07, 0, now + i * 0.07));
+        return;
+      case "meteor":
+        this.noise(0.6, 1800, 120, 0.3, 0.7);
+        this.tone(120, 0.5, "sine", 0.18, 40);
+        return;
+      case "boxBreak":
+        this.noise(0.18, 3000, 1500, 0.1, 1.2);
+        return;
+      case "dash":
+        this.noise(0.35, 700, 2800, 0.16, 0.7);
+        return;
       case "finish":
         return; // see finish(rank)
       case "lap":

@@ -123,6 +123,8 @@ export function bindTouchControls({
   onChange,
   onItem,
   itemButton,
+  onSpecial,
+  specialButton,
   win = window,
   staleMs = 4000,
 }) {
@@ -257,23 +259,26 @@ export function bindTouchControls({
   for (const type of ["pointerup", "pointercancel", "lostpointercapture"])
     win.addEventListener(type, (e) => changed(state.release("p" + e.pointerId)), true);
 
-  // Item: fire on the first touch / press, not on click. iOS may not deliver a
-  // click for a tap made while another finger is steering.
-  if (itemButton) {
+  // Item and special: fire on the first touch / press, not on click. iOS may
+  // not deliver a click for a tap made while another finger is steering.
+  const tapButton = (button, onPress) => {
+    if (!button) return;
     let lastFast = -1e9;
     const fast = (e) => {
       if (e.type === "pointerdown" && e.pointerType === "touch" && hasTouchEvents) return;
       if (e.cancelable) e.preventDefault();
       lastFast = now();
-      onItem?.();
+      onPress?.();
     };
-    if (hasTouchEvents) itemButton.addEventListener("touchstart", fast, { passive: false });
-    itemButton.addEventListener("pointerdown", fast);
+    if (hasTouchEvents) button.addEventListener("touchstart", fast, { passive: false });
+    button.addEventListener("pointerdown", fast);
     // Keyboard activation (Enter / Space on the focused button) still works.
-    itemButton.addEventListener("click", () => {
-      if (now() - lastFast > 700) onItem?.();
+    button.addEventListener("click", () => {
+      if (now() - lastFast > 700) onPress?.();
     });
-  }
+  };
+  tapButton(itemButton, onItem);
+  tapButton(specialButton, onSpecial);
 
   return {
     state,

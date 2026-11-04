@@ -149,6 +149,48 @@ test("rocket: banner, status line and big flames", async () => {
   await r.page.waitForTimeout(300);
 });
 
+test("two slots: the queued item shows as a badge and moves up after use", async () => {
+  await r.page.evaluate(() => {
+    const race = window.__pk.race,
+      p = race.player;
+    race.boxes.forEach((b) => (b.cooldown = 99));
+    Object.assign(p, { item: "boost", item2: "shield", roulette: 0, roulette2: 0 });
+  });
+  await r.page.waitForTimeout(200);
+  assert.equal(await r.page.$eval("#item-next", (e) => e.textContent), "🫧");
+  await r.finger.down(9, "#item-button");
+  await r.finger.up(9);
+  await r.page.waitForTimeout(200);
+  assert.match(await r.page.$eval("#item-name", (e) => e.textContent), /泡泡护盾/);
+  assert.equal(await r.page.$eval("#item-next", (e) => e.textContent), "");
+  await r.page.evaluate(() => (window.__pk.race.player.item = null));
+});
+
+test("special: the button shows the gauge and fires only when full, with a cut-in", async () => {
+  const player = () =>
+    r.page.evaluate(() => {
+      const p = window.__pk.race.player;
+      return { used: p.specialsUsed, gauge: p.special };
+    });
+  await r.page.evaluate(() => (window.__pk.race.player.special = 40));
+  await r.page.waitForTimeout(200);
+  assert.match(await r.page.$eval("#special-name", (e) => e.textContent), /4\d%/);
+  await r.finger.down(8, "#special-button");
+  await r.finger.up(8);
+  await r.page.waitForTimeout(100);
+  assert.equal((await player()).used, 0, "not before the gauge is full");
+  await r.page.evaluate(() => (window.__pk.race.player.special = 100));
+  await r.page.waitForTimeout(200);
+  assert(await r.page.$eval("#special-button", (e) => e.classList.contains("ready")), "glows when ready");
+  await r.finger.down(8, "#special-button");
+  await r.finger.up(8);
+  await r.page.waitForTimeout(150);
+  const s = await player();
+  assert.equal(s.used, 1);
+  assert(s.gauge < 5, "gauge emptied");
+  assert.match(await r.page.$eval("#cutin", (e) => e.textContent), /元气三连冲/);
+});
+
 test("empty slot: tapping tells the player how to get an item", async () => {
   await r.page.evaluate(() => {
     const race = window.__pk.race,

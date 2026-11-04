@@ -183,6 +183,32 @@ export const DRIFT = {
 };
 export const driftLevel = (charge) =>
   charge >= DRIFT.levels[3] ? 3 : charge >= DRIFT.levels[2] ? 2 : charge >= DRIFT.levels[1] ? 1 : 0;
+// Character specials (必杀技), Double Dash / KartRider style: a gauge fills
+// from drift boosts, coins, landing hits (and a little from being hit or
+// from time); when full, the special fires from its own button.
+export const SPECIALS = {
+  gold: { name: "元气三连冲", icon: "💨", desc: "连续三次冲刺，一次比一次远" },
+  white: { name: "完美漂移", icon: "🌀", desc: "8 秒内每次漂移直接满紫火" },
+  dora: { name: "四次元口袋", icon: "🎒", desc: "从口袋里掏出两个好道具" },
+  mario: { name: "火球连发", icon: "🔥", desc: "向前方三条线发射火球" },
+  bunny: { name: "蹦蹦跳", icon: "🐰", desc: "高高跳起，越过一切障碍并加速" },
+  bear: { name: "熊抱冲撞", icon: "🐻", desc: "锁定前方最近的车冲过去撞飞它" },
+  nova: { name: "流星雨", icon: "☄️", desc: "流星砸向前方最近的三位车手" },
+  milo: { name: "泡泡护航", icon: "🫧", desc: "8 秒大泡泡，可挡两次攻击并加速" },
+};
+// Gauge gains (out of 100).
+export const GAUGE = { drift: [0, 6, 9, 13], coin: 5, landed: 12, hurt: 10, perSecond: 1.2, ai: 0.45 };
+// How readily an AI fires an attack whose victim would be the player (it
+// waits a few seconds otherwise): about 2-3 hits on the player per race.
+const AGGRESSION = { easy: 0.3, normal: 0.5, hard: 0.7 };
+// Cornering: the outward push in a bend is curvature x speed^2 x PUSH (in
+// lane metres per second). Plain steering can hold an ordinary bend; a
+// tight one taken flat out needs a drift (or lifting off), as in KartRider.
+export const CORNER = { push: 0.098, max: 8.5, driftPush: 0.6, scrub: 0.05 };
+// Outward push of a bend (lane m/s), capped just above what full steering
+// can hold, so the tightest hairpins call for a drift but never fling a kart.
+export const cornerPush = (curve, speed, drifting) =>
+  clamp(curve * speed * speed * CORNER.push, -CORNER.max, CORNER.max) * (drifting ? CORNER.driftPush : 1);
 // Rocket start: hold drift / gas when the countdown shows "1".
 export const START = { window: 1.0, perfect: 0.45 };
 // Item box rows span the road; see the constructor.
@@ -316,9 +342,22 @@ export class Race {
         driftAuto: false,
         driftRelease: 0,
         startPress: null, // countdown time left when start was pressed
+        item2: null, // second item slot (KartRider style)
+        roulette2: 0,
+        special: 0, // gauge 0..100
+        specialsUsed: 0,
+        aiSpecial: 1 + this.rng() * 3,
+        dashLeft: 0, // gold: remaining dashes
+        dashTimer: 0,
+        perfectDrift: 0, // white: seconds of instant purple drifts
+        jump: 0, // bunny: seconds airborne
+        charge: 0, // bear: seconds of the homing ram
+        chargeTarget: null,
+        shieldHits: 0, // hits the current shield still absorbs
       });
     }
     this.player = this.racers[0];
+    this.meteors = [];
     this.boxes = [];
     this.coins = [];
     this.pads = [];
@@ -396,14 +435,16 @@ export class Race {
   playerDrift(r, steer, held, curve, valid, input, dt) {
     if (!r.drifting) {
       if (!valid || r.speed < 16) return;
-      const dir = Math.sign(steer) || (Math.abs(curve) > 0.003 ? Math.sign(curve) : 0),
+      // The inside of a bend is the -sign(curve) side (its push is outward,
+      // toward +sign(curve)); "into the bend" means steering that way.
+      const dir = Math.sign(steer) || (Math.abs(curve) > 0.003 ? -Math.sign(curve) : 0),
         manual = held && dir !== 0 && (steer === 0 || Math.abs(r.steer) > 0.18),
         auto =
           !held &&
           !!input.autoDrift &&
           r.speed > 20 &&
           r.holdSteer >= 0.28 &&
-          Math.sign(steer) * curve > 0.008;
+          -Math.sign(steer) * curve > 0.008;
       if (!manual && !auto) return;
       r.drifting = true;
       r.driftDirection = manual ? dir : Math.sign(steer);
@@ -411,17 +452,27 @@ export class Race {
       r.drift = 0;
       r.driftRelease = 0;
       this.event("driftStart", { racer: r.id, direction: r.driftDirection });
+      if (r.perfectDrift > 0) {
+        // White's special: every drift starts fully charged.
+        r.drift = DRIFT.levels[3];
+        this.event("driftLevel", { racer: r.id, level: 3 });
+      }
       return;
     }
-    if (held) r.driftAuto = false; // the button takes over an automatic drift
-    const holding = r.driftAuto ? Math.sign(steer) === r.driftDirection : held;
+    // One-thumb drifting on touch: once a drift has started (on its own in a
+    // bend, or from a tap on the drift button), keeping the steering
+    // direction held keeps it going; letting go releases the boost. With a
+    // keyboard (auto-drift off) the drift key itself must stay held.
+    const steerHolds = (r.driftAuto || input.autoDrift) && Math.sign(steer) === r.driftDirection,
+      holding = held || steerHolds;
     r.driftRelease = holding ? 0 : r.driftRelease + dt;
     if (!valid) return this.clearDrift(r);
-    // An automatic drift tolerates a finger flicker of a few frames.
-    if (r.driftRelease > (r.driftAuto ? 0.08 : 0)) {
+    // A touch drift tolerates a finger flicker of a few frames.
+    if (r.driftRelease > (r.driftAuto || input.autoDrift ? 0.1 : 0)) {
       const level = driftLevel(r.drift);
       if (level) {
         this.startBoost(r, DRIFT.boost[level], "drift" + level, DRIFT.kick[level]);
+        this.gain(r, GAUGE.drift[level]);
         r.drifts++;
         this.event("drift", { racer: r.id, level });
       }
@@ -451,22 +502,36 @@ export class Race {
       rocket: rank >= 6 && behind > 0.5 ? 3.5 * (behind - 0.4) : 0,
     };
   }
-  giveItem(r, box = null) {
-    const odds = this.itemOdds(r),
-      total = Object.values(odds).reduce((s, w) => s + w, 0);
+  rollItem(odds) {
+    const total = Object.values(odds).reduce((s, w) => s + w, 0);
     let pick = this.rng() * total;
-    r.item = "boost";
-    for (const [item, w] of Object.entries(odds))
-      if ((pick -= w) < 0) {
-        r.item = item;
-        break;
-      }
-    r.roulette = 0.7;
+    for (const [item, w] of Object.entries(odds)) if ((pick -= w) < 0) return item;
+    return "boost";
+  }
+  // Two item slots, KartRider style: a box fills the first free slot.
+  giveItem(r, box = null) {
+    const item = this.rollItem(this.itemOdds(r));
+    let slot = 1;
+    if (!r.item) {
+      r.item = item;
+      r.roulette = 0.7;
+    } else {
+      r.item2 = item;
+      r.roulette2 = 0.7;
+      slot = 2;
+    }
     // AI racers hold an item for a few seconds (and so skip some box rows)
     // instead of firing everything at once: about two hits on the player per
     // race at 100cc, not one every ten seconds.
-    r.aiItem = 3 + this.rng() * 6;
-    this.event("pickup", { racer: r.id, box: box?.id ?? null });
+    if (slot === 1) r.aiItem = 3 + this.rng() * 6;
+    this.event("pickup", { racer: r.id, box: box?.id ?? null, slot });
+  }
+  // Special gauge.
+  gain(r, amount) {
+    if (r.finish !== null) return;
+    const before = r.special;
+    r.special = Math.min(100, r.special + amount * (r.id === 0 ? 1 : GAUGE.ai));
+    if (before < 100 && r.special >= 100) this.event("specialReady", { racer: r.id });
   }
   // Every boost goes through here: the timer, the flame colour, and an
   // instant speed kick so the push is felt the moment it starts.
@@ -479,7 +544,13 @@ export class Race {
     if (this.phase !== "racing" || !r.item || r.roulette > 0 || r.finish !== null || r.rescue > 0)
       return false;
     const type = r.item;
-    r.item = null;
+    r.itemPatient = false;
+    // The second slot moves up (with whatever is left of its roulette).
+    r.item = r.item2;
+    r.roulette = r.roulette2;
+    r.item2 = null;
+    r.roulette2 = 0;
+    if (r.item && r.id !== 0) r.aiItem = 2 + this.rng() * 4;
     r.itemsUsed++;
     if (type === "boost") this.startBoost(r, 2.5, "item", 6);
     if (type === "star") {
@@ -494,7 +565,10 @@ export class Race {
       this.clearDrift(r);
       this.startBoost(r, 3.2, "rocket", 8);
     }
-    if (type === "shield") r.shield = 6;
+    if (type === "shield") {
+      r.shield = Math.max(r.shield, 6);
+      r.shieldHits = Math.max(r.shieldHits, 1);
+    }
     if (type === "banana")
       this.hazards.push({
         id: this.nextId++,
@@ -531,9 +605,21 @@ export class Race {
     return true;
   }
   hit(r, owner, stun = 1.1) {
-    if (r.finish !== null || r.rescue > 0 || r.invincible > 0 || r.star > 0 || r.rocket > 0) return false;
+    if (
+      r.finish !== null ||
+      r.rescue > 0 ||
+      r.invincible > 0 ||
+      r.star > 0 ||
+      r.rocket > 0 ||
+      r.jump > 0 ||
+      r.charge > 0
+    )
+      return false;
     if (r.shield > 0) {
-      r.shield = 0;
+      if (--r.shieldHits <= 0) {
+        r.shield = 0;
+        r.shieldHits = 0;
+      }
       r.invincible = 0.7;
       this.event("block", { racer: r.id });
       return false;
@@ -546,6 +632,99 @@ export class Race {
     this.clearDrift(r);
     r.hits++;
     this.event("hit", { racer: r.id, owner });
+    this.gain(r, GAUGE.hurt);
+    const by = this.racers[owner];
+    if (by && by !== r) this.gain(by, GAUGE.landed);
+    return true;
+  }
+  // --- Character specials ----------------------------------------------------
+  nearestAhead(r, range = 200, count = 1) {
+    return this.racers
+      .filter((o) => o !== r && o.finish === null && o.rescue <= 0)
+      .map((o) => ({ o, g: this.gap(o.distance, r.distance) }))
+      .filter((x) => x.g > 1.5 && x.g < range)
+      .sort((a, b) => a.g - b.g)
+      .slice(0, count)
+      .map((x) => x.o);
+  }
+  useSpecial(r = this.player) {
+    if (this.phase !== "racing" || r.special < 100 || r.finish !== null || r.rescue > 0) return false;
+    const kind = r.character.id;
+    r.special = 0;
+    r.stun = 0;
+    r.specialsUsed++;
+    if (kind === "gold") {
+      this.startBoost(r, 1.3, "item", 6);
+      r.dashLeft = 2;
+      r.dashTimer = 1.15;
+    } else if (kind === "white") {
+      r.perfectDrift = 8;
+      this.startBoost(r, 0.8, "drift3", 4);
+    } else if (kind === "dora") {
+      const odds = { ...this.itemOdds(r), banana: 0.4, rocket: 0 },
+        a = this.rollItem(odds),
+        b = this.rollItem(odds);
+      if (!r.item) {
+        r.item = a;
+        r.roulette = 0.5;
+        r.item2 = b;
+        r.roulette2 = 0.5;
+      } else {
+        r.item2 = a;
+        r.roulette2 = 0.5;
+      }
+    } else if (kind === "mario") {
+      const half = this.track.width / 2;
+      for (const off of [-3.2, 0, 3.2])
+        this.projectiles.push({
+          id: this.nextId++,
+          owner: r.id,
+          target: null,
+          kind: "fire",
+          distance: r.distance + 3,
+          lane: clamp(r.lane + off, -half + 1, half - 1),
+          life: 2.2,
+        });
+    } else if (kind === "bunny") {
+      r.jump = 1.6;
+      this.clearDrift(r);
+      this.startBoost(r, 2, "pad", 5);
+    } else if (kind === "bear") {
+      const target = this.nearestAhead(r, 70)[0];
+      r.charge = 2.6;
+      r.chargeTarget = target?.id ?? null;
+      this.clearDrift(r);
+      this.startBoost(r, 2.6, "item", 7);
+    } else if (kind === "nova") {
+      this.nearestAhead(r, 220, 3).forEach((o, i) =>
+        this.meteors.push({ id: this.nextId++, owner: r.id, target: o.id, t: 0.75 + i * 0.25 }),
+      );
+    } else if (kind === "milo") {
+      r.shield = Math.max(r.shield, 8);
+      r.shieldHits = 2;
+      this.startBoost(r, 1.5, "pad", 4);
+    }
+    this.event("special", { racer: r.id, kind });
+    return true;
+  }
+  // Would this AI's attack land on the player?
+  aimsAtPlayer(r, what) {
+    const p = this.player;
+    if (p.finish !== null) return false;
+    if (what === "bolt") return this.gap(p.distance, r.distance) > 0;
+    if (what === "shell" || what === "special:bear" || what === "special:mario")
+      return this.nearestAhead(r, what === "shell" ? 180 : 70)[0] === p;
+    if (what === "special:nova") return this.nearestAhead(r, 220, 3).includes(p);
+    return false;
+  }
+  // When an AI fires its special: only when it would do something.
+  aiSpecialUseful(r) {
+    const kind = r.character.id;
+    if (kind === "mario") return this.nearestAhead(r, 60).length > 0;
+    if (kind === "bear") return this.nearestAhead(r, 60).length > 0;
+    if (kind === "nova") return this.nearestAhead(r, 220).length > 0;
+    if (kind === "dora") return !r.item2;
+    if (kind === "white") return Math.abs(this.track.curvature(r.distance + 25)) > 0.012;
     return true;
   }
   // A star or rocket knocks the kart it touches aside (spin-out plus a
@@ -635,10 +814,22 @@ export class Race {
         "cornerCooldown",
         "bump",
         "rocket",
+        "roulette2",
+        "perfectDrift",
+        "jump",
+        "charge",
       ])
         r[k] = Math.max(0, r[k] - dt);
       this.constrain(r);
       if (r.rescue > 0) continue;
+      if (r.finish === null) this.gain(r, GAUGE.perSecond * dt);
+      // Gold's triple dash: the next two dashes fire on their own.
+      if (r.dashLeft > 0 && (r.dashTimer -= dt) <= 0) {
+        r.dashLeft--;
+        r.dashTimer = 1.15;
+        this.startBoost(r, 1.3, "item", 6);
+        this.event("dash", { racer: r.id });
+      }
       const isPlayer = r.id === 0 && r.finish === null,
         curve = this.track.curvature(r.distance),
         half = this.track.width / 2;
@@ -731,9 +922,24 @@ export class Race {
         }
         if (hazard && r.dodgeId === hazard.id && r.dodgeSide)
           targetLane = clamp(hazard.lane + r.dodgeSide * 2.8, -half + 1.4, half - 1.4);
-        steer = clamp((targetLane - r.lane) * 0.45 - (curve * r.speed * r.speed * 0.012) / 8, -0.8, 0.8);
+        // Counter-steer the bend's outward push (see CORNER), as a driver would.
+        const lean = cornerPush(curve, r.speed, r.cornerDrift > 0) / (7.8 * r.character.grip);
+        steer = clamp((targetLane - r.lane) * 0.45 - lean, -1, 1);
         r.aiItem -= dt;
-        if (r.aiItem <= 0 && r.item) this.useItem(r);
+        if (r.aiItem <= 0 && r.item) {
+          // An attack that would land on the player is fired only on a
+          // successful roll; otherwise the AI keeps it for another victim.
+          if (this.aimsAtPlayer(r, r.item) && (r.itemPatient || this.rng() > (AGGRESSION[this.difficulty] ?? 0.5))) {
+            r.itemPatient = true;
+            r.aiItem = 1.5 + this.rng() * 2;
+          } else this.useItem(r);
+        }
+        if (r.special >= 100 && (r.aiSpecial -= dt) <= 0) {
+          r.aiSpecial = 1 + this.rng() * 3;
+          const attack = this.aimsAtPlayer(r, "special:" + r.character.id);
+          if (this.aiSpecialUseful(r) && (!attack || this.rng() < (AGGRESSION[this.difficulty] ?? 0.5)))
+            this.useSpecial(r);
+        }
         // Corner mini-turbo: the AI visibly drifts through a real corner and
         // releases a short boost on exit, instead of V2's random mid-corner
         // speed spikes that read as karts "teleporting" past.
@@ -742,8 +948,9 @@ export class Race {
           r.drift = Math.min(2.6, r.cornerDrift);
           if (Math.abs(curve) < 0.004 || r.cornerDrift > 1.9 || r.stun > 0 || r.speed < 14) {
             if (r.stun <= 0 && r.cornerDrift >= DRIFT.levels[1]) {
-              const level = Math.min(2, driftLevel(r.cornerDrift));
+              const level = r.perfectDrift > 0 ? 3 : Math.min(2, driftLevel(r.cornerDrift));
               this.startBoost(r, DRIFT.boost[level], "drift" + level, DRIFT.kick[level]);
+              this.gain(r, GAUGE.drift[level]);
               this.event("drift", { racer: r.id, level });
             }
             r.cornerDrift = 0;
@@ -758,10 +965,15 @@ export class Race {
           r.finish === null
         ) {
           r.cornerCooldown = 2.5;
-          if (this.rng() < ({ easy: 0.35, normal: 0.6, hard: 0.85 }[this.difficulty] || 0.6)) {
+          // Tight bends always get a drift (plain steering cannot hold them
+          // flat out); gentler ones sometimes, more often on harder classes.
+          if (
+            Math.abs(curve) > 0.03 ||
+            this.rng() < ({ easy: 0.35, normal: 0.6, hard: 0.85 }[this.difficulty] || 0.6)
+          ) {
             r.cornerDrift = dt;
             r.drifting = true;
-            r.driftDirection = Math.sign(curve);
+            r.driftDirection = -Math.sign(curve); // nose toward the inside
           }
         }
       }
@@ -772,10 +984,18 @@ export class Race {
         throttle = true;
         r.cornerDrift = 0;
       }
+      // Bear's ram: homes in on its target's line.
+      if (r.charge > 0) {
+        const t = this.racers[r.chargeTarget];
+        steer = t && t.finish === null ? clamp((t.lane - r.lane) * 0.6, -1, 1) : 0;
+        drift = false;
+        throttle = true;
+        r.cornerDrift = 0;
+      }
       let base = 35 * r.character.speed + Math.min(10, r.coins) * 0.22;
       if (!isPlayer && r.finish === null)
         base *=
-          ({ easy: 0.86, normal: 0.97, hard: 1.055 }[this.difficulty] || 0.97) +
+          ({ easy: 0.86, normal: 0.97, hard: 1.07 }[this.difficulty] || 0.97) +
           (r.id - 4) * 0.006 +
           clamp((this.player.distance - r.distance) / 220, -0.025, 0.035);
       // Close behind a kart still in our line: ease off to its pace rather
@@ -790,14 +1010,18 @@ export class Race {
           capped = true;
         }
       }
-      const offroad = Math.abs(r.lane) > half - 0.2,
-        boosted = r.boost > 0 || r.star > 0 || r.rocket > 0;
+      const offroad = Math.abs(r.lane) > half - 0.2 && r.jump <= 0,
+        boosted = r.boost > 0 || r.star > 0 || r.rocket > 0,
+        sliding = (isPlayer && r.drifting && r.cornerDrift <= 0) || r.cornerDrift > 0;
       if (offroad && !boosted) base *= 0.6;
       if (r.small > 0) base *= 0.74;
       if (r.rocket > 0) base *= 1.62;
       else if (r.boost > 0) base *= 1.4;
       else if (r.star > 0) base *= 1.25;
-      base *= 1 - Math.min(0.12, Math.abs(curve) * 2.5);
+      // Bends cost speed unless you drift through them; hard steering scrubs
+      // a little more.
+      base *= 1 - Math.min(0.12, Math.abs(curve) * 2.5) * (sliding ? 0.25 : 1);
+      if (isPlayer && !sliding) base *= 1 - CORNER.scrub * Math.abs(r.steer) * clamp(r.speed / 35, 0, 1);
       if (r.stun > 0) base *= 0.25;
       const braking = !throttle || (input.brake && isPlayer);
       if (braking) base = 0;
@@ -812,26 +1036,32 @@ export class Race {
             : 1.25;
       r.speed += (base - r.speed) * (1 - Math.exp(-dt * rate));
       r.steer += ((r.stun > 0 ? steer * 0.25 : steer) - r.steer) * (1 - Math.exp(-dt * 11));
-      // A player drift is committed to its side, as in Mario Kart: it keeps
-      // turning in on its own, steering in tightens it, steering out widens.
-      const sliding = isPlayer && r.drifting && r.cornerDrift <= 0;
-      let desired =
-        ((sliding ? r.driftDirection * 2.4 + r.steer * 3.6 : r.steer * 7.8) * r.character.grip +
-          curve * r.speed * r.speed * 0.012) *
-        clamp(r.speed / 12, 0, 1);
+      // Cornering, KartRider style: a bend pushes the kart toward its outside
+      // (curvature x speed^2). Ordinary steering holds an ordinary bend; a
+      // tight bend flat out slides you wide unless you drift (a drift grips
+      // better and keeps turning in on its own) or lift off. A player drift is
+      // committed to its side: steering in tightens it, steering out widens.
+      const playerSlide = isPlayer && r.drifting && r.cornerDrift <= 0;
+      let push = cornerPush(curve, r.speed, sliding),
+        turn = (playerSlide ? r.driftDirection * 3.5 + r.steer * 4 : r.steer * 7.8) * r.character.grip;
       if (!isPlayer || input.assist !== false) {
+        // Assist: never steer into the rail, and soften (not cancel) a slide
+        // toward it.
         const near = clamp((Math.abs(r.lane) - (half - 2)) / 1.5, 0, 1),
           side = Math.sign(r.lane);
-        if (desired * side > 0) desired *= 1 - near;
-        desired -= side * near * 3;
+        if (turn * side > 0) turn *= 1 - near;
+        if (push * side > 0) push *= 1 - 0.35 * near;
+        turn -= side * near * 3;
       }
-      r.lateral += (desired - r.lateral) * (1 - Math.exp(-dt * (sliding ? 5 : 9)));
+      // Sideways speed stays within what reads as a slide, never a dart.
+      const desired = clamp((turn + push) * clamp(r.speed / 12, 0, 1), -12, 12);
+      r.lateral += (desired - r.lateral) * (1 - Math.exp(-dt * (playerSlide ? 5 : 9)));
       r.lane += r.lateral * dt;
       this.constrain(r);
       const valid = r.speed > 14 && r.stun <= 0 && !offroad && r.wallCooldown <= 0;
       if (r.cornerDrift > 0) {
         r.drifting = true; // AI corner drift is handled above; keep the pose
-        r.driftDirection ||= Math.sign(curve) || 1;
+        r.driftDirection ||= -Math.sign(curve) || 1;
       } else if (isPlayer && r.rocket <= 0) this.playerDrift(r, steer, drift, curve, valid, input, dt);
       else if (r.drifting) this.clearDrift(r);
       const before = r.distance;
@@ -846,16 +1076,20 @@ export class Race {
       const lapBefore = Math.max(0, Math.floor(before / this.track.length)),
         lapAfter = Math.max(0, Math.floor(r.distance / this.track.length));
       if (lapAfter > lapBefore) this.event("lap", { racer: r.id, lap: lapAfter + 1 });
-      // Boxes and coins are per racer: taking one hides it for you only.
+      // Boxes and coins are per racer: taking one hides it for you only. A
+      // box you drive into always breaks, even with both slots full (V2.2
+      // let you pass straight through it, which read as a glitch).
       for (const b of this.boxes)
-        if (b.cooldown <= 0 && !(b.taken[r.id] > 0) && !r.item && this.contact(r, b, 2.3, 1.7)) {
+        if (b.cooldown <= 0 && !(b.taken[r.id] > 0) && this.contact(r, b, 2.3, 1.7)) {
           b.taken[r.id] = 4;
-          this.giveItem(r, b);
+          if (!r.item || !r.item2) this.giveItem(r, b);
+          else this.event("boxBreak", { racer: r.id, box: b.id });
         }
       for (const c of this.coins)
         if (c.cooldown <= 0 && !(c.taken[r.id] > 0) && this.contact(r, c, 1.8, 1.4)) {
           c.taken[r.id] = 8;
           r.coins = Math.min(10, r.coins + 1);
+          this.gain(r, GAUGE.coin);
           this.event("coin", { racer: r.id, coin: c.id });
         }
       for (const p of this.pads)
@@ -890,12 +1124,23 @@ export class Race {
             rx = 2.65,
             ry = 1.95;
           if ((dx / rx) ** 2 + (dy / ry) ** 2 >= 1) continue;
-          // A star or rocket ploughs straight through: the other kart is
-          // knocked aside (spin plus a sideways shove) and no positional
-          // correction or speed exchange is applied between the two.
-          if (a.star > 0 || a.rocket > 0 || b.star > 0 || b.rocket > 0) {
-            if (a.star > 0 || a.rocket > 0) this.knock(b, a);
-            else this.knock(a, b);
+          if (a.jump > 0 || b.jump > 0) continue; // airborne: sails over
+          // A star, rocket or bear ram ploughs on at full speed: the other
+          // kart is knocked aside (spin plus a sideways shove) and pushed out
+          // of the way, so the two never sit inside each other.
+          const ram = (k) => k.star > 0 || k.rocket > 0 || k.charge > 0;
+          if (ram(a) !== ram(b)) {
+            const att = ram(a) ? a : b,
+              vic = att === a ? b : a,
+              side = Math.sign(vic.lane - att.lane) || (vic.id % 2 ? 1 : -1),
+              pen = Math.sqrt(Math.max(0, 1 - (dx / rx) ** 2)) * ry - Math.abs(dy);
+            this.knock(vic, att);
+            if (!handled.has(i * 8 + j)) {
+              handled.add(i * 8 + j); // once per step: a firm shove, never a jump
+              vic.lane += side * Math.min(Math.max(0, pen), 0.09);
+              if (vic.lateral * side < 4) vic.lateral = side * 4;
+              this.constrain(vic);
+            }
             continue;
           }
           const first = !handled.has(i * 8 + j);
@@ -948,7 +1193,7 @@ export class Race {
     for (const h of this.hazards) {
       h.life -= dt;
       for (const r of this.racers)
-        if (r.id !== h.owner && r.finish === null && r.rescue <= 0 && this.contact(r, h, 1.9, 1.4)) {
+        if (r.id !== h.owner && r.finish === null && r.rescue <= 0 && r.jump <= 0 && this.contact(r, h, 1.9, 1.4)) {
           this.hit(r, h.owner);
           h.life = 0;
           this.event("pop", { distance: r.distance, lane: r.lane });
@@ -961,11 +1206,12 @@ export class Race {
         lane = p.lane,
         target = this.racers[p.target];
       if (target && target.finish === null) {
-        p.lane += (target.lane - p.lane) * (1 - Math.exp(-dt * 5));
+        const close = clamp(1 - this.gap(target.distance, p.distance) / 30, 0, 1);
+        p.lane += (target.lane - p.lane) * (1 - Math.exp(-dt * (5 + 11 * close)));
         p.distance += dt * Math.max(62, target.speed + 22);
       } else p.distance += dt * 62;
       const eligible = this.racers
-        .filter((r) => r.id !== p.owner && r.finish === null && r.rescue <= 0)
+        .filter((r) => r.id !== p.owner && r.finish === null && r.rescue <= 0 && r.jump <= 0)
         .sort((a, b) => Math.abs(this.gap(a.previous, before)) - Math.abs(this.gap(b.previous, before)));
       for (const r of eligible) {
         const end = this.gap(p.distance, r.distance),
@@ -978,6 +1224,16 @@ export class Race {
         }
       }
     }
+    // Nova's meteors land on their targets after a short fall.
+    for (const m of this.meteors) {
+      m.t -= dt;
+      const t = this.racers[m.target];
+      if (m.t <= 0 && t && t.finish === null) {
+        this.hit(t, m.owner, 1.2);
+        this.event("meteor", { racer: t.id, owner: m.owner, distance: t.distance, lane: t.lane });
+      }
+    }
+    this.meteors = this.meteors.filter((m) => m.t > 0);
     this.hazards = this.hazards.filter((x) => x.life > 0);
     this.projectiles = this.projectiles.filter((x) => x.life > 0);
     if (this.player.finish !== null) {

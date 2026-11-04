@@ -1,7 +1,7 @@
 import * as T from "./vendor/three.module.js";
-import { kartAsset } from "./kart-assets.js?v=da391d9a";
-import { dog, animateDog, reactDog, material, ellipsoid, roundedBox, star as starMesh } from "./models.js?v=da391d9a";
-import { CHARACTERS, seeded } from "./race.js?v=da391d9a";
+import { kartAsset } from "./kart-assets.js?v=5250c1b5";
+import { dog, animateDog, reactDog, material, ellipsoid, roundedBox, star as starMesh } from "./models.js?v=5250c1b5";
+import { CHARACTERS, seeded } from "./race.js?v=5250c1b5";
 const scenerySphere = new T.SphereGeometry(1, 12, 8);
 const sphere = new T.SphereGeometry(1, 24, 18),
   unitBox = new T.BoxGeometry(1, 1, 1),
@@ -626,6 +626,16 @@ export function createKart(kind = "gold", number = 1) {
   marker.position.y = 3.05;
   marker.visible = false;
   g.add(marker);
+  // Small parts (eyes, noses, rivets...) do not need to cast shadows; the
+  // shadow pass is a second draw call per caster.
+  g.updateMatrixWorld(true);
+  const ws = new T.Vector3();
+  g.traverse((o) => {
+    if (!o.isMesh || !o.castShadow) return;
+    if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+    o.getWorldScale(ws);
+    if (o.geometry.boundingSphere.radius * Math.max(ws.x, ws.y, ws.z) < 0.14) o.castShadow = false;
+  });
   g.userData = {
     body,
     driver,
@@ -932,9 +942,13 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
     f.solid.visible = compatibility;
   });
   // --- Status effects --------------------------------------------------------
-  d.protection.visible = r?.shield > 0 || r?.star > 0;
-  d.protection.rotation.y = t;
-  d.protection.children.forEach((m) => m.material.color.set(r?.star > 0 ? 0xffda5d : 0x7fe8ff));
+  // Rings: gold for a star, red for the bear's ram, blue for a shield.
+  const ram = r?.charge > 0;
+  d.protection.visible = r?.shield > 0 || r?.star > 0 || ram;
+  d.protection.rotation.y = t * (ram ? 4 : 1);
+  d.protection.children.forEach((m) => m.material.color.set(r?.star > 0 ? 0xffda5d : ram ? 0xff4a3a : 0x7fe8ff));
+  // Bunny's hop: a barrel roll in the air.
+  if (r?.jump > 0) d.body.rotation.z += Math.PI * 2 * Math.min(1, (1 - r.jump / 1.6) * 1.25);
   // Pennant flutter, faster with speed.
   d.flag.rotation.y = Math.sin(t * (6 + speed * 0.3)) * (0.1 + Math.min(0.35, speed * 0.008));
   d.flag.rotation.x = Math.sin(t * 4.3) * 0.05 - Math.min(0.25, speed * 0.005);
@@ -949,7 +963,9 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
   d.marker.visible = !showcase && r?.id === 0;
   d.marker.position.y = 3.05 + Math.sin(t * 3) * 0.06;
   d.shield.visible = r?.shield > 0 || r?.star > 0;
-  d.shield.material.color.set(r?.star > 0 ? 0xffda5d : 0x7fe8ff);
+  d.shield.material.color.set(r?.star > 0 ? 0xffda5d : r?.shieldHits > 1 ? 0xff9fd6 : 0x7fe8ff);
+  // Milo's double bubble is bigger and gently pulses.
+  d.shield.scale.set(1.44, 1.48, 1.68).multiplyScalar(r?.shieldHits > 1 ? 1.18 + Math.sin(t * 5) * 0.03 : 1);
   // Lightning shrink and regrow animate instead of popping between sizes.
   v.scale = ease(v.scale ?? 1, r?.small > 0 ? 0.7 : 1, 9, dt);
   g.scale.setScalar(v.scale);
@@ -1027,10 +1043,20 @@ function windmill(g) {
   ball(sails, 0xab7957, [0, 0, 0.18], [0.43, 0.43, 0.35]);
   return sails;
 }
+// Merge static scenery into a few large meshes. Plain-colour materials (the
+// mat() cache) share one vertex-coloured material per roughness and are
+// batched by 90 m tiles, so the crowd, bunting, trees and rails cost a few
+// dozen draw calls instead of the ~700 V2.2 needed (it batched per colour
+// per 35 m tile), which matters on older phones.
+const batchMats = new Map();
+function batchMaterial(rough) {
+  if (!batchMats.has(rough)) batchMats.set(rough, new T.MeshStandardMaterial({ vertexColors: true, roughness: rough }));
+  return batchMats.get(rough);
+}
 function staticBatch(group) {
   group.updateMatrixWorld(true);
   const batches = new Map(),
-    meshes = [];
+    at = new T.Vector3();
   group.traverse((o) => {
     if (
       o.isMesh &&
@@ -1038,17 +1064,27 @@ function staticBatch(group) {
       o.geometry.attributes.position &&
       o.geometry.attributes.normal
     ) {
-      meshes.push(o);
-      const m = o.material;
-      const tile = new T.Vector3().setFromMatrixPosition(o.matrixWorld);
-      const key = m.uuid + ":" + Math.floor(tile.x / 35) + ":" + Math.floor(tile.z / 35);
-      if (!batches.has(key)) batches.set(key, { p: [], n: [], mat: m });
+      const m = o.material,
+        plain = m.isMeshStandardMaterial && !m.map && !m.transparent && !m.vertexColors && m.emissive.getHex() === 0 && m.metalness === 0;
+      at.setFromMatrixPosition(o.matrixWorld);
+      const key = (plain ? "plain:" + m.roughness : m.uuid) + ":" + Math.floor(at.x / 90) + ":" + Math.floor(at.z / 90);
+      if (!batches.has(key)) batches.set(key, { p: [], n: [], c: [], mat: plain ? batchMaterial(m.roughness) : m, plain });
       const b = batches.get(key),
         source = o.geometry === sphere ? scenerySphere : o.geometry,
         geo = source.index ? source.toNonIndexed() : source.clone();
       geo.applyMatrix4(o.matrixWorld);
       b.p.push(geo.attributes.position.array);
       b.n.push(geo.attributes.normal.array);
+      if (plain) {
+        const n = geo.attributes.position.count,
+          col = new Float32Array(n * 3);
+        for (let i = 0; i < n; i++) {
+          col[i * 3] = m.color.r;
+          col[i * 3 + 1] = m.color.g;
+          col[i * 3 + 2] = m.color.b;
+        }
+        b.c.push(col);
+      }
       geo.dispose();
     }
   });
@@ -1067,6 +1103,7 @@ function staticBatch(group) {
     const geo = new T.BufferGeometry();
     geo.setAttribute("position", new T.BufferAttribute(merge(b.p), 3));
     geo.setAttribute("normal", new T.BufferAttribute(merge(b.n), 3));
+    if (b.plain) geo.setAttribute("color", new T.BufferAttribute(merge(b.c), 3));
     const mesh = new T.Mesh(geo, m);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
@@ -1477,6 +1514,92 @@ function boxFaceMat() {
   }
   return boxFace;
 }
+// Merge a few geometries (each with its matrix, and an optional flat colour)
+// into one indexed geometry.
+function mergeParts(parts) {
+  const pos = [],
+    nor = [],
+    uv = [],
+    col = [],
+    idx = [];
+  let base = 0;
+  for (const { geo, matrix, color } of parts) {
+    const g = geo.clone().applyMatrix4(matrix),
+      p = g.attributes.position,
+      n = g.attributes.normal,
+      u = g.attributes.uv;
+    for (let i = 0; i < p.count; i++) {
+      pos.push(p.getX(i), p.getY(i), p.getZ(i));
+      nor.push(n.getX(i), n.getY(i), n.getZ(i));
+      uv.push(u ? u.getX(i) : 0, u ? u.getY(i) : 0);
+      if (color) col.push(color.r, color.g, color.b);
+    }
+    const index = g.index ? g.index.array : [...Array(p.count).keys()];
+    for (const k of index) idx.push(k + base);
+    base += p.count;
+    g.dispose();
+  }
+  const out = new T.BufferGeometry();
+  out.setAttribute("position", new T.Float32BufferAttribute(pos, 3));
+  out.setAttribute("normal", new T.Float32BufferAttribute(nor, 3));
+  out.setAttribute("uv", new T.Float32BufferAttribute(uv, 2));
+  if (col.length) out.setAttribute("color", new T.Float32BufferAttribute(col, 3));
+  out.setIndex(idx);
+  return out;
+}
+const instanced = (geo, material, n) => {
+  const m = new T.InstancedMesh(geo, material, n);
+  m.instanceMatrix.setUsage(T.DynamicDrawUsage);
+  m.frustumCulled = false; // instances are spread round the whole track
+  return m;
+};
+// All the item boxes of a race in two instanced meshes (rainbow cubes and
+// their "?" cards): 2 draw calls instead of six per box.
+let boxCardsGeo = null;
+export function itemBoxField(n) {
+  boxCardsGeo ||= mergeParts(
+    [0, 1, 2, 3].map((i) => ({
+      geo: boxFaceGeo,
+      matrix: new T.Matrix4().makeRotationY((i * Math.PI) / 2).multiply(new T.Matrix4().makeTranslation(0, 0, 0.87)),
+    })),
+  );
+  const cubes = instanced(boxGeo, boxMat, n),
+    cards = instanced(boxCardsGeo, boxFaceMat(), n),
+    group = new T.Group();
+  group.add(cubes, cards);
+  return {
+    group,
+    set(i, matrix) {
+      cubes.setMatrixAt(i, matrix);
+      cards.setMatrixAt(i, matrix);
+    },
+    commit() {
+      cubes.instanceMatrix.needsUpdate = cards.instanceMatrix.needsUpdate = true;
+    },
+  };
+}
+// All the coins of a race in one instanced mesh (gold disc with a pale rim).
+let coinGeo = null;
+const coinMat = new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.35, metalness: 0.25 });
+export function coinField(n) {
+  coinGeo ||= mergeParts([
+    {
+      geo: new T.CylinderGeometry(0.43, 0.43, 0.12, 24),
+      matrix: new T.Matrix4().makeRotationX(Math.PI / 2),
+      color: new T.Color(0xf6c85a),
+    },
+    { geo: new T.TorusGeometry(0.31, 0.035, 6, 24), matrix: new T.Matrix4().makeTranslation(0, 0, 0.075), color: new T.Color(0xffe7a1) },
+    { geo: new T.TorusGeometry(0.31, 0.035, 6, 24), matrix: new T.Matrix4().makeTranslation(0, 0, -0.075), color: new T.Color(0xffe7a1) },
+  ]);
+  const mesh = instanced(coinGeo, coinMat, n);
+  return {
+    group: mesh,
+    set: (i, matrix) => mesh.setMatrixAt(i, matrix),
+    commit() {
+      mesh.instanceMatrix.needsUpdate = true;
+    },
+  };
+}
 export function makeItemBox() {
   const g = new T.Group();
   const m = new T.Mesh(boxGeo, boxMat);
@@ -1517,6 +1640,34 @@ export function makeBanana() {
     );
   }
   cyl(g, 0x866b3d, [0, 0.49, 0], [0.05, 0.18, 0.05]);
+  return g;
+}
+// Mario's fireball: a hot core in an orange glow.
+export function makeFireball() {
+  const g = new T.Group(),
+    glow = new T.Mesh(sphere, new T.MeshBasicMaterial({ color: 0xff6a1a, transparent: true, opacity: 0.8, toneMapped: false, depthWrite: false })),
+    core = new T.Mesh(sphere, new T.MeshBasicMaterial({ color: 0xffe27a, toneMapped: false }));
+  glow.scale.setScalar(0.62);
+  core.scale.setScalar(0.38);
+  g.add(glow, core);
+  return g;
+}
+// Nova's meteor: a warning ring on the target and the glowing rock above it.
+export function makeMeteor() {
+  const g = new T.Group(),
+    ring = new T.Mesh(
+      new T.RingGeometry(0.8, 1, 32),
+      new T.MeshBasicMaterial({ color: 0xff4a3a, transparent: true, opacity: 0.75, side: T.DoubleSide, depthWrite: false, toneMapped: false }),
+    ),
+    rock = new T.Group(),
+    stone = new T.Mesh(new T.DodecahedronGeometry(0.9, 0), new T.MeshStandardMaterial({ color: 0x8a5a3c, emissive: 0xff5a1a, emissiveIntensity: 0.6, roughness: 0.8, flatShading: true })),
+    flame = new T.Mesh(new T.ConeGeometry(0.75, 3.2, 10, 1, true), new T.MeshBasicMaterial({ color: 0xff8a2a, transparent: true, opacity: 0.6, toneMapped: false, depthWrite: false }));
+  ring.rotation.x = -Math.PI / 2;
+  flame.position.set(0, 1.9, 0.6);
+  flame.rotation.x = -0.3;
+  rock.add(stone, flame);
+  g.add(ring, rock);
+  g.userData = { ring, rock };
   return g;
 }
 export function makeShell() {
