@@ -1,8 +1,8 @@
 import * as T from "./vendor/three.module.js";
-import { kartAsset } from "./kart-assets.js?v=c9d5e852";
-import { buildBody } from "./kart-bodies.js?v=c9d5e852";
-import { dog, animateDog, reactDog, material, ellipsoid, roundedBox, star as starMesh } from "./models.js?v=c9d5e852";
-import { CHARACTERS, seeded } from "./race.js?v=c9d5e852";
+import { kartAsset } from "./kart-assets.js?v=b39a18aa";
+import { buildBody, classicRig, poseRig, setEnvironment as setBodyEnvironment } from "./kart-bodies.js?v=b39a18aa";
+import { dog, animateDog, reactDog, material, ellipsoid, roundedBox, star as starMesh, faceDepth } from "./models.js?v=b39a18aa";
+import { CHARACTERS, seeded } from "./race.js?v=b39a18aa";
 const scenerySphere = new T.SphereGeometry(1, 12, 8);
 const sphere = new T.SphereGeometry(1, 24, 18),
   unitBox = new T.BoxGeometry(1, 1, 1),
@@ -78,8 +78,10 @@ function eyes(g, y, z, x = 0.23, size = 0.065) {
     return e;
   });
 }
-// Expression set for the bunny and the bear, matching the dogs' face rig:
-// happy "^ ^" eyes, dizzy "x x" eyes, focused brows, and a grin / "o" mouth.
+// Expression rig for the bunny and the bear, matching the dogs' (see
+// faceRig): eyes with catchlights that blink, glance and widen; happy "^ ^"
+// and dizzy "x x" eyes; brows that knit or lift; an open mouth that smiles,
+// gasps or grits its teeth; and a blush.
 function expressions(head, eyeList, smile) {
   const dark = 0x2a2d36,
     happy = [],
@@ -104,15 +106,208 @@ function expressions(head, eyeList, smile) {
     head.add(cross);
     hurt.push(cross);
     const brow = box(head, dark, [x, y + 0.13, z - 0.01], [0.12, 0.026, 0.02]);
-    brow.rotation.z = (x > 0 ? 1 : -1) * 0.38; // inner ends down: determined
     brow.visible = false;
     brows.push(brow);
   }
-  const grin = ball(head, 0x4a2b2e, [0, -0.25, 0.54], [0.12, 0.07, 0.03]);
-  grin.visible = false;
-  const oh = ball(head, 0x4a2b2e, [0, -0.26, 0.545], [0.05, 0.065, 0.03]);
-  oh.visible = false;
-  return { eyes: eyeList, happy, hurt, brows, smile, grin, oh };
+  const blush = [-1, 1].map((s) => {
+    const b = ball(head, 0xff9fb0, [s * 0.36, -0.1, 0.5], [0.1, 0.05, 0.02]);
+    b.visible = false;
+    return b;
+  });
+  const mouth = openMouth(head, [0, -0.29, 0.52]);
+  return faceRig({ eyes: eyeList, happy, hurt, brows, smile, mouth, blush, look: 0.03 });
+}
+// A mouth that opens: dark inside, a tongue and a row of teeth, as one group
+// scaled to the shape (w, h); hidden while closed.
+// Two shapes: a round "o" and a "◡" smile (the lower half of a sphere, flat
+// along the top), so a grin reads as a grin and a gasp as a gasp.
+const mouthSphere = new T.SphereGeometry(1, 20, 14),
+  mouthHalf = new T.SphereGeometry(1, 24, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
+  mouthMat = new T.MeshStandardMaterial({ color: 0x5b1f27, roughness: 0.6, side: T.DoubleSide });
+function openMouth(head, at) {
+  const g = new T.Group();
+  g.position.set(...at);
+  head.add(g);
+  const round = new T.Mesh(mouthSphere, mouthMat),
+    smile = new T.Mesh(mouthHalf, mouthMat),
+    tongue = new T.Mesh(mouthSphere, mat(0xf2899a, 0.55)),
+    teeth = new T.Mesh(unitBox, mat(0xffffff, 0.35));
+  smile.position.y = 0.5; // flat top at the mouth line
+  tongue.position.set(0, -0.32, 0.45);
+  tongue.scale.set(0.62, 0.42, 0.5);
+  teeth.position.set(0, 0.3, 0.62);
+  teeth.scale.set(1.5, 0.36, 0.3);
+  g.add(round, smile, tongue, teeth);
+  g.visible = false;
+  g.userData = { round, smile, tongue, teeth };
+  return g;
+}
+// Pivot an object about the centre of its own bounds so it can be scaled or
+// turned in place (the dogs' face parts are built at the head's origin).
+function pivotize(o) {
+  const box3 = new T.Box3(),
+    b = new T.Box3();
+  o.updateMatrix();
+  o.traverse((m) => {
+    if (!m.isMesh) return;
+    m.geometry.computeBoundingBox();
+    b.copy(m.geometry.boundingBox).applyMatrix4(m === o ? m.matrix : m.matrix.clone().premultiply(o.matrix));
+    box3.union(b);
+  });
+  const c = box3.getCenter(new T.Vector3()),
+    pivot = new T.Group();
+  pivot.position.copy(c);
+  o.parent.add(pivot);
+  pivot.add(o);
+  o.position.sub(c);
+  pivot.visible = o.visible;
+  pivot.userData.pivot = true;
+  o.visible = true;
+  return pivot;
+}
+// Mood presets for the face rigs: eye opening, "^ ^" / "x x", mouth shape
+// (w, h), teeth, brow angle (> 0 knits them: determined) and lift, blush and
+// sparkle (bigger catchlights). Every value is eased, so a face changes
+// smoothly instead of snapping.
+const FACE = {
+  "": { eye: 1, happy: 0, hurt: 0, mouth: [0, 0], teeth: 0, brow: 0, lift: 0, blush: 0, sparkle: 0 },
+  happy: { eye: 1, happy: 1, hurt: 0, mouth: [0.125, 0.085], teeth: 0, brow: 0, lift: 0.01, blush: 1, sparkle: 0 },
+  cheer: { eye: 1, happy: 1, hurt: 0, mouth: [0.135, 0.1], teeth: 0, brow: 0, lift: 0.02, blush: 1, sparkle: 0 },
+  excited: { eye: 1.1, happy: 0, hurt: 0, mouth: [0.135, 0.095], teeth: 0, brow: -0.12, lift: 0.015, blush: 1, sparkle: 1 },
+  focus: { eye: 0.62, happy: 0, hurt: 0, mouth: [0.11, 0.05], teeth: 1, brow: 0.4, lift: -0.01, blush: 0, sparkle: 0 },
+  surprise: { eye: 1.3, happy: 0, hurt: 0, mouth: [0.05, 0.064], teeth: 0, brow: -0.3, lift: 0.035, blush: 0, sparkle: 0 },
+  hurt: { eye: 1, happy: 0, hurt: 1, mouth: [0.07, 0.03], teeth: 0, brow: -0.32, lift: 0.02, blush: 0, sparkle: 0 },
+};
+const catchGeo = new T.SphereGeometry(1, 12, 8),
+  catchMat = new T.MeshBasicMaterial({ color: 0xffffff });
+// Wrap a character's face parts into an animated rig (see updateFace).
+function faceRig({ eyes, happy, hurt, brows, smile = null, mouth, blush = [], look = 0.022, tongue = null }) {
+  const f = {
+    eyes,
+    happy,
+    hurt,
+    brows,
+    smile,
+    mouth,
+    blush,
+    tongue,
+    lookRange: look,
+    base: eyes.map((e) => ({ p: e.position.clone(), s: e.scale.clone() })),
+    browBase: brows.map((b) => ({ p: b.position.clone(), s: b.scale.clone(), side: Math.sign(b.position.x) || 1 })),
+    happyBase: happy.map((h) => h.scale.clone()),
+    hurtBase: hurt.map((h) => h.scale.clone()),
+    sparks: [],
+    state: { eye: 1, happy: 0, hurt: 0, mw: 0, mh: 0, teeth: 0, brow: 0, lift: 0, blush: 0, sparkle: 0, look: 0 },
+    blink: 0,
+    nextBlink: 1 + Math.random() * 3,
+    blinks: 0,
+  };
+  // Two catchlights per eye (the dogs' eyes had none): a big one up-left and
+  // a small one down-right, unlit so they always shine.
+  for (const e of eyes) {
+    if (!e.children.length) {
+      const big = new T.Mesh(catchGeo, catchMat);
+      big.position.set(-0.3, 0.36, 0.8);
+      big.scale.set(0.34, 0.31, 0.3);
+      e.add(big);
+    }
+    const small = new T.Mesh(catchGeo, catchMat);
+    small.position.set(0.32, -0.32, 0.8);
+    small.scale.setScalar(0.15);
+    e.add(small);
+    f.sparks.push(e.children[0], small);
+  }
+  return f;
+}
+const easeN = (current, target, rate, dt) => current + (target - current) * (1 - Math.exp(-dt * rate));
+// Faces only matter close to the camera: far away the catchlights (four
+// draw calls per face) are hidden and the rig is not animated.
+const faceAt = new T.Vector3();
+function faceNear(g, f, ctx, showcase) {
+  const near = showcase || !ctx.camera || g.getWorldPosition(faceAt).distanceToSquared(ctx.camera.position) < 16 * 16;
+  if (near !== f.near) {
+    f.near = near;
+    f.sparks.forEach((c) => (c.visible = near));
+  }
+  return near;
+}
+// Pose a face rig for a mood. `look` turns the eyes (-1 .. 1).
+function updateFace(f, mood, look, dt, t) {
+  const p = FACE[mood] || FACE[""],
+    s = f.state,
+    k = dt;
+  s.eye = easeN(s.eye, p.eye, 16, k);
+  s.happy = easeN(s.happy, p.happy, 18, k);
+  s.hurt = easeN(s.hurt, p.hurt, 18, k);
+  s.mw = easeN(s.mw, p.mouth[0], 16, k);
+  s.mh = easeN(s.mh, p.mouth[1], 16, k);
+  s.teeth = easeN(s.teeth, p.teeth, 16, k);
+  s.brow = easeN(s.brow, p.brow, 14, k);
+  s.lift = easeN(s.lift, p.lift, 14, k);
+  s.blush = easeN(s.blush, p.blush, 8, k);
+  s.sparkle = easeN(s.sparkle, p.sparkle, 10, k);
+  s.look = easeN(s.look, look, 8, k);
+  // Blinks: every 2-5 s, quick to close and a touch slower to open, now and
+  // then twice in a row.
+  f.nextBlink -= dt;
+  if (f.nextBlink <= 0) {
+    f.blink = 0.14;
+    f.blinks = f.blinks > 0 ? 0 : Math.random() < 0.22 ? 1 : 0;
+    f.nextBlink = f.blinks ? 0.2 : 2 + Math.random() * 3;
+  }
+  f.blink = Math.max(0, f.blink - dt);
+  const b = f.blink > 0 ? (f.blink > 0.09 ? (0.14 - f.blink) / 0.05 : f.blink / 0.09) : 0,
+    lid = 1 - 0.9 * Math.min(1, b),
+    open = 1 - s.happy - s.hurt;
+  f.eyes.forEach((e, i) => {
+    const base = f.base[i];
+    e.visible = open > 0.04;
+    e.position.set(base.p.x + s.look * f.lookRange, base.p.y + s.lift * 0.4, base.p.z);
+    const w = 1 + (s.eye - 1) * 0.6;
+    e.scale.set(base.s.x * w, base.s.y * s.eye * lid * Math.max(0.05, open), base.s.z);
+  });
+  // Bigger catchlights when excited (starry eyes), a twinkle on top.
+  const sp = 1 + s.sparkle * (0.75 + Math.sin(t * 9) * 0.15);
+  f.sparks.forEach((c, i) => c.scale.setScalar((i % 2 ? 0.15 : 0.32) * sp));
+  f.happy.forEach((h, i) => {
+    const hb = f.happyBase[i];
+    h.visible = s.happy > 0.04;
+    if (h.userData.pivot) h.children[0].visible = true; // (the dog rig toggles the part itself)
+    h.scale.set(hb.x, hb.y * Math.max(0.05, s.happy), hb.z);
+  });
+  f.hurt.forEach((h, i) => {
+    const hb = f.hurtBase[i];
+    h.visible = s.hurt > 0.04;
+    if (h.userData.pivot) h.children[0].visible = true;
+    h.scale.copy(hb).multiplyScalar(Math.max(0.05, s.hurt));
+    h.rotation.z = t * 6 * s.hurt; // spinning dizzy eyes
+  });
+  const browOn = Math.min(1, Math.abs(s.brow) * 4 + Math.max(0, s.lift) * 40);
+  f.brows.forEach((br, i) => {
+    const bb = f.browBase[i];
+    br.visible = browOn > 0.05;
+    if (br.userData.pivot) br.children[0].visible = true;
+    br.rotation.z = bb.side * s.brow;
+    br.position.set(bb.p.x + s.look * f.lookRange * 0.6, bb.p.y + s.lift, bb.p.z);
+    br.scale.set(bb.s.x * Math.max(0.05, browOn), bb.s.y, bb.s.z);
+  });
+  const opened = Math.max(s.mw, 0) > 0.012 && s.mh > 0.008;
+  f.mouth.visible = opened;
+  if (opened) {
+    const mu = f.mouth.userData,
+      round = s.mh > s.mw * 0.8; // a gasp; otherwise a grin
+    f.mouth.scale.set(s.mw, s.mh, 0.035);
+    mu.round.visible = round;
+    mu.smile.visible = !round;
+    mu.teeth.visible = s.teeth > 0.3;
+    mu.tongue.visible = s.teeth < 0.3 && s.mh > 0.04;
+  }
+  if (f.smile) f.smile.visible = s.mh < 0.03;
+  if (f.tongue) f.tongue.visible = false;
+  f.blush.forEach((m) => {
+    m.visible = s.blush > 0.05;
+    m.scale.x = (m.userData.bx ??= m.scale.x) * (0.6 + 0.4 * s.blush);
+  });
 }
 function character(kind) {
   if (kind === "gold" || kind === "white") {
@@ -280,6 +475,235 @@ function character(kind) {
   root.userData = { ...root.userData, head, eyes: eyeList, ears };
   if (kind === "bunny" || kind === "bear") root.userData.limbs = { color: kind === "bunny" ? 0xffe4e7 : 0x9dd4bf };
   return root;
+}
+// ---------------------------------------------------------------------------
+// Emote bubbles (v2.6): a little speech bubble pops up over a driver's head —
+// "!" when startled, a crash star off a rail, an anger mark when bumped,
+// sparkles under 必杀无敌, dizzy swirls after a hit. Drawn as vector icons
+// (no emoji font needed) into one shared atlas.
+// ---------------------------------------------------------------------------
+const EMOTES = ["!", "?", "♪", "💢", "💦", "💥", "✨", "💫", "❤"];
+let emoteAtlas = null;
+function emoteTexture() {
+  if (emoteAtlas) return emoteAtlas;
+  const n = EMOTES.length,
+    S = 128,
+    c = document.createElement("canvas");
+  c.width = S * n;
+  c.height = S;
+  const x = c.getContext("2d");
+  const star = (cx, cy, r, spikes = 4, inner = 0.32) => {
+    x.beginPath();
+    for (let i = 0; i < spikes * 2; i++) {
+      const a = (i * Math.PI) / spikes - Math.PI / 2,
+        rr = i % 2 ? r * inner : r;
+      x.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+    }
+    x.closePath();
+  };
+  const drop = (cx, cy, r) => {
+    x.beginPath();
+    x.moveTo(cx, cy - r * 1.6);
+    x.bezierCurveTo(cx + r * 0.2, cy - r * 0.9, cx + r, cy - r * 0.3, cx + r, cy + r * 0.25);
+    x.arc(cx, cy + r * 0.25, r, 0, Math.PI);
+    x.bezierCurveTo(cx - r, cy - r * 0.3, cx - r * 0.2, cy - r * 0.9, cx, cy - r * 1.6);
+    x.closePath();
+  };
+  EMOTES.forEach((icon, i) => {
+    const ox = i * S,
+      cx = ox + 64,
+      cy = 58;
+    // Bubble with a tail, soft outline.
+    x.save();
+    x.lineJoin = "round";
+    x.lineWidth = 6;
+    x.strokeStyle = "#2e3b3a";
+    x.fillStyle = "#fffdf5";
+    x.beginPath();
+    x.arc(cx, cy, 44, 0.62 * Math.PI, 0.38 * Math.PI + 2 * Math.PI);
+    x.lineTo(cx + 6, cy + 62);
+    x.closePath();
+    x.fill();
+    x.stroke();
+    x.restore();
+    x.save();
+    x.lineCap = "round";
+    x.lineJoin = "round";
+    if (icon === "!" || icon === "?") {
+      x.fillStyle = icon === "!" ? "#ff4b3e" : "#3c8dff";
+      x.font = "900 68px Arial, Helvetica, sans-serif";
+      x.textAlign = "center";
+      x.textBaseline = "middle";
+      x.fillText(icon, cx, cy + 3);
+    } else if (icon === "♪") {
+      x.fillStyle = "#7a5cff";
+      x.beginPath();
+      x.ellipse(cx - 12, cy + 18, 13, 10, -0.4, 0, Math.PI * 2);
+      x.fill();
+      x.fillRect(cx - 2, cy - 26, 7, 46);
+      x.beginPath();
+      x.moveTo(cx + 5, cy - 26);
+      x.quadraticCurveTo(cx + 26, cy - 18, cx + 20, cy - 2);
+      x.quadraticCurveTo(cx + 18, cy - 12, cx + 5, cy - 14);
+      x.fill();
+    } else if (icon === "💢") {
+      x.strokeStyle = "#ff3d4e";
+      x.lineWidth = 9;
+      for (let q = 0; q < 4; q++) {
+        x.save();
+        x.translate(cx, cy);
+        x.rotate((q * Math.PI) / 2);
+        x.beginPath();
+        x.moveTo(8, -24);
+        x.quadraticCurveTo(8, -8, 24, -8);
+        x.stroke();
+        x.restore();
+      }
+    } else if (icon === "💦") {
+      x.fillStyle = "#3fb3ff";
+      drop(cx - 12, cy + 2, 13);
+      x.fill();
+      drop(cx + 16, cy - 8, 9);
+      x.fill();
+    } else if (icon === "💥") {
+      x.fillStyle = "#ffb627";
+      star(cx, cy, 34, 8, 0.5);
+      x.fill();
+      x.fillStyle = "#ff5a2a";
+      star(cx, cy, 18, 8, 0.5);
+      x.fill();
+    } else if (icon === "✨") {
+      x.fillStyle = "#ffcf2e";
+      star(cx - 8, cy + 6, 26);
+      x.fill();
+      star(cx + 20, cy - 18, 13);
+      x.fill();
+    } else if (icon === "💫") {
+      x.strokeStyle = "#ffb627";
+      x.lineWidth = 7;
+      x.beginPath();
+      for (let a = 0; a < Math.PI * 3.2; a += 0.15) x.lineTo(cx + Math.cos(a) * a * 6.5, cy + Math.sin(a) * a * 5);
+      x.stroke();
+      x.fillStyle = "#ffcf2e";
+      star(cx + 24, cy - 22, 12, 5, 0.45);
+      x.fill();
+    } else if (icon === "❤") {
+      x.fillStyle = "#ff4f7a";
+      x.beginPath();
+      x.moveTo(cx, cy + 26);
+      x.bezierCurveTo(cx - 40, cy, cx - 22, cy - 34, cx, cy - 14);
+      x.bezierCurveTo(cx + 22, cy - 34, cx + 40, cy, cx, cy + 26);
+      x.fill();
+    }
+    x.restore();
+  });
+  emoteAtlas = new T.CanvasTexture(c);
+  emoteAtlas.colorSpace = T.SRGBColorSpace;
+  return emoteAtlas;
+}
+// Show an emote over a kart's driver for `seconds`.
+export function emote(g, icon, seconds = 1) {
+  const d = g.userData,
+    i = Math.max(0, EMOTES.indexOf(icon));
+  if (!d.emote) {
+    const tex = emoteTexture().clone();
+    tex.repeat.set(1 / EMOTES.length, 1);
+    const sprite = new T.Sprite(new T.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false, toneMapped: false }));
+    sprite.renderOrder = 8;
+    sprite.visible = false;
+    g.add(sprite);
+    d.emote = { sprite, tex, t: 0, life: 0 };
+  }
+  const e = d.emote;
+  e.tex.offset.x = i / EMOTES.length;
+  e.t = 0;
+  e.life = seconds;
+  e.side = Math.random() < 0.5 ? -1 : 1;
+}
+function animateEmote(d, dt, t) {
+  const e = d.emote;
+  if (!e) return;
+  e.t += dt;
+  const on = e.t < e.life;
+  e.sprite.visible = on;
+  if (!on) return;
+  const pop = Math.min(1, e.t / 0.22),
+    grow = 1 + 2.70158 * (pop - 1) ** 3 + 1.70158 * (pop - 1) ** 2, // ease out with a bounce
+    fade = Math.min(1, (e.life - e.t) / 0.25);
+  e.sprite.scale.setScalar(0.95 * grow * (0.85 + 0.15 * fade));
+  e.sprite.position.set(e.side * 0.55, (d.emoteY || 2.55) + e.t * 0.25 + Math.sin(t * 7) * 0.03, -0.1);
+  e.sprite.material.opacity = fade;
+  e.sprite.material.rotation = Math.sin(t * 5) * 0.08;
+}
+// 必杀无敌 aura: a golden energy shell (bright at the rim, see-through in the
+// middle, with bands running up it) and two spinning rings.
+const auraVertex = `
+varying vec3 vN; varying vec3 vV; varying float vY;
+void main() {
+  vec4 mv = modelViewMatrix * vec4(position, 1.0);
+  vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); vY = position.y;
+  gl_Position = projectionMatrix * mv;
+}`;
+const auraFragment = `
+uniform vec3 colour; uniform float opacity; uniform float time;
+varying vec3 vN; varying vec3 vV; varying float vY;
+void main() {
+  float rim = pow(1.0 - abs(dot(vN, vV)), 2.6);
+  float bands = 0.6 + 0.4 * sin(vY * 18.0 - time * 9.0);
+  gl_FragColor = vec4(colour * (rim * 1.25 * bands + 0.03), 1.0) * opacity;
+}`;
+function makeAura(colour = 0xffbf3a) {
+  const g = new T.Group(),
+    shell = new T.Mesh(
+      new T.SphereGeometry(1, 32, 20),
+      new T.ShaderMaterial({
+        uniforms: { colour: { value: new T.Color(colour) }, opacity: { value: 0 }, time: { value: 0 } },
+        vertexShader: auraVertex,
+        fragmentShader: auraFragment,
+        transparent: true,
+        blending: T.AdditiveBlending,
+        depthWrite: false,
+        fog: false,
+      }),
+    );
+  shell.position.y = 1.0;
+  shell.scale.set(1.45, 1.2, 1.9);
+  shell.renderOrder = 7;
+  const ringMat = new T.MeshBasicMaterial({ color: 0xffc84a, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false }),
+    rings = [0.45, -0.6].map((tilt, i) => {
+      // A tilted ring turning about the vertical: it precesses like a gyro.
+      const holder = new T.Group(),
+        r = new T.Mesh(new T.TorusGeometry(1.6, 0.028, 6, 64), ringMat);
+      holder.position.y = 0.95 + i * 0.25;
+      r.rotation.set(Math.PI / 2 + tilt, 0, 0);
+      r.renderOrder = 7;
+      holder.add(r);
+      return holder;
+    });
+  g.add(shell, ...rings);
+  g.visible = false;
+  g.userData = { shell, rings, ringMat };
+  return g;
+}
+// Environment reflections for kart bodies (set once by the game, before
+// karts are built): glossy paint and chrome on the premium bodies, and a toy
+// sheen on the classic Kenney kart.
+let envTexture = null;
+export function setEnvironment(texture) {
+  envTexture = texture;
+  setBodyEnvironment(texture);
+}
+const glossed = new WeakSet();
+function glossKenney(model) {
+  if (!envTexture) return;
+  model.traverse((o) => {
+    if (!o.isMesh || glossed.has(o.material) || !o.material.isMeshStandardMaterial) return;
+    glossed.add(o.material);
+    o.material.envMap = envTexture;
+    o.material.envMapIntensity = o.name.startsWith("wheel") ? 0.35 : 0.75;
+    o.material.roughness = Math.min(o.material.roughness, o.name.startsWith("wheel") ? 0.8 : 0.42);
+    o.material.needsUpdate = true;
+  });
 }
 // ---------------------------------------------------------------------------
 // Kart assembly
@@ -520,9 +944,13 @@ export function createKart(kind = "gold", number = 1, bodyId = "classic") {
   const g = new T.Group(),
     body = new T.Group();
   g.add(body);
+  const info = CHARACTERS.find((c) => c.id === kind),
+    accent = info ? new T.Color(info.color).getHex() : 0xeeae55;
   // A premium body (闪电 GT, 喷射火箭, 幻影星舰) or the classic Kenney kart.
   const premium = bodyId && bodyId !== "classic" ? buildBody(bodyId) : null;
-  let asset;
+  let asset,
+    rig = premium?.rig || null,
+    extraGlow = [];
   if (premium) {
     body.add(premium.group);
     let nativeDriver = null;
@@ -540,9 +968,14 @@ export function createKart(kind = "gold", number = 1, bodyId = "classic") {
   } else {
     asset = kartAsset(kind);
     body.add(asset.model);
+    glossKenney(asset.model);
+    // The classic kart's transformation parts (spoiler, mini boosters).
+    const extra = classicRig(accent);
+    body.add(extra.group);
+    rig = extra.rig;
+    extraGlow = extra.glow;
   }
   const driver = asset.nativeDriver || character(kind);
-  const info = CHARACTERS.find((c) => c.id === kind);
   let limbs = null;
   if (!asset.nativeDriver) {
     if (!driver.userData.kartDog) {
@@ -579,8 +1012,7 @@ export function createKart(kind = "gold", number = 1, bodyId = "classic") {
   // Antenna pennant in the driver's colour and a race-number plate, so each
   // kart reads as its driver's at a glance (the five Kenney karts are shared
   // between the eight racers).
-  const accent = info ? new T.Color(info.color).getHex() : 0xeeae55,
-    antenna = new T.Group();
+  const antenna = new T.Group();
   antenna.position.set(...(premium?.antenna || [-0.62, 1.05, -1.0]));
   body.add(antenna);
   cyl(antenna, 0x4a4f55, [0, 0.62, 0], [0.024, 1.25, 0.024]);
@@ -600,10 +1032,13 @@ export function createKart(kind = "gold", number = 1, bodyId = "classic") {
     f.nozzle.position.copy(e.tip);
     f.nozzle.quaternion.setFromUnitVectors(yAxis, e.dir);
     f.size = e.size;
+    // Where the flame sits once the body has transformed (pipes slide out).
+    f.tip0 = e.tip.clone();
+    f.tip1 = e.tip1 ? e.tip1.clone() : null;
     return f;
   });
-  // Neon parts that flare up during a boost (premium bodies).
-  const glow = (premium?.glow || []).map((m) => ({ m, colour: m.color.clone(), opacity: m.opacity }));
+  // Neon parts that flare up during a boost.
+  const glow = [...(premium?.glow || []), ...extraGlow].map((m) => ({ m, colour: m.color.clone(), opacity: m.opacity }));
   const shadow = new T.Mesh(
     new T.CircleGeometry(1, 32),
     new T.MeshBasicMaterial({ color: 0x33463e, transparent: true, opacity: 0.26, depthWrite: false }),
@@ -650,6 +1085,24 @@ export function createKart(kind = "gold", number = 1, bodyId = "classic") {
   }
   dizzy.visible = false;
   g.add(dizzy);
+  // 必杀无敌 aura (not drawn by the compatibility renderer).
+  const aura = compatibility ? null : makeAura();
+  if (aura) g.add(aura);
+  // Face rigs: the dogs' sculpted faces get catchlights, an open mouth and
+  // brows that move; the bunny and bear have theirs from expressions().
+  if (driver.userData.kartDog) {
+    const u = driver.userData,
+      y = -0.33;
+    u.face2 = faceRig({
+      eyes: u.eyes,
+      happy: u.happyEyes.map(pivotize),
+      hurt: u.hurtEyes.map(pivotize),
+      brows: u.eyebrows.map(pivotize),
+      mouth: openMouth(u.head, [0, y, faceDepth(0, y) + 0.006]),
+      blush: u.blush,
+      tongue: u.tongue,
+    });
+  }
   const marker = new T.Mesh(new T.ConeGeometry(0.19, 0.38, 4), new T.MeshBasicMaterial({ color: 0x7df5ff }));
   marker.rotation.z = Math.PI;
   marker.position.y = 3.05;
@@ -665,6 +1118,7 @@ export function createKart(kind = "gold", number = 1, bodyId = "classic") {
     o.getWorldScale(ws);
     if (o.geometry.boundingSphere.radius * Math.max(ws.x, ws.y, ws.z) < 0.14) o.castShadow = false;
   });
+  if (rig) poseRig(rig, 0);
   g.userData = {
     body,
     driver,
@@ -681,6 +1135,9 @@ export function createKart(kind = "gold", number = 1, bodyId = "classic") {
     kind,
     bodyId: premium ? bodyId : "classic",
     glow,
+    rig,
+    aura,
+    emoteY: driver.userData.kartDog ? 2.75 : 2.6,
     // Smoothed visual pose (heading slip, drift yaw, lean, pitch, nitro).
     vis: {
       slip: 0,
@@ -700,6 +1157,10 @@ export function createKart(kind = "gold", number = 1, bodyId = "classic") {
       moodTime: 0,
       look: 0, // head turn toward a rival alongside
       cheer: 0,
+      morph: 0, // boost transformation (变形), 0 folded .. 1 deployed (springy)
+      morphV: 0,
+      guard: 0, // 必杀无敌 aura strength
+      squash: 0, // ignition squash and stretch
     },
     fade: 1,
   };
@@ -754,6 +1215,10 @@ const tmpGrip = new T.Vector3(),
 
 // A short-lived mood from a game event: "happy" after an overtake or a hit
 // landed (the dogs also glance back), for `seconds`.
+// Garage: show the transformation now, for `seconds`.
+export function previewTransform(g, seconds = 2.5) {
+  g.userData.vis.preview = seconds;
+}
 export function kartMood(g, mood, seconds = 0.9) {
   const v = g.userData.vis;
   v.mood = mood;
@@ -785,19 +1250,29 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
   // while boosting or after an overtake / a hit landed, focused deep in a
   // drift. Timed moods come from kartMood().
   v.moodTime = Math.max(0, v.moodTime - dt);
+  // In the garage the kart shows off its transformation every few seconds
+  // (and at once when it is picked, see previewTransform).
+  v.preview = Math.max(0, (v.preview || 0) - dt);
+  const showMorph = showcase && (t % 6.5 > 3.6 || v.preview > 0);
   const mood = showcase
-    ? ""
+    ? showMorph
+      ? "excited"
+      : t % 13 > 10.8
+        ? "happy"
+        : ""
     : r?.stun > 0
       ? "hurt"
       : r && r.finish !== null && r.finish !== undefined
         ? "cheer"
         : v.moodTime > 0
           ? v.mood
-          : r?.rocket > 0 || r?.star > 0 || (v.active && v.kick > 0.2)
-            ? "happy"
-            : drifting && (r?.drift ?? 0) >= 1.25
-              ? "focus"
-              : "";
+          : r?.guard > 0 || r?.rocket > 0 || r?.star > 0
+            ? "excited"
+            : v.active && v.kick > 0.2
+              ? "happy"
+              : drifting && (r?.drift ?? 0) >= 1.25
+                ? "focus"
+                : "";
   v.cheer = ease(v.cheer, mood === "cheer" ? 1 : 0, 3, dt);
   v.look = ease(v.look, ctx.look || 0, 4, dt);
   // Lean into turns (driver weight) and squat/lift with acceleration.
@@ -821,6 +1296,32 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
     v.roll + wobble * (r?.bumpSide || 0) * 0.5,
     "YXZ",
   );
+  // --- Boost transformation (变形) -----------------------------------------
+  // A spring drives the transform amount: a quick unfold with a little
+  // overshoot (the parts "clack" into place), a softer fold back. Specials,
+  // stars, rockets and the bear's ram transform the kart too.
+  const transformed = showcase
+    ? showMorph
+    : (r?.boost > 0 || r?.star > 0 || r?.rocket > 0 || r?.guard > 0 || r?.charge > 0) && !(r?.rescue > 0);
+  for (let left = Math.min(dt, 0.1); left > 1e-6; left -= 1 / 120) {
+    const h = Math.min(left, 1 / 120),
+      stiff = transformed ? 260 : 120,
+      damp = transformed ? 20 : 19;
+    v.morphV += ((transformed ? 1 : 0) - v.morph) * stiff * h - v.morphV * damp * h;
+    v.morph = Math.max(-0.05, v.morph + v.morphV * h);
+  }
+  const m = Math.max(0, v.morph),
+    m1 = Math.min(1.1, m);
+  if (d.rig) {
+    poseRig(d.rig, m);
+    for (const sp of d.rig.spin) sp.obj.rotation[sp.axis] += (sp.idle + (sp.boost - sp.idle) * m1) * dt;
+    if (d.rig.tilt) for (const w of d.wheels) if (w.tilt) w.tilt.rotation.z = -(w.side || 1) * d.rig.tilt * m1;
+    d.body.position.y += d.rig.lift * m1;
+  }
+  // Ignition squash and stretch: the body stretches forward and squats.
+  const pulse = v.kick > 0 ? Math.sin((1 - v.kick) * Math.PI) : 0,
+    sq = pulse * (0.45 + 0.55 * (v.big || 0.4));
+  d.body.scale.set(1 - 0.035 * sq, 1 - 0.06 * sq, 1 + 0.09 * sq);
   // --- Steering wheel and wheels ----------------------------------------
   const wheelTarget = showcase ? Math.sin(t * 0.9) * 0.18 : -(steer * 0.85) + (drifting ? v.drift * 0.6 : 0);
   v.wheel = ease(v.wheel, wheelTarget, 14, dt);
@@ -831,7 +1332,10 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
     if (w.front) w.pivot.rotation.y = drifting ? v.drift * 0.55 : -steer * 0.32;
   });
   // --- Driver -------------------------------------------------------------
-  if (!d.nativeDriver) driver.rotation.z = -steer * 0.06 - v.drift * 0.05;
+  if (!d.nativeDriver) {
+    driver.rotation.z = -steer * 0.06 - v.drift * 0.05 + wobble * (r?.bumpSide || 0) * 0.25;
+    driver.rotation.x = -0.1 * pulse * (v.big || 0.4); // pushed back into the seat
+  }
   if (driver.userData.kartDog) {
     const u = driver.userData;
     // Faces: the dogs' own rig (^ ^ happy eyes and blush, x x when hurt,
@@ -842,7 +1346,7 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
       const timed = v.moodTime > 0 && mood === v.mood;
       reactDog(
         driver,
-        mood === "hurt" ? "hurt" : mood === "happy" || mood === "cheer" ? "happy" : mood === "focus" ? "surprise" : "normal",
+        mood === "hurt" ? "hurt" : mood === "happy" || mood === "cheer" || mood === "excited" ? "happy" : mood === "focus" ? "surprise" : "normal",
         timed ? v.moodTime : 99,
       );
     }
@@ -852,9 +1356,11 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
     u.head.rotation.y += v.lookApplied;
     u.legs.forEach((a) => (a.rotation.x = -1.25)); // seated: thighs forward
     u.head.rotation.y = showcase ? Math.sin(t * 0.8) * 0.13 : -steer * 0.18;
+    // Ears stream back with speed and flap in the boost wind.
     u.ears.forEach((e, i) => {
-      e.rotation.x = Math.sin(t * 7 + i) * 0.06 + speed * 0.002;
+      e.rotation.x = Math.sin(t * (7 + speed * 0.25) + i) * (0.06 + v.nitro * 0.1) + speed * 0.002 - v.nitro * 0.12;
     });
+    if (u.face2) faceNear(g, u.face2, ctx, showcase) && updateFace(u.face2, mood, clampN(-(steer * 0.8 + v.look), -1, 1), dt, t);
     u.tail.rotation.z = Math.sin(t * 10) * 0.5;
     // Aim each arm bone at its grip on the rim, so paws stay on the wheel as
     // it turns. Rest direction of the sculpted arm is down and slightly out.
@@ -881,26 +1387,18 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
     const u = driver.userData;
     u.head.rotation.z = Math.sin(t * 2) * 0.035;
     u.head.rotation.y = showcase ? Math.sin(t * 0.75) * 0.12 : steer * 0.2 + (u.face ? v.look * 0.45 : 0);
-    if (u.face) {
-      const f = u.face,
-        happy = mood === "happy" || mood === "cheer",
-        hurt = mood === "hurt";
-      f.eyes.forEach((e) => (e.visible = !happy && !hurt));
-      f.happy.forEach((e) => (e.visible = happy));
-      f.hurt.forEach((e) => (e.visible = hurt));
-      f.brows.forEach((e) => (e.visible = mood === "focus"));
-      f.smile.visible = !happy && !hurt;
-      f.grin.visible = happy;
-      f.oh.visible = hurt;
-    }
-    u.eyes.forEach(
-      (e) =>
-        (e.scale.y =
-          (t % 4.6 > 4.43 ? 0.1 : 1) *
-          (u.face && mood === "focus" ? 0.55 : 1) *
-          (g.userData.kind === "mario" ? 0.06 : g.userData.kind === "dora" ? 0.08 : 0.0702)),
-    );
-    u.ears.forEach((e, i) => (e.rotation.z = Math.sin(t * 3 + i) * 0.06));
+    if (u.face) faceNear(g, u.face, ctx, showcase) && updateFace(u.face, mood, clampN(-(steer * 0.8 + v.look), -1, 1), dt, t);
+    else
+      u.eyes.forEach(
+        (e) => (e.scale.y = (t % 4.6 > 4.43 ? 0.1 : 1) * (g.userData.kind === "mario" ? 0.06 : g.userData.kind === "dora" ? 0.08 : 0.0702)),
+      );
+    // Long ears stream back with speed and flap in the boost wind.
+    u.ears.forEach((e, i) => {
+      e.rotation.z = Math.sin(t * 3 + i) * 0.06;
+      e.rotation.x = -Math.min(0.5, speed * 0.009) - v.nitro * 0.14 + Math.sin(t * (6 + speed * 0.3) + i * 1.7) * (0.03 + v.nitro * 0.07);
+    });
+    // A gasp of joy (head back) when a boost fires.
+    u.head.rotation.x = -0.18 * pulse * (v.big || 0.4);
   }
   if (d.limbs) {
     // Hands follow the rim; elbows bend outwards and down.
@@ -927,22 +1425,24 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
     }
   }
   // --- Nitro ---------------------------------------------------------------
-  const active = (r?.boost > 0 || r?.star > 0) && !(r?.rescue > 0);
-  if (active && (!v.active || (r.boostCount ?? 0) !== v.boostCount)) {
+  // (In the garage the transformed kart lights its jets too.)
+  const active = showcase ? showMorph : (r?.boost > 0 || r?.star > 0) && !(r?.rescue > 0);
+  if (active && (!v.active || (r?.boostCount ?? 0) !== v.boostCount)) {
     v.kick = 1; // ignition pop, also for a new boost on top of one
-    v.kind = r.star > 0 ? "star" : r.boostKind || "item";
+    v.kind = !r ? "nitro" : r.star > 0 ? "star" : r.boostKind || "item";
     v.big = /start|nitro|drift3|rocket|item/.test(v.kind) ? 1 : 0.4;
   }
   v.boostCount = r?.boostCount ?? 0;
-  if (active) v.kind = r.star > 0 ? "star" : r.boostKind || v.kind;
+  if (active && r) v.kind = r.star > 0 ? "star" : r.boostKind || v.kind;
   v.active = active;
-  v.nitro = ease(v.nitro, active ? 1 : 0, active ? 22 : 7, dt);
+  v.nitro = ease(v.nitro, active ? (r ? 1 : 0.7) : 0, active ? 22 : 7, dt);
   v.kick = Math.max(0, v.kick - dt * 5.5);
   const cfg = NITRO[v.kind] || NITRO.item,
     on = v.nitro > 0.02,
     fade = d.fade ?? 1;
   if (on && ctx.camera) d.body.updateMatrixWorld();
   d.exhaust.forEach((f, i) => {
+    if (f.tip1) f.nozzle.position.lerpVectors(f.tip0, f.tip1, m1);
     f.nozzle.visible = on;
     if (!on) return;
     const flicker =
@@ -1009,6 +1509,26 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
   d.shield.material.color.set(r?.star > 0 ? 0xffda5d : r?.shieldHits > 1 ? 0xff9fd6 : 0x7fe8ff);
   // Milo's double bubble is bigger and gently pulses.
   d.shield.scale.set(1.44, 1.48, 1.68).multiplyScalar(r?.shieldHits > 1 ? 1.18 + Math.sin(t * 5) * 0.03 : 1);
+  // 必杀无敌: the golden aura fades in, runs bands up its shell, and blinks
+  // as it is about to run out.
+  if (d.aura) {
+    const guarded = r?.guard > 0;
+    v.guard = ease(v.guard, guarded ? 1 : 0, guarded ? 12 : 6, dt);
+    d.aura.visible = v.guard > 0.01 && !showcase;
+    if (d.aura.visible) {
+      const a = d.aura.userData,
+        ending = guarded && r.guard < 0.7 ? 0.55 + 0.45 * Math.sin(t * 28) : 1,
+        o = v.guard * ending * (d.fade ?? 1);
+      a.shell.material.uniforms.opacity.value = 0.85 * o;
+      a.shell.material.uniforms.time.value = t;
+      a.rings[0].rotation.y = t * 2.6;
+      a.rings[1].rotation.y = -t * 2.0;
+      a.ringMat.opacity = 0.8 * o;
+      d.aura.scale.setScalar(1 + (1 - v.guard) * 0.3 + Math.sin(t * 8) * 0.015);
+    }
+  }
+  d.emoteY ??= 2.6;
+  animateEmote(d, dt, t);
   // Lightning shrink and regrow animate instead of popping between sizes.
   v.scale = ease(v.scale ?? 1, r?.small > 0 ? 0.7 : 1, 9, dt);
   g.scale.setScalar(v.scale);
@@ -1718,6 +2238,7 @@ export function createShowroomKart(bodyId = "classic") {
   const g = new T.Group(),
     premium = bodyId !== "classic" ? buildBody(bodyId) : null;
   g.add(premium ? premium.group : kartAsset("gold").model);
+  if (premium?.rig) poseRig(premium.rig, 0);
   return g;
 }
 // Light trail for boosts: a flat ribbon of light laid along the kart's path

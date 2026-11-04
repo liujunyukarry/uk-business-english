@@ -170,6 +170,11 @@ test("星星队长 流星雨: meteors hit the three nearest karts ahead, not tho
 test("泡泡探险家 泡泡护航: a big bubble that absorbs two hits", () => {
   const { r, p } = withSpecial("milo");
   assert(r.useSpecial());
+  // v2.6: every special starts with a moment of 必杀无敌; the bubble is what
+  // is left after it.
+  assert.equal(r.hit(p, 1), false);
+  assert.equal(p.shieldHits, 2, "the guard took that one, not the bubble");
+  p.guard = 0;
   assert.equal(r.hit(p, 1), false);
   p.invincible = 0;
   assert.equal(r.hit(p, 1), false);

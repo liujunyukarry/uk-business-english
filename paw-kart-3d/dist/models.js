@@ -1,4 +1,4 @@
-import {sprintMotion} from './sprint.js?v=c9d5e852';
+import {sprintMotion} from './sprint.js?v=b39a18aa';
 import * as T from './vendor/three.module.js';
 import {Group,Tween,Easing} from './vendor/tween.esm.js';
 const shapeParts=Array.from({length:10},(_,i)=>`./assets/packed/dog-rules18.gz.part${String(i).padStart(2,'0')}`);
@@ -7,7 +7,7 @@ async function loadShapes(){
  let source;
  if(typeof DecompressionStream==='function'){const stream=new Blob(buffers).stream().pipeThrough(new DecompressionStream('gzip'));source=await new Response(stream).text();}
  else{// iOS Safari before 16.4 has no DecompressionStream: decode in JS instead.
-  const {gunzip}=await import('./inflate.js?v=c9d5e852');const all=new Uint8Array(buffers.reduce((n,b)=>n+b.byteLength,0));let o=0;for(const b of buffers){all.set(new Uint8Array(b),o);o+=b.byteLength;}
+  const {gunzip}=await import('./inflate.js?v=b39a18aa');const all=new Uint8Array(buffers.reduce((n,b)=>n+b.byteLength,0));let o=0;for(const b of buffers){all.set(new Uint8Array(b),o);o+=b.byteLength;}
   source=new TextDecoder().decode(gunzip(all));}
  const moduleUrl=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
  try{return (await import(moduleUrl)).SHAPES;}finally{URL.revokeObjectURL(moduleUrl);}
@@ -22,7 +22,7 @@ export function roundedBox(parent,color,x,y,z,w,h,d,r=.12){const shape=new T.Sha
 function tube(parent,points,r,color=black){const c=new T.CatmullRomCurve3(points.map(p=>new T.Vector3(...p)));const m=new T.Mesh(new T.TubeGeometry(c,20,r,7,false),typeof color==='number'?material(color):color);parent.add(m);return m;}
 const sculptureCache=new Map();
 function sculpture(name){if(!sculptureCache.has(name)){const a=SHAPES[name],g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(a.position,3));g.setAttribute('normal',new T.Float32BufferAttribute(a.normal,3));g.setIndex(a.index);g.computeBoundingSphere();sculptureCache.set(name,g);}return sculptureCache.get(name);}
-function faceDepth(x,y){const yy=y/.80,p=2.3-.30*yy,rx=.88*(1-.10*yy);return .035+.78*Math.pow(Math.max(.001,1-Math.pow(Math.abs(x/rx),p)-Math.pow(Math.abs(yy),p)),1/p);}
+export function faceDepth(x,y){const yy=y/.80,p=2.3-.30*yy,rx=.88*(1-.10*yy);return .035+.78*Math.pow(Math.max(.001,1-Math.pow(Math.abs(x/rx),p)-Math.pow(Math.abs(yy),p)),1/p);}
 function addFace(head){
  const eyes=[],happyEyes=[],hurtEyes=[],blush=[],eyebrows=[];
  for(const side of [-1,1]){const x=side*.285,y=-.04,z=faceDepth(x,y);const eye=ellipsoid(head,black,[x,y,z+.017],[.055,.061,.034]);eye.userData.baseY=.061;eyes.push(eye);

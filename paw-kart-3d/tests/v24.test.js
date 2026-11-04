@@ -42,6 +42,9 @@ test("drifting fills the nitro gauge; charges stack to two; nitro fires a boost"
   p.distance = 100;
   p.lane = p.previousLane = -5;
   steps(r, 60, { assist: true });
+  // v2.6: nitro charges with the bend a drift takes: drift through a steady
+  // bend into the drift (steering right: curvature < 0).
+  r.track.curvature = () => -0.02;
   const ev = [];
   for (let i = 0; i < 6 * 60; i++) {
     p.lane = p.previousLane = 0; // hold the line: this checks the gauge

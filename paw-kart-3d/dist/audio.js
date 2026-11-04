@@ -383,13 +383,43 @@ export class KartAudio {
         this.tone(988, 0.08, "square", 0.05);
         this.tone(1319, 0.14, "square", 0.05, 0, now + 0.07);
         return;
-      case "bump":
-        this.noise(0.14, 900, 180, 0.16, 1.2);
-        this.tone(150, 0.12, "sine", 0.1, 60);
+      case "bump": {
+        // Kart on kart: a rubbery thump, louder for a harder hit, and a
+        // little "boing" as they spring apart.
+        const k = 0.6 + (e.strength ?? 0.3) * 0.8;
+        this.noise(0.14, 900, 180, 0.16 * k, 1.2);
+        this.tone(150, 0.12, "sine", 0.1 * k, 60);
+        this.tone(330, 0.07, "sine", 0.04 * k, 560, now + 0.05);
+        this.tone(560, 0.1, "sine", 0.03 * k, 300, now + 0.12);
         return;
-      case "wall":
-        this.noise(0.2, 700, 120, 0.2, 1);
-        this.tone(110, 0.16, "sine", 0.12, 50);
+      }
+      case "wall": {
+        // Off the rail: a crunch and a thud scaled by how square the hit was,
+        // a metallic ring for a hard one, then the bounce.
+        const k = 0.55 + (e.impact ?? 0.3) * 0.9;
+        this.noise(0.22, 900, 120, 0.22 * k, 1);
+        this.tone(110, 0.18, "sine", 0.14 * k, 45);
+        if ((e.impact ?? 0) > 0.35) this.tone(1850, 0.35, "triangle", 0.025 * k, 1240, now + 0.01);
+        this.tone(240, 0.08, "sine", 0.05 * k, 520, now + 0.06);
+        this.tone(520, 0.12, "sine", 0.04 * k, 260, now + 0.14);
+        return;
+      }
+      case "wallFar":
+        this.noise(0.16, 700, 140, 0.07, 1);
+        this.tone(120, 0.12, "sine", 0.04, 55);
+        return;
+      case "guardBlock":
+        // 必杀无敌: a crystal "ting" as the attack glances off.
+        this.tone(1568, 0.25, "sine", 0.07, 2093);
+        this.tone(2637, 0.35, "triangle", 0.035, 0, now + 0.05);
+        this.noise(0.25, 7000, 9500, 0.05, 0.6, now + 0.02, "highpass");
+        return;
+      case "transform":
+        // The kart unfolding for a boost: servo whirr and two clacks.
+        this.tone(180, 0.22, "sawtooth", 0.025, 620);
+        this.noise(0.05, 5200, 3000, 0.08, 1.4, now + 0.1, "highpass");
+        this.noise(0.05, 4200, 2400, 0.07, 1.4, now + 0.2, "highpass");
+        this.tone(95, 0.12, "square", 0.03, 70, now + 0.2);
         return;
       case "coin":
         this.tone(988, 0.08, "square", 0.045);

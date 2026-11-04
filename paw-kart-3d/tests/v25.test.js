@@ -115,6 +115,7 @@ test("faster charging: one long drift fills a nitro charge; three purple drifts 
   });
   p.distance = 100;
   for (let i = 0; i < 60; i++) r.step(DT, { assist: true });
+  r.track.curvature = () => -0.02; // v2.6: through a bend into the drift
   let charged = false;
   for (let i = 0; i < 2.3 * 60 && !charged; i++) {
     p.lane = p.previousLane = 0;

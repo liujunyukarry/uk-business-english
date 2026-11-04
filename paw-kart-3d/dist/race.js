@@ -241,6 +241,31 @@ export const KARTS = {
 // within the last moment), and so does one up to `late` s after GO
 // (`latePerfect` right at it). Holding on from earlier than that is too early.
 export const START = { window: 0.9, perfect: 0.3, late: 0.35, latePerfect: 0.12 };
+// Drift economy (v2.6). A drift pays for its boost, as in KartRider: it
+// scrubs speed, a lot on a straight and little through a bend it follows,
+// and it charges (sparks and nitro) in proportion to how much bend it is
+// taking. Drifting every bend wins; holding one drift down a straight or
+// along a rail no longer does. `bendRef` is the curvature counted as a full
+// bend; `straight*` are the rates on a straight (x the full rate); `drag` is
+// the speed scrub in a full bend .. on a straight.
+export const DRIFT_ECON = { bendRef: 0.012, straightCharge: 0.3, straightNitro: 0.12, drag: [0.02, 0.12] };
+// How far into a bend a drift is turning: 1 through a proper bend, 0 on a
+// straight or against the bend.
+export const driftBend = (curve, direction) => clamp((-(direction || 0) * curve) / DRIFT_ECON.bendRef, 0, 1);
+// The rails are solid (v2.6): a kart that reaches one bounces off it (the
+// sideways speed comes back, scaled by `restitution`, plus up to `kick` m/s
+// from the forward speed), loses speed by how square it hit (`graze` .. `hard`
+// of its speed, at most `maxLoss` m/s at once) and loses its drift charge.
+export const WALL = { restitution: 0.55, kick: 3, max: 9, graze: 0.05, hard: 0.22, maxLoss: 9, cooldown: 0.35 };
+// Kart contact (v2.6): karts bounce off each other. A side hit sends both
+// apart at `side` m/s plus `closing` x the closing speed (at most `max`); a
+// rear-end costs the kart behind most of its closing speed and shoves the one
+// in front. Sideways bounces decay over about `decay`^-1 s.
+export const BUMP = { side: 2.4, closing: 0.5, max: 6.5, rear: 0.75, rearMin: 1.2, rearMax: 8, front: 0.35, frontMax: 3, decay: 5 };
+// Firing a special makes its driver invincible (必杀无敌) for a moment:
+// nothing can hit or knock it, and it shrugs off bumps. Gold's covers its
+// three dashes.
+export const SPECIAL_GUARD = { base: 3, gold: 3.6 };
 // Item box rows span the road; see the constructor.
 export const BOX_ROWS = [0.07, 0.23, 0.39, 0.55, 0.71, 0.87];
 export const BOX_LANES = [-6, -3, 0, 3, 6];
@@ -267,23 +292,40 @@ export class Track {
     this.curve.arcLengthDivisions = 2400;
     this.length = this.curve.getLength();
     this.points = this.curve.getSpacedPoints(1200);
+    // Curvature at every spaced point (the yaw change over 6 m, as before),
+    // so curvature() — called many times per physics step — is a table
+    // lookup with no garbage instead of two fresh samples.
+    this.curv = new Float32Array(1200);
+    for (let i = 0; i < 1200; i++) this.curv[i] = this.curvatureAt((i / 1200) * this.length);
   }
   sample(distance, lane = 0) {
+    return this.sampleInto(distance, lane, { p: new T.Vector3(), t: new T.Vector3(), right: new T.Vector3(), yaw: 0 });
+  }
+  // The same as sample(), written into `out` ({p, t, right, yaw}): for the
+  // per-frame render loop, which would otherwise allocate every call.
+  sampleInto(distance, lane, out) {
     const u = ((((distance % this.length) + this.length) % this.length) / this.length) * 1200,
       i = Math.floor(u),
       f = u - i,
       a = this.points[i],
       b = this.points[(i + 1) % 1200];
-    const p = a.clone().lerp(b, f),
-      t = b.clone().sub(a).normalize(),
-      right = new T.Vector3(-t.z, 0, t.x).normalize();
-    p.addScaledVector(right, lane);
-    return { p, t, right, yaw: Math.atan2(t.x, t.z) };
+    out.p.copy(a).lerp(b, f);
+    out.t.copy(b).sub(a).normalize();
+    out.right.set(-out.t.z, 0, out.t.x).normalize();
+    out.p.addScaledVector(out.right, lane);
+    out.yaw = Math.atan2(out.t.x, out.t.z);
+    return out;
   }
-  curvature(d) {
+  curvatureAt(d) {
     const a = this.sample(d - 3).yaw,
       b = this.sample(d + 3).yaw;
     return Math.atan2(Math.sin(b - a), Math.cos(b - a)) / 6;
+  }
+  curvature(d) {
+    const u = ((((d % this.length) + this.length) % this.length) / this.length) * 1200,
+      i = Math.floor(u) % 1200,
+      f = u - Math.floor(u);
+    return this.curv[i] + (this.curv[(i + 1) % 1200] - this.curv[i]) * f;
   }
 }
 // Continuous relative contact prevents fast pickups and projectiles tunnelling.
@@ -413,6 +455,10 @@ export class Race {
         draft: 0, // seconds spent in a slipstream
         draftCooldown: 0,
         drafts: 0,
+        guard: 0, // seconds of special invincibility (必杀无敌)
+        rebound: 0, // sideways bounce speed (lane m/s) from a rail or a kart
+        walls: 0, // rail hits
+        driftBend: 0, // how much bend the current drift is taking (0..1)
       });
     }
     this.player = this.racers[0];
@@ -541,9 +587,19 @@ export class Race {
       }
       return this.clearDrift(r);
     }
-    const was = driftLevel(r.drift);
-    r.drift = Math.min(2.6, r.drift + dt * (0.75 + 0.5 * clamp(steer * r.driftDirection, -0.5, 1)) * (r.chargeScale || 1));
-    this.gainNitro(r, NITRO_RULES.perDriftSecond * dt);
+    const was = driftLevel(r.drift),
+      bend = (r.driftBend = driftBend(curve, r.driftDirection));
+    // Sparks and nitro charge with the bend the drift is taking: full rate
+    // through a bend, a trickle on a straight (DRIFT_ECON).
+    r.drift = Math.min(
+      2.6,
+      r.drift +
+        dt *
+          (0.75 + 0.5 * clamp(steer * r.driftDirection, -0.5, 1)) *
+          (r.chargeScale || 1) *
+          (DRIFT_ECON.straightCharge + (1 - DRIFT_ECON.straightCharge) * bend),
+    );
+    this.gainNitro(r, NITRO_RULES.perDriftSecond * dt * (DRIFT_ECON.straightNitro + (1 - DRIFT_ECON.straightNitro) * bend));
     const now = driftLevel(r.drift);
     if (now > was) this.event("driftLevel", { racer: r.id, level: now });
   }
@@ -676,16 +732,12 @@ export class Race {
     return true;
   }
   hit(r, owner, stun = 1.1) {
-    if (
-      r.finish !== null ||
-      r.rescue > 0 ||
-      r.invincible > 0 ||
-      r.star > 0 ||
-      r.rocket > 0 ||
-      r.jump > 0 ||
-      r.charge > 0
-    )
+    if (r.finish !== null || r.rescue > 0 || r.invincible > 0 || r.star > 0 || r.rocket > 0) return false;
+    if (r.guard > 0 || r.jump > 0 || r.charge > 0) {
+      // 必杀无敌: the attack bounces off.
+      this.event("guardBlock", { racer: r.id, owner });
       return false;
+    }
     if (r.shield > 0) {
       if (--r.shieldHits <= 0) {
         r.shield = 0;
@@ -709,9 +761,11 @@ export class Race {
     return true;
   }
   // --- Character specials ----------------------------------------------------
-  nearestAhead(r, range = 200, count = 1) {
+  // The nearest karts ahead. Specials pick ones they can hurt: a kart under
+  // a star, a rocket or 必杀无敌 is passed over (it would only bounce off).
+  nearestAhead(r, range = 200, count = 1, vulnerable = true) {
     return this.racers
-      .filter((o) => o !== r && o.finish === null && o.rescue <= 0)
+      .filter((o) => o !== r && o.finish === null && o.rescue <= 0 && !(vulnerable && (o.guard > 0 || o.star > 0 || o.rocket > 0)))
       .map((o) => ({ o, g: this.gap(o.distance, r.distance) }))
       .filter((x) => x.g > 1.5 && x.g < range)
       .sort((a, b) => a.g - b.g)
@@ -750,7 +804,9 @@ export class Race {
     const kind = r.character.id;
     r.special = 0;
     r.stun = 0;
+    r.small = 0;
     r.specialsUsed++;
+    r.guard = Math.max(r.guard, SPECIAL_GUARD[kind] ?? SPECIAL_GUARD.base);
     if (kind === "gold") {
       this.startBoost(r, 1.3, "item", 6);
       r.dashLeft = 2;
@@ -810,8 +866,9 @@ export class Race {
     const p = this.player;
     if (p.finish !== null) return false;
     if (what === "bolt") return this.gap(p.distance, r.distance) > 0;
-    if (what === "shell" || what === "special:bear" || what === "special:mario")
-      return this.nearestAhead(r, what === "shell" ? 180 : what === "special:bear" ? BEAR_RAM.range : 70)[0] === p;
+    if (what === "shell") return this.nearestAhead(r, 180, 1, false)[0] === p; // a shell homes on whoever is next
+    if (what === "special:bear" || what === "special:mario")
+      return this.nearestAhead(r, what === "special:bear" ? BEAR_RAM.range : 70)[0] === p;
     if (what === "special:nova") return this.nearestAhead(r, 220, 3).includes(p);
     return false;
   }
@@ -853,7 +910,7 @@ export class Race {
   knock(victim, attacker) {
     if (!this.hit(victim, attacker.id)) return false;
     const side = Math.sign(victim.lane - attacker.lane) || (victim.id % 2 ? 1 : -1);
-    victim.lateral += side * 7;
+    victim.rebound = side * 7;
     victim.bump = 0.35;
     victim.bumpSide = side;
     return true;
@@ -865,6 +922,7 @@ export class Race {
       r.lane = Number.isFinite(r.lane) ? clamp(r.lane, -half + 2, half - 2) : 0;
       r.previousLane = r.lane;
       r.lateral = 0;
+      r.rebound = 0;
       r.speed = 0;
       r.rescue = 1.1;
       r.invincible = 2.5;
@@ -873,13 +931,21 @@ export class Race {
       return;
     }
     if (Math.abs(r.lane) > limit) {
-      const side = Math.sign(r.lane);
+      // Solid rail: bounce back off it (WALL).
+      const side = Math.sign(r.lane),
+        into = Math.max(0, ((r.lateral || 0) + (r.rebound || 0)) * side);
       r.lane = side * limit;
-      if (r.lateral * side > 0) r.lateral *= -0.18;
+      if (r.lateral * side > 0) r.lateral = 0;
+      if (into > 0 || r.rebound * side > 0)
+        r.rebound = -side * Math.min(WALL.max, into * WALL.restitution + WALL.kick * clamp(r.speed / 30, 0, 1));
       if (r.wallCooldown <= 0) {
-        r.speed *= 0.78;
-        r.wallCooldown = 0.65;
-        this.event("wall", { racer: r.id });
+        const impact = clamp(into / 10, 0, 1);
+        r.speed -= Math.min(WALL.maxLoss, Math.max(0, r.speed) * (WALL.graze + (WALL.hard - WALL.graze) * impact));
+        r.wallCooldown = WALL.cooldown;
+        r.walls++;
+        r.bump = 0.35;
+        r.bumpSide = -side * (0.6 + impact);
+        this.event("wall", { racer: r.id, side, impact, drift: r.drifting ? driftLevel(r.drift) : 0 });
       }
       this.clearDrift(r);
     }
@@ -961,8 +1027,11 @@ export class Race {
         "perfectDrift",
         "jump",
         "charge",
+        "guard",
       ])
         r[k] = Math.max(0, r[k] - dt);
+      r.rebound *= Math.exp(-dt * BUMP.decay);
+      if (Math.abs(r.rebound) < 0.05) r.rebound = 0;
       this.constrain(r);
       if (r.rescue > 0) continue;
       if (r.finish === null) this.gain(r, GAUGE.perSecond * dt);
@@ -1072,7 +1141,11 @@ export class Race {
         if (r.aiItem <= 0 && r.item) {
           // An attack that would land on the player is fired only on a
           // successful roll; otherwise the AI keeps it for another victim.
-          if (this.aimsAtPlayer(r, r.item) && (r.itemPatient || this.rng() > (AGGRESSION[this.difficulty] ?? 0.5))) {
+          // Nobody wastes one on a player under a star or 必杀无敌.
+          const aimed = this.aimsAtPlayer(r, r.item),
+            immune = this.player.guard > 0 || this.player.star > 0;
+          if (aimed && immune) r.aiItem = 0.5 + this.rng() * 0.5;
+          else if (aimed && (r.itemPatient || this.rng() > (AGGRESSION[this.difficulty] ?? 0.5))) {
             r.itemPatient = true;
             r.aiItem = 1.5 + this.rng() * 2;
           } else this.useItem(r);
@@ -1083,8 +1156,9 @@ export class Race {
         }
         if (r.special >= 100 && (r.aiSpecial -= dt) <= 0) {
           r.aiSpecial = 1 + this.rng() * 3;
-          const attack = this.aimsAtPlayer(r, "special:" + r.character.id);
-          if (this.aiSpecialUseful(r) && (!attack || this.rng() < (AGGRESSION[this.difficulty] ?? 0.5)))
+          const attack = this.aimsAtPlayer(r, "special:" + r.character.id),
+            immune = this.player.guard > 0 || this.player.star > 0;
+          if (this.aiSpecialUseful(r) && (!attack || (!immune && this.rng() < (AGGRESSION[this.difficulty] ?? 0.5))))
             this.useSpecial(r);
         }
         // Corner mini-turbo: the AI visibly drifts through a real corner and
@@ -1093,7 +1167,8 @@ export class Race {
         if (r.cornerDrift > 0) {
           r.cornerDrift += dt;
           r.drift = Math.min(2.6, r.cornerDrift);
-          this.gainNitro(r, NITRO_RULES.perDriftSecond * dt);
+          r.driftBend = driftBend(curve, r.driftDirection);
+          this.gainNitro(r, NITRO_RULES.perDriftSecond * dt * (DRIFT_ECON.straightNitro + (1 - DRIFT_ECON.straightNitro) * r.driftBend));
           if (Math.abs(curve) < 0.004 || r.cornerDrift > 1.9 || r.stun > 0 || r.speed < 14) {
             if (r.stun <= 0 && r.cornerDrift >= DRIFT.levels[1]) {
               const level = r.perfectDrift > 0 ? 3 : Math.min(2, driftLevel(r.cornerDrift));
@@ -1198,6 +1273,13 @@ export class Race {
       // a little more.
       base *= 1 - Math.min(0.12, Math.abs(curve) * 2.5) * (sliding ? 0.25 : 1);
       if (isPlayer && !sliding) base *= 1 - CORNER.scrub * Math.abs(r.steer) * clamp(r.speed / 35, 0, 1);
+      // A drift scrubs speed too: little through a bend it follows, a lot on a
+      // straight (DRIFT_ECON), so its boost has to be earned. (AI karts only
+      // drift through real bends; their pace is tuned in AI_PACE.)
+      if (sliding && isPlayer) {
+        const bend = driftBend(curve, r.driftDirection);
+        base *= 1 - (DRIFT_ECON.drag[1] + (DRIFT_ECON.drag[0] - DRIFT_ECON.drag[1]) * bend);
+      }
       if (r.stun > 0) base *= 0.25;
       // The bear's ram always closes on its target, even one boosting away,
       // so a locked-on charge connects.
@@ -1229,19 +1311,28 @@ export class Race {
         turn = (playerSlide ? r.driftDirection * 3.5 + r.steer * 4 : r.steer * 7.8) * r.character.grip;
       if (!isPlayer || input.assist !== false) {
         // Assist: never steer into the rail, and soften (not cancel) a slide
-        // toward it.
+        // toward it. A drift through a bend keeps it (hugging the inside of a
+        // bend is the racing line, and on touch a drift always turns in
+        // fully), but a drift that is not following a bend gets only a little
+        // of it: aimed at the rail down a straight, it reaches the rail and
+        // bounces off. V2.5's full assist let such a drift ride the rail
+        // forever.
         const near = clamp((Math.abs(r.lane) - (half - 2)) / 1.5, 0, 1),
-          side = Math.sign(r.lane);
-        if (turn * side > 0) turn *= 1 - near;
-        if (push * side > 0) push *= 1 - 0.35 * near;
-        turn -= side * near * 3;
+          side = Math.sign(r.lane),
+          help = playerSlide ? 0.35 + 0.65 * driftBend(curve, r.driftDirection) : 1;
+        if (turn * side > 0) turn *= 1 - near * help;
+        if (push * side > 0) push *= 1 - 0.35 * near * help;
+        turn -= side * near * 3 * help;
       }
       // Sideways speed stays within what reads as a slide, never a dart.
       const desired = clamp((turn + push) * clamp(r.speed / 12, 0, 1), -12, 12);
       r.lateral += (desired - r.lateral) * (1 - Math.exp(-dt * (playerSlide ? 5 : 9)));
-      r.lane += r.lateral * dt;
+      r.lane += clamp(r.lateral + r.rebound, -12.5, 12.5) * dt;
       this.constrain(r);
-      const valid = r.speed > 14 && r.stun <= 0 && !offroad && r.wallCooldown <= 0;
+      // A drift survives running wide over the kerb and grass (slowly: the
+      // grass bites) and ends at the rail, with a bounce (v2.5 cancelled it
+      // silently at the kerb, so a drift could ride along the edge).
+      const valid = r.speed > 14 && r.stun <= 0 && r.wallCooldown <= 0;
       if (r.cornerDrift > 0) {
         r.drifting = true; // AI corner drift is handled above; keep the pose
         r.driftDirection ||= -Math.sign(curve) || 1;
@@ -1307,7 +1398,8 @@ export class Race {
         r.bumpSide = side;
         if (r.id === 0) playerBumped = true;
       };
-    let playerBumped = false;
+    let playerBumped = false,
+      bumpStrength = 0;
     for (let pass = 0; pass < 3; pass++)
       for (let i = 0; i < 8; i++)
         for (let j = i + 1; j < 8; j++) {
@@ -1338,31 +1430,42 @@ export class Race {
             if (!handled.has(i * 8 + j)) {
               handled.add(i * 8 + j); // once per step: a firm shove, never a jump
               vic.lane += side * Math.min(Math.max(0, pen), 0.09);
-              if (vic.lateral * side < 4) vic.lateral = side * 4;
+              if (vic.rebound * side < 5) vic.rebound = side * 5;
               this.constrain(vic);
             }
             continue;
           }
           const first = !handled.has(i * 8 + j);
           handled.add(i * 8 + j);
+          // A kart under 必杀无敌 is heavy: it shrugs the bump off and the
+          // other kart takes the bounce.
+          const wa = a.guard > 0 && !(b.guard > 0) ? 0.25 : 1,
+            wb = b.guard > 0 && !(a.guard > 0) ? 0.25 : 1,
+            ka = (2 * wa) / (wa + wb), // each kart's share of the bounce
+            kb = (2 * wb) / (wa + wb);
           if (Math.abs(dy) > 0.25 || Math.abs(dx) < 0.25) {
             const dir = dy ? Math.sign(dy) : i % 2 ? 1 : -1,
               pen = Math.sqrt(Math.max(0, 1 - (dx / rx) ** 2)) * ry - Math.abs(dy),
-              push = Math.min(pen * 0.5, 0.045);
+              // The bounce below does most of the separating, so the overlap
+              // itself is corrected gently (a few centimetres per pass).
+              push = Math.min(pen * 0.5, 0.03);
             a.lane += dir * push;
             b.lane -= dir * push;
             if (first) {
-              // Equal-mass lateral impulse: cancel the closing speed and leave
-              // a gentle separating speed, never a launch.
-              const separating = (a.lateral - b.lateral) * dir;
-              if (separating < 1.6) {
-                const k = (1.6 - separating) / 2;
-                a.lateral += dir * k;
-                b.lateral -= dir * k;
-              }
-              const strength = clamp(Math.abs(separating - 1.6) / 6, 0.25, 1);
-              bumpKart(a, 0.35, -dir * strength);
-              bumpKart(b, 0.35, dir * strength);
+              // Bounce (v2.6): both karts spring apart, harder the harder they
+              // came together, as a sideways speed that decays over a few
+              // tenths of a second (continuous, never a jump).
+              const closing = Math.max(0, ((b.lateral + b.rebound) - (a.lateral + a.rebound)) * dir),
+                kick = Math.min(BUMP.max, BUMP.side + closing * BUMP.closing);
+              // Cancel the closing slide, then bounce.
+              if (a.lateral * dir < 0) a.lateral *= 0.3;
+              if (b.lateral * dir > 0) b.lateral *= 0.3;
+              a.rebound = dir * Math.max(a.rebound * dir, Math.min(WALL.max, kick * ka));
+              b.rebound = -dir * Math.max(-b.rebound * dir, Math.min(WALL.max, kick * kb));
+              const strength = clamp(kick / BUMP.max, 0.3, 1);
+              bumpKart(a, 0.35, -dir * strength * Math.min(1, ka));
+              bumpKart(b, 0.35, dir * strength * Math.min(1, kb));
+              if (a.id === 0 || b.id === 0) bumpStrength = Math.max(bumpStrength, strength);
             }
           } else {
             const dir = Math.sign(dx),
@@ -1373,23 +1476,32 @@ export class Race {
             if (first) {
               const rear = dx > 0 ? b : a,
                 front = dx > 0 ? a : b,
+                kr = rear === a ? ka : kb,
+                kf = front === a ? ka : kb,
                 closing = rear.speed - front.speed;
-              // Momentum exchange: the rear kart gives up most of its closing
-              // speed and the front kart is nudged forward, KartRider style.
-              // Spread over a few steps so a hard hit is still felt but no kart
-              // ever stops dead in a single frame.
+              // Rear-end (v2.6): the kart behind bounces back off the one in
+              // front (losing most of its closing speed, and a bit more) and
+              // the one in front is shoved forward, KartRider style. Never a
+              // dead stop in one step. A little sideways bounce sends them
+              // clear instead of letting them stay nose to tail.
               if (closing > 0) {
-                rear.speed -= Math.min(closing * 0.62, 5.5);
-                front.speed += Math.min(closing * 0.3, 2.6);
+                rear.speed -= Math.min(BUMP.rearMax, (closing * BUMP.rear + BUMP.rearMin) * kr);
+                front.speed += Math.min(BUMP.frontMax, closing * BUMP.front * kf);
               }
+              const off = Math.sign(dy) || (i % 2 ? 1 : -1),
+                glance = clamp(1.2 + Math.max(0, closing) * 0.12, 1.2, 2.6);
+              a.rebound = clamp(a.rebound + off * glance * ka * 0.5, -BUMP.max, BUMP.max);
+              b.rebound = clamp(b.rebound - off * glance * kb * 0.5, -BUMP.max, BUMP.max);
+              const strength = clamp(Math.max(0, closing) / 10, 0.3, 1);
               bumpKart(rear, 0.3, 0);
               bumpKart(front, 0.3, 0);
+              if (a.id === 0 || b.id === 0) bumpStrength = Math.max(bumpStrength, strength);
             }
           }
           this.constrain(a);
           this.constrain(b);
         }
-    if (playerBumped) this.event("bump", { racer: 0 });
+    if (playerBumped) this.event("bump", { racer: 0, strength: bumpStrength || 0.3 });
     for (const h of this.hazards) {
       h.life -= dt;
       for (const r of this.racers)

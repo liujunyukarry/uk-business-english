@@ -44,6 +44,9 @@ test("drift charges while steering, releases once, and grants boost", () => {
   r.player.distance = 40;
   r.player.speed = 32;
   r.racers.slice(1).forEach((x) => (x.distance = -200));
+  // v2.6: a drift charges with the bend it takes, so hold it through a
+  // steady right-hand bend (the inside is -sign(curvature)).
+  r.track.curvature = () => -0.02;
   for (let i = 0; i < 60; i++) r.step(1 / 60, { steer: 0.35, drift: true });
   assert(r.player.drift >= 0.65);
   r.step(1 / 60, { steer: 0, drift: false });
