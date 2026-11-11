@@ -1,7 +1,7 @@
 {
-  "version": "ukbe-q4-review-only-20261016",
+  "version": "ukbe-2027-q1-20261111",
   "startDate": "2026-08-25",
-  "updated": "2026-10-16",
+  "updated": "2026-11-11",
   "targetMix": {
     "daily": "50%",
     "work": "50%",
@@ -1039,6 +1039,726 @@
       "title": "规划返程交通",
       "english": "Planning the Journey Home",
       "path": "day129.html"
+    },
+    {
+      "day": 130,
+      "date": "2027-01-01",
+      "category": "日常",
+      "title": "前台索取备用房卡",
+      "english": "Asking for a Replacement Key Card",
+      "path": "day130.html"
+    },
+    {
+      "day": 131,
+      "date": "2027-01-02",
+      "category": "工作",
+      "title": "请求同事审核代码变更",
+      "english": "Requesting a Code Review",
+      "path": "day131.html"
+    },
+    {
+      "day": 132,
+      "date": "2027-01-03",
+      "category": "日常",
+      "title": "在洗衣店询问自助洗衣",
+      "english": "Using a Self-service Launderette",
+      "path": "day132.html"
+    },
+    {
+      "day": 133,
+      "date": "2027-01-04",
+      "category": "工作",
+      "title": "向同事确认测试环境是否可用",
+      "english": "Checking Test Environment Availability",
+      "path": "day133.html"
+    },
+    {
+      "day": 134,
+      "date": "2027-01-05",
+      "category": "日常",
+      "title": "在邮局寄包裹并确认追踪",
+      "english": "Posting a Parcel and Tracking It",
+      "path": "day134.html"
+    },
+    {
+      "day": 135,
+      "date": "2027-01-06",
+      "category": "工作",
+      "title": "请同事复现间歇性软件故障",
+      "english": "Reproducing an Intermittent Software Fault",
+      "path": "day135.html"
+    },
+    {
+      "day": 136,
+      "date": "2027-01-07",
+      "category": "日常",
+      "title": "在图书馆打印文件并询问收费",
+      "english": "Printing Documents at a Library",
+      "path": "day136.html"
+    },
+    {
+      "day": 137,
+      "date": "2027-01-08",
+      "category": "工作",
+      "title": "向接班同事交接未完成事项",
+      "english": "Handing Over Outstanding Work",
+      "path": "day137.html"
+    },
+    {
+      "day": 138,
+      "date": "2027-01-09",
+      "category": "日常",
+      "title": "租自行车并确认归还地点",
+      "english": "Hiring and Returning a Bike",
+      "path": "day138.html"
+    },
+    {
+      "day": 139,
+      "date": "2027-01-10",
+      "category": "工作",
+      "title": "排查日志与定位请求错误",
+      "english": "Investigating Logs and Request Errors",
+      "path": "day139.html"
+    },
+    {
+      "day": 140,
+      "date": "2027-01-11",
+      "category": "日常",
+      "title": "剧院迟到与现场入座",
+      "english": "Arriving Late at the Theatre",
+      "path": "day140.html"
+    },
+    {
+      "day": 141,
+      "date": "2027-01-12",
+      "category": "工作",
+      "title": "验证重复提交时的接口行为",
+      "english": "Testing Duplicate API Submissions",
+      "path": "day141.html"
+    },
+    {
+      "day": 142,
+      "date": "2027-01-13",
+      "category": "日常",
+      "title": "公共泳池入场与设施咨询",
+      "english": "Using a Public Swimming Pool",
+      "path": "day142.html"
+    },
+    {
+      "day": 143,
+      "date": "2027-01-14",
+      "category": "工作",
+      "title": "数据库迁移前确认回退方案",
+      "english": "Preparing for a Database Migration",
+      "path": "day143.html"
+    },
+    {
+      "day": 144,
+      "date": "2027-01-15",
+      "category": "日常",
+      "title": "在慈善商店捐赠闲置物品",
+      "english": "Donating Items to a Charity Shop",
+      "path": "day144.html"
+    },
+    {
+      "day": 145,
+      "date": "2027-01-16",
+      "category": "工作",
+      "title": "处理接口限流与重试",
+      "english": "Handling API Rate Limits and Retries",
+      "path": "day145.html"
+    },
+    {
+      "day": 146,
+      "date": "2027-01-17",
+      "category": "日常",
+      "title": "咨询社区回收点分类要求",
+      "english": "Asking About Recycling Facilities",
+      "path": "day146.html"
+    },
+    {
+      "day": 147,
+      "date": "2027-01-18",
+      "category": "工作",
+      "title": "检查网页键盘操作与可访问性",
+      "english": "Checking Website Accessibility",
+      "path": "day147.html"
+    },
+    {
+      "day": 148,
+      "date": "2027-01-19",
+      "category": "日常",
+      "title": "参加社区花园志愿活动",
+      "english": "Helping at a Community Garden",
+      "path": "day148.html"
+    },
+    {
+      "day": 149,
+      "date": "2027-01-20",
+      "category": "工作",
+      "title": "协调产线设备维护窗口",
+      "english": "Arranging a Maintenance Window",
+      "path": "day149.html"
+    },
+    {
+      "day": 150,
+      "date": "2027-01-21",
+      "category": "日常",
+      "title": "在面包店询问配料与新鲜度",
+      "english": "Choosing Bread at a Bakery",
+      "path": "day150.html"
+    },
+    {
+      "day": 151,
+      "date": "2027-01-22",
+      "category": "工作",
+      "title": "确认监控告警的影响范围",
+      "english": "Assessing a Monitoring Alert",
+      "path": "day151.html"
+    },
+    {
+      "day": 152,
+      "date": "2027-01-23",
+      "category": "日常",
+      "title": "在眼镜店调整镜架",
+      "english": "Getting Glasses Adjusted",
+      "path": "day152.html"
+    },
+    {
+      "day": 153,
+      "date": "2027-01-24",
+      "category": "工作",
+      "title": "确认批处理失败后的恢复策略",
+      "english": "Recovering a Failed Batch Job",
+      "path": "day153.html"
+    },
+    {
+      "day": 154,
+      "date": "2027-01-25",
+      "category": "日常",
+      "title": "在鞋店试走并询问防滑鞋底",
+      "english": "Trying on Shoes and Checking Grip",
+      "path": "day154.html"
+    },
+    {
+      "day": 155,
+      "date": "2027-01-26",
+      "category": "工作",
+      "title": "排查服务健康检查误报",
+      "english": "Investigating a False Health-Check Alert",
+      "path": "day155.html"
+    },
+    {
+      "day": 156,
+      "date": "2027-01-27",
+      "category": "日常",
+      "title": "在花店选择鲜花与养护方法",
+      "english": "Choosing Flowers and Asking About Care",
+      "path": "day156.html"
+    },
+    {
+      "day": 157,
+      "date": "2027-01-28",
+      "category": "工作",
+      "title": "协调跨团队接口字段变更",
+      "english": "Coordinating an API Field Change",
+      "path": "day157.html"
+    },
+    {
+      "day": 158,
+      "date": "2027-01-29",
+      "category": "日常",
+      "title": "在咖啡烘焙店选择咖啡豆",
+      "english": "Choosing Beans at a Coffee Roaster",
+      "path": "day158.html"
+    },
+    {
+      "day": 159,
+      "date": "2027-01-30",
+      "category": "工作",
+      "title": "解释缓存失效与数据更新延迟",
+      "english": "Explaining Cache Invalidation and Stale Data",
+      "path": "day159.html"
+    },
+    {
+      "day": 160,
+      "date": "2027-01-31",
+      "category": "日常",
+      "title": "在裁缝店修改裤长",
+      "english": "Getting Trousers Altered",
+      "path": "day160.html"
+    },
+    {
+      "day": 161,
+      "date": "2027-02-01",
+      "category": "工作",
+      "title": "澄清功能开关的上线范围",
+      "english": "Clarifying a Feature Flag Rollout",
+      "path": "day161.html"
+    },
+    {
+      "day": 162,
+      "date": "2027-02-02",
+      "category": "日常",
+      "title": "向酒店前台借用转换插头",
+      "english": "Borrowing a Plug Adaptor at a Hotel",
+      "path": "day162.html"
+    },
+    {
+      "day": 163,
+      "date": "2027-02-03",
+      "category": "工作",
+      "title": "确认消息队列积压与消费速度",
+      "english": "Discussing a Message Queue Backlog",
+      "path": "day163.html"
+    },
+    {
+      "day": 164,
+      "date": "2027-02-04",
+      "category": "日常",
+      "title": "报名参加陶艺体验课",
+      "english": "Joining a Pottery Workshop",
+      "path": "day164.html"
+    },
+    {
+      "day": 165,
+      "date": "2027-02-05",
+      "category": "工作",
+      "title": "排查权限不足的接口响应",
+      "english": "Investigating an Access Denied Response",
+      "path": "day165.html"
+    },
+    {
+      "day": 166,
+      "date": "2027-02-06",
+      "category": "日常",
+      "title": "在图书馆办理临时访客使用",
+      "english": "Using a Public Library as a Visitor",
+      "path": "day166.html"
+    },
+    {
+      "day": 167,
+      "date": "2027-02-07",
+      "category": "工作",
+      "title": "排查定时任务重复执行",
+      "english": "Investigating Duplicate Scheduled Jobs",
+      "path": "day167.html"
+    },
+    {
+      "day": 168,
+      "date": "2027-02-08",
+      "category": "日常",
+      "title": "在书店预订缺货图书",
+      "english": "Ordering an Out-of-Stock Book",
+      "path": "day168.html"
+    },
+    {
+      "day": 169,
+      "date": "2027-02-09",
+      "category": "工作",
+      "title": "优化缓慢的数据库查询",
+      "english": "Investigating a Slow Database Query",
+      "path": "day169.html"
+    },
+    {
+      "day": 170,
+      "date": "2027-02-10",
+      "category": "日常",
+      "title": "在修鞋店修补损坏的鞋跟",
+      "english": "Getting Shoes Repaired",
+      "path": "day170.html"
+    },
+    {
+      "day": 171,
+      "date": "2027-02-11",
+      "category": "工作",
+      "title": "检查不同环境的配置漂移",
+      "english": "Checking Configuration Drift",
+      "path": "day171.html"
+    },
+    {
+      "day": 172,
+      "date": "2027-02-12",
+      "category": "日常",
+      "title": "向游客中心询问无障碍路线",
+      "english": "Asking About an Accessible Route",
+      "path": "day172.html"
+    },
+    {
+      "day": 173,
+      "date": "2027-02-13",
+      "category": "工作",
+      "title": "排查定时任务漏执行",
+      "english": "Investigating a Missed Scheduled Job",
+      "path": "day173.html"
+    },
+    {
+      "day": 174,
+      "date": "2027-02-14",
+      "category": "日常",
+      "title": "乘渡轮询问登船与行李",
+      "english": "Boarding a Ferry with Luggage",
+      "path": "day174.html"
+    },
+    {
+      "day": 175,
+      "date": "2027-02-15",
+      "category": "工作",
+      "title": "核对CSV批量导入结果",
+      "english": "Validating a CSV Data Import",
+      "path": "day175.html"
+    },
+    {
+      "day": 176,
+      "date": "2027-02-16",
+      "category": "日常",
+      "title": "报名音乐体验课并借乐器",
+      "english": "Trying a Beginner Music Class",
+      "path": "day176.html"
+    },
+    {
+      "day": 177,
+      "date": "2027-02-17",
+      "category": "工作",
+      "title": "优化表单错误提示文案",
+      "english": "Improving Form Error Messages",
+      "path": "day177.html"
+    },
+    {
+      "day": 178,
+      "date": "2027-02-18",
+      "category": "日常",
+      "title": "向房东报告暖气不正常",
+      "english": "Reporting a Heating Problem to a Landlord",
+      "path": "day178.html"
+    },
+    {
+      "day": 179,
+      "date": "2027-02-19",
+      "category": "工作",
+      "title": "审查第三方依赖许可证",
+      "english": "Reviewing a Third-Party Software Licence",
+      "path": "day179.html"
+    },
+    {
+      "day": 180,
+      "date": "2027-02-20",
+      "category": "日常",
+      "title": "在农夫市场挑选本地蔬果",
+      "english": "Shopping at a Farmers' Market",
+      "path": "day180.html"
+    },
+    {
+      "day": 181,
+      "date": "2027-02-21",
+      "category": "工作",
+      "title": "讨论负载测试的实际瓶颈",
+      "english": "Discussing a Load-Test Bottleneck",
+      "path": "day181.html"
+    },
+    {
+      "day": 182,
+      "date": "2027-02-22",
+      "category": "日常",
+      "title": "在蛋糕店订制生日蛋糕",
+      "english": "Ordering a Personalised Birthday Cake",
+      "path": "day182.html"
+    },
+    {
+      "day": 183,
+      "date": "2027-02-23",
+      "category": "工作",
+      "title": "隔离测试数据与真实用户数据",
+      "english": "Separating Test Data from Real User Data",
+      "path": "day183.html"
+    },
+    {
+      "day": 184,
+      "date": "2027-02-24",
+      "category": "日常",
+      "title": "预约洗车并确认服务内容",
+      "english": "Booking a Car Wash",
+      "path": "day184.html"
+    },
+    {
+      "day": 185,
+      "date": "2027-02-25",
+      "category": "工作",
+      "title": "修订不一致的API接口文档",
+      "english": "Correcting Inconsistent API Documentation",
+      "path": "day185.html"
+    },
+    {
+      "day": 186,
+      "date": "2027-02-26",
+      "category": "日常",
+      "title": "在手机维修店更换屏幕",
+      "english": "Getting a Phone Screen Replaced",
+      "path": "day186.html"
+    },
+    {
+      "day": 187,
+      "date": "2027-02-27",
+      "category": "工作",
+      "title": "安排跨团队故障值班交接",
+      "english": "Arranging an On-Call Handover",
+      "path": "day187.html"
+    },
+    {
+      "day": 188,
+      "date": "2027-02-28",
+      "category": "日常",
+      "title": "咨询室内攀岩体验和安全说明",
+      "english": "Trying Indoor Climbing",
+      "path": "day188.html"
+    },
+    {
+      "day": 189,
+      "date": "2027-03-01",
+      "category": "工作",
+      "title": "撤销泄露的访问令牌",
+      "english": "Revoking a Compromised Access Token",
+      "path": "day189.html"
+    },
+    {
+      "day": 190,
+      "date": "2027-03-02",
+      "category": "日常",
+      "title": "租借露营装备并检查完整性",
+      "english": "Hiring Camping Equipment",
+      "path": "day190.html"
+    },
+    {
+      "day": 191,
+      "date": "2027-03-03",
+      "category": "工作",
+      "title": "向团队讲解监控看板",
+      "english": "Explaining a Monitoring Dashboard",
+      "path": "day191.html"
+    },
+    {
+      "day": 192,
+      "date": "2027-03-04",
+      "category": "日常",
+      "title": "在照相馆拍摄证件照片",
+      "english": "Getting Passport-Style Photos Taken",
+      "path": "day192.html"
+    },
+    {
+      "day": 193,
+      "date": "2027-03-05",
+      "category": "工作",
+      "title": "讨论请求超时与用户等待策略",
+      "english": "Setting Request Timeouts",
+      "path": "day193.html"
+    },
+    {
+      "day": 194,
+      "date": "2027-03-06",
+      "category": "日常",
+      "title": "在二手家具店询问送货安排",
+      "english": "Buying Second-Hand Furniture",
+      "path": "day194.html"
+    },
+    {
+      "day": 195,
+      "date": "2027-03-07",
+      "category": "工作",
+      "title": "核实数据库最小权限配置",
+      "english": "Reviewing Database Access Permissions",
+      "path": "day195.html"
+    },
+    {
+      "day": 196,
+      "date": "2027-03-08",
+      "category": "日常",
+      "title": "参加社区读书会交流阅读感受",
+      "english": "Joining a Local Book Club",
+      "path": "day196.html"
+    },
+    {
+      "day": 197,
+      "date": "2027-03-09",
+      "category": "工作",
+      "title": "协调紧急缺陷修复与验证",
+      "english": "Coordinating an Urgent Bug Fix",
+      "path": "day197.html"
+    },
+    {
+      "day": 198,
+      "date": "2027-03-10",
+      "category": "日常",
+      "title": "报名参加户外观鸟活动",
+      "english": "Joining a Guided Birdwatching Walk",
+      "path": "day198.html"
+    },
+    {
+      "day": 199,
+      "date": "2027-03-11",
+      "category": "工作",
+      "title": "与客户确认报表统计口径",
+      "english": "Clarifying Report Definitions with a Client",
+      "path": "day199.html"
+    },
+    {
+      "day": 200,
+      "date": "2027-03-12",
+      "category": "日常",
+      "title": "电话更改牙科预约时间",
+      "english": "Rescheduling a Dental Appointment",
+      "path": "day200.html"
+    },
+    {
+      "day": 201,
+      "date": "2027-03-13",
+      "category": "工作",
+      "title": "制定备份恢复演练计划",
+      "english": "Planning a Backup Restore Drill",
+      "path": "day201.html"
+    },
+    {
+      "day": 202,
+      "date": "2027-03-14",
+      "category": "日常",
+      "title": "参加烘焙体验课确认操作步骤",
+      "english": "Taking a Beginner Baking Class",
+      "path": "day202.html"
+    },
+    {
+      "day": 203,
+      "date": "2027-03-15",
+      "category": "工作",
+      "title": "评估缺陷优先级和处理顺序",
+      "english": "Triage and Prioritise Defects",
+      "path": "day203.html"
+    },
+    {
+      "day": 204,
+      "date": "2027-03-16",
+      "category": "日常",
+      "title": "向公寓管理员报告漏水问题",
+      "english": "Reporting a Leak in a Flat",
+      "path": "day204.html"
+    },
+    {
+      "day": 205,
+      "date": "2027-03-17",
+      "category": "工作",
+      "title": "核对API分页查询是否遗漏记录",
+      "english": "Checking API Pagination",
+      "path": "day205.html"
+    },
+    {
+      "day": 206,
+      "date": "2027-03-18",
+      "category": "日常",
+      "title": "预约宠物护理并确认时间",
+      "english": "Booking a Pet Grooming Appointment",
+      "path": "day206.html"
+    },
+    {
+      "day": 207,
+      "date": "2027-03-19",
+      "category": "工作",
+      "title": "排查CI流水线依赖下载失败",
+      "english": "Troubleshooting CI Dependency Downloads",
+      "path": "day207.html"
+    },
+    {
+      "day": 208,
+      "date": "2027-03-20",
+      "category": "日常",
+      "title": "预订保龄球球道并借鞋",
+      "english": "Booking a Bowling Lane",
+      "path": "day208.html"
+    },
+    {
+      "day": 209,
+      "date": "2027-03-21",
+      "category": "工作",
+      "title": "处理服务器日志占满磁盘",
+      "english": "Handling Low Disk Space from Logs",
+      "path": "day209.html"
+    },
+    {
+      "day": 210,
+      "date": "2027-03-22",
+      "category": "日常",
+      "title": "在茶叶店挑选散装茶叶",
+      "english": "Choosing Loose-Leaf Tea",
+      "path": "day210.html"
+    },
+    {
+      "day": 211,
+      "date": "2027-03-23",
+      "category": "工作",
+      "title": "处理文件上传中断和续传",
+      "english": "Handling Interrupted File Uploads",
+      "path": "day211.html"
+    },
+    {
+      "day": 212,
+      "date": "2027-03-24",
+      "category": "日常",
+      "title": "购买自行车锁并询问使用方法",
+      "english": "Choosing a Bicycle Lock",
+      "path": "day212.html"
+    },
+    {
+      "day": 213,
+      "date": "2027-03-25",
+      "category": "工作",
+      "title": "检查多语言界面翻译是否准确",
+      "english": "Reviewing Localised Interface Text",
+      "path": "day213.html"
+    },
+    {
+      "day": 214,
+      "date": "2027-03-26",
+      "category": "日常",
+      "title": "咨询瑜伽体验课程和着装",
+      "english": "Booking a Yoga Taster Session",
+      "path": "day214.html"
+    },
+    {
+      "day": 215,
+      "date": "2027-03-27",
+      "category": "工作",
+      "title": "客户现场验收问题逐项确认",
+      "english": "Reviewing Site Acceptance Findings",
+      "path": "day215.html"
+    },
+    {
+      "day": 216,
+      "date": "2027-03-28",
+      "category": "日常",
+      "title": "在邮局购买邮票寄明信片",
+      "english": "Sending a Postcard Abroad",
+      "path": "day216.html"
+    },
+    {
+      "day": 217,
+      "date": "2027-03-29",
+      "category": "工作",
+      "title": "向业务方说明系统容量限制",
+      "english": "Explaining System Capacity Constraints",
+      "path": "day217.html"
+    },
+    {
+      "day": 218,
+      "date": "2027-03-30",
+      "category": "日常",
+      "title": "在古董市场询问物品状况",
+      "english": "Browsing a Vintage Market",
+      "path": "day218.html"
+    },
+    {
+      "day": 219,
+      "date": "2027-03-31",
+      "category": "工作",
+      "title": "季度末总结交付成果和后续计划",
+      "english": "Summarising Quarterly Deliverables",
+      "path": "day219.html"
     }
   ]
 }
