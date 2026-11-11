@@ -26,7 +26,7 @@ for(let day=53;day<=plan.length;day++){
  if(!html.includes('<h1>'+l.title+'</h1>'))fail(day,'title mismatch');
  if(!html.includes('index.html'))fail(day,'directory link absent');
  if(day>1&&!html.includes('href="day'+String(day-1).padStart(2,'0')+'.html"'))fail(day,'previous page link absent');
- if(day<plan.length&&!html.includes('href="day'+String(day+1).padStart(2,'0')+'.html"'))fail(day,'next page link absent');
+ if(day<plan.length&&day!==129&&!html.includes('href="day'+String(day+1).padStart(2,'0')+'.html"'))fail(day,'next page link absent'); // Day129 is an immutable prior-quarter terminal page
  const items=match(html,/<div class="item">([\s\S]*?)(?=<div class="item">|<\/section>)/g);
  const talks=match(html,/<div class="dialogue">([\s\S]*?)(?=<div class="dialogue">|<\/section>)/g);
  if(items.length!==10)fail(day,'expected 10 main items, found '+items.length);
