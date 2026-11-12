@@ -40,7 +40,11 @@ export async function serve() {
 // Appended to game.js in the browser only, never on disk: exposes module state
 // so tests can read the exact input the race receives.
 const HOOK = `
-;window.__pk={get race(){return race},get mode(){return mode},getInput,touch,get cars(){return cars},camera,get clock(){return clock},get marks(){return typeof targetMarks==="undefined"?[]:targetMarks}};
+;window.__pk={get race(){return race},get mode(){return mode},getInput,touch,get cars(){return cars},camera,get clock(){return clock},get marks(){return typeof targetMarks==="undefined"?[]:targetMarks},
+  // v2.7: the chase camera's state, the effects, the scene's light and haze.
+  get cam(){return typeof cam==="undefined"?null:cam},get post(){return typeof post==="undefined"?null:post},get sprites(){return typeof sprites==="undefined"?null:sprites},get skids(){return typeof skids==="undefined"?null:skids},
+  get world(){return typeof world==="undefined"?null:world},get scene(){return typeof scene==="undefined"?null:scene},get sun(){return typeof sun==="undefined"?null:sun},get save(){return save},
+  get framing(){return typeof FRAMING==="undefined"?null:FRAMING},haptic:typeof haptic==="undefined"?null:haptic};
 `;
 
 export async function launch({ webgl = false } = {}) {
@@ -53,13 +57,16 @@ export async function launch({ webgl = false } = {}) {
   return chromium.launch(opts);
 }
 
-export async function openRace(browser, url, { width = 844, height = 390, init, start = true } = {}) {
+// `slow`: generous timeouts, for pages drawn with WebGL on the CPU
+// (SwiftShader), where a frame can take a second or two.
+export async function openRace(browser, url, { width = 844, height = 390, init, start = true, slow = false } = {}) {
   const ctx = await browser.newContext({
     viewport: { width, height },
     deviceScaleFactor: 1,
     isMobile: true,
     hasTouch: true,
   });
+  if (slow) ctx.setDefaultTimeout(180000);
   // Fault injection switch, installed before the game so it runs first: while
   // window.__dropEnds is true, every end-of-contact event is swallowed, as when
   // the OS or a host app takes a touch without telling the page.
@@ -93,7 +100,7 @@ export async function openRace(browser, url, { width = 844, height = 390, init, 
   // start: false stops at the garage (home screen) instead of starting a race.
   if (start) {
     await page.click("#start");
-    await page.waitForFunction(() => window.__pk?.mode === "race", null, { timeout: 30000 });
+    await page.waitForFunction(() => window.__pk?.mode === "race", null, { timeout: slow ? 180000 : 30000 });
   }
   const cdp = await ctx.newCDPSession(page);
   const fingers = new Map();

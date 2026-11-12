@@ -170,6 +170,14 @@ export const ITEMS = {
   rocket: { name: "火箭冲刺", icon: "🚀", desc: "落后时才会出现：自动高速冲刺，撞开挡路的车" },
 };
 export const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+// Touch steering is on or off, so its feel is in how fast the wheel follows
+// the thumb (rates per second; v2.6 used 11 both ways and 9 for the tyres).
+// Turning in is a little quicker, and letting go centres the wheel faster
+// still. Measured on a straight: the kart reaches half its sideways speed in
+// 150 ms (167 before); lifting the thumb at full lock it coasts 1.1 m
+// further across (1.5 before); a 0.1 s tap moves it 0.7 m (0.8 before). Top
+// sideways speed, and so the line through a bend, are unchanged.
+export const STEER = { turn: 13, release: 17, grip: 10.5 };
 // Drift tiers (blue / orange / purple), shared with the HUD and effects.
 // Mario Kart mini-turbo / KartRider instant boost: the longer the drift is
 // held (faster when steering into it), the bigger the release. Each tier
@@ -1300,7 +1308,12 @@ export class Race {
             ? 3.8
             : 1.25;
       r.speed += (base - r.speed) * (1 - Math.exp(-dt * rate));
-      r.steer += ((r.stun > 0 ? steer * 0.25 : steer) - r.steer) * (1 - Math.exp(-dt * 11));
+      // Steering response (v2.7, STEER): the player's wheel turns in a little
+      // faster than v2.6's, and centres faster still when the thumb lifts or
+      // crosses over. AI karts keep the old rate.
+      const wheel = r.stun > 0 ? steer * 0.25 : steer,
+        easing = wheel * r.steer < 0 || Math.abs(wheel) < Math.abs(r.steer);
+      r.steer += (wheel - r.steer) * (1 - Math.exp(-dt * (!isPlayer ? 11 : easing ? STEER.release : STEER.turn)));
       // Cornering, KartRider style: a bend pushes the kart toward its outside
       // (curvature x speed^2). Ordinary steering holds an ordinary bend; a
       // tight bend flat out slides you wide unless you drift (a drift grips
@@ -1326,7 +1339,7 @@ export class Race {
       }
       // Sideways speed stays within what reads as a slide, never a dart.
       const desired = clamp((turn + push) * clamp(r.speed / 12, 0, 1), -12, 12);
-      r.lateral += (desired - r.lateral) * (1 - Math.exp(-dt * (playerSlide ? 5 : 9)));
+      r.lateral += (desired - r.lateral) * (1 - Math.exp(-dt * (playerSlide ? 5 : isPlayer ? STEER.grip : 9)));
       r.lane += clamp(r.lateral + r.rebound, -12.5, 12.5) * dt;
       this.constrain(r);
       // A drift survives running wide over the kerb and grass (slowly: the
