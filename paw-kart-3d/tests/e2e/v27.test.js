@@ -1,7 +1,7 @@
 // v2.7 in the real page: the portrait framing, the camera's look into bends
 // and its opening shot, one atmosphere per track, the post-processing chain
 // with its fallbacks (WebGL), tyre marks and smoke, the result card, the
-// iris between scenes and haptic ticks.
+// fade between scenes (an iris in v2.7) and haptic ticks.
 import test, { after, before } from "node:test";
 import assert from "node:assert/strict";
 import { launch, openRace, serve } from "./browser.js";
@@ -282,14 +282,17 @@ test("result card: medal, time counting up, record note, confetti for a podium; 
   assert.deepEqual(slow.errors, []);
 });
 
-test("iris between scenes: plays when a race starts, never takes touches, and is gone within a second", async (t) => {
-  const r = await openRace(browser, server.url, { width: 430, height: 932 });
+test("fade between scenes: plays when a race starts, never takes touches, and is gone within a second", async (t) => {
+  // Every time the fade layer is switched on is recorded (it switches itself
+  // off again when its animation ends, v2.7.1).
+  const watch = `window.__fades = 0; new MutationObserver((list) => { for (const m of list) if (m.target.id === "wipe" && m.target.classList.contains("on")) window.__fades++; }).observe(document, { subtree: true, attributes: true, attributeFilter: ["class"] });`;
+  const r = await openRace(browser, server.url, { width: 430, height: 932, init: watch });
   t.after(() => r.ctx.close());
-  const w = await r.page.$eval("#wipe", (e) => ({ on: e.classList.contains("on"), events: getComputedStyle(e).pointerEvents }));
-  assert(w.on, "started with the race");
-  assert.equal(w.events, "none");
+  assert(await r.page.evaluate(() => window.__fades) >= 1, "it played as the race started");
+  assert.equal(await r.page.$eval("#wipe", (e) => getComputedStyle(e).pointerEvents), "none");
   await r.page.waitForTimeout(900);
-  assert.equal(await r.page.$eval("#wipe", (e) => getComputedStyle(e).opacity), "0", "finished");
+  const done = await r.page.$eval("#wipe", (e) => ({ on: e.classList.contains("on"), opacity: getComputedStyle(e).opacity }));
+  assert.deepEqual(done, { on: false, opacity: "0" }, "finished, and the layer is switched off");
   // Steering works under it from the first moment of the next scene too.
   await racing(r.page);
   await r.finger.down(1, { x: 60, y: 500 });
@@ -298,7 +301,7 @@ test("iris between scenes: plays when a race starts, never takes touches, and is
   assert.deepEqual(r.errors, []);
 });
 
-test("haptics: a wall hit ticks where the phone can vibrate; the setting turns it off; steering is never disturbed", async (t) => {
+test("haptics: a wall hit ticks where the phone can vibrate; the setting turns it off; nothing (and no setting) where it cannot", async (t) => {
   const stub = "window.__vib=[];navigator.vibrate=(ms)=>{window.__vib.push(ms);return true;};";
   const wall = (page) =>
     page.evaluate(() => {
@@ -329,25 +332,26 @@ test("haptics: a wall hit ticks where the phone can vibrate; the setting turns i
   assert.equal(await off.page.evaluate(() => window.__vib.length), 0, "silent when switched off");
   assert.deepEqual(off.errors, []);
 
-  // No vibration API (iOS): the hidden switch is toggled instead, and a thumb
+  // No vibration API (iOS): nothing is done at all (v2.7 toggled a hidden
+  // switch control; v2.7.1 dropped that), no setting is offered, and a thumb
   // that is steering stays down.
   const ios = await openRace(browser, server.url, { width: 430, height: 932, init: "Object.defineProperty(Navigator.prototype,'vibrate',{value:undefined,configurable:true});" });
   t.after(() => ios.ctx.close());
   await racing(ios.page);
   await ios.finger.down(1, { x: 60, y: 500 });
   assert.equal(await ios.lit(), "left");
-  const toggled = await ios.page.evaluate(() => {
-    const box = document.querySelector("#haptic input"),
-      was = box.checked;
-    window.__pk.haptic(10);
-    return { changed: box.checked !== was, focus: document.activeElement === box };
-  });
-  assert(toggled.changed, "the switch was toggled");
-  assert(!toggled.focus, "without taking focus");
+  const before = await ios.page.evaluate(() => document.activeElement?.tagName);
+  await ios.page.evaluate(() => window.__pk.haptic(10));
+  assert.equal(await ios.page.$("#haptic"), null, "no hidden control");
+  assert.equal(await ios.page.evaluate(() => document.activeElement?.tagName), before, "focus untouched");
   await ios.finger.move(1, { x: 61, y: 500 });
   assert.equal(await ios.lit(), "left", "still steering");
   assert.equal((await ios.input()).steer, -1);
   await ios.finger.up(1);
+  await ios.page.tap("#pause");
+  await ios.page.tap("#race-settings");
+  assert.equal(await ios.page.$("#setting-haptics"), null, "no 震动反馈 setting where the phone cannot vibrate");
+  assert(await ios.page.$("#setting-fx"), "the other settings are there");
   assert.deepEqual(ios.errors, []);
 });
 
@@ -401,14 +405,19 @@ test("post chain (WebGL): on in the garage and in a race, switchable in settings
 });
 
 test("post chain (WebGL): a failure, or frames that come out blank, fall back to plain drawing for good", { timeout: 600000 }, async (t) => {
-  // The chain is built, and its first frames checked, in the garage, and
-  // again whenever the screen changes size (a rotation).
+  // The chain is built, and its first frames checked, in the garage; it is
+  // rebuilt whenever the screen changes size (a rotation).
   const r = await openRace(gl, server.url, { width: 360, height: 640, start: false, slow: true });
   t.after(() => r.ctx.close());
   assert.equal(await fx(r.page), "on");
-  // From now on the chain's frames read back blank after a rebuild, as on a
-  // GPU that draws nothing into float targets.
-  await r.page.evaluate(() => (window.__pk.post.verify = () => false));
+  // From now on the chain's frames read back blank, as on a GPU that draws
+  // nothing into float targets. (v2.7.1: frames are read back the first time
+  // the chain draws, and again after the GPU context is restored; recheck()
+  // stands in for that here.)
+  await r.page.evaluate(() => {
+    window.__pk.post.verify = () => false;
+    window.__pk.post.recheck();
+  });
   await r.page.setViewportSize({ width: 375, height: 667 });
   await r.page.waitForFunction(() => document.documentElement.dataset.fx === "unsupported", null, { timeout: 120000 });
   const state = await r.page.evaluate(() => ({ ok: window.__pk.post.ok, reason: window.__pk.post.reason }));

@@ -1,6 +1,6 @@
 import * as T from "./vendor/three.module.js";
 import { RoomEnvironment } from "./vendor/RoomEnvironment.js";
-import { Race, Track, TRACKS, CHARACTERS, ITEMS, SPECIALS, DRIFT, NITRO_RULES, DRAFT, KARTS, START, SPECIAL_GUARD, driftLevel, clamp } from "./race.js?v=e52b2ef9";
+import { Race, Track, TRACKS, CHARACTERS, ITEMS, SPECIALS, DRIFT, NITRO_RULES, DRAFT, KARTS, START, SPECIAL_GUARD, driftLevel, clamp } from "./race.js?v=c995fd2b";
 import {
   createKart,
   animateKart,
@@ -27,11 +27,11 @@ import {
   ATMOS,
   boostPad,
   updateWorldFx,
-} from "./art.js?v=e52b2ef9";
-import { createPost, createSprites, createSkids, LOOKS, GLOW, PUFF, STAR, CARD } from "./fx.js?v=e52b2ef9";
-import { KartAudio } from "./audio.js?v=e52b2ef9";
-import { bindTouchControls, CONTROLS } from "./input.js?v=e52b2ef9";
-import { SoftwareRenderer } from "./software-renderer.js?v=e52b2ef9";
+} from "./art.js?v=c995fd2b";
+import { createPost, createSprites, createSkids, LOOKS, GLOW, PUFF, STAR, CARD } from "./fx.js?v=c995fd2b";
+import { KartAudio } from "./audio.js?v=c995fd2b";
+import { bindTouchControls, CONTROLS } from "./input.js?v=c995fd2b";
+import { SoftwareRenderer } from "./software-renderer.js?v=c995fd2b";
 // Build id stamped by tools/stamp.mjs; shown in the pause and help dialogs so
 // a tester can tell exactly which version is running.
 const BUILD = document.querySelector('meta[name="paw-build"]')?.content || "dev";
@@ -146,14 +146,106 @@ const post = createPost(renderer),
 if (sprites) scene.add(sprites.group);
 if (skids) scene.add(skids.mesh);
 post?.look(LOOKS.garage);
-let fxAuto = true; // cleared when the phone cannot keep the frame rate with it
+let fxAuto = true, // cleared when the phone cannot keep the frame rate with it
+  fxNext = true; // what fxAuto becomes at the next scene change (see settle())
+// What the player can screenshot and send when something goes wrong
+// (settings → 运行诊断).
+const diag = { errors: 0, lastError: "", lost: 0, restored: 0, rebuilds: 0, deferred: 0, freed: 0, worst: 0, fps: 0, crashGuard: false };
+// Crash guard: a mark is kept in storage while a race runs with the post
+// chain on, and removed when the race ends or the page is left normally. If
+// the page loads and finds it, the last session died mid-race (Safari
+// reloads a tab whose GPU process gave up): this session starts with the
+// chain off, and says so. The player can turn it back on in settings.
+const CRASH_KEY = "paw-kart-crash";
+const crash = {
+  arm() {
+    if (!fxOn()) return;
+    try {
+      localStorage.setItem(CRASH_KEY, "1");
+    } catch {}
+  },
+  disarm() {
+    try {
+      localStorage.removeItem(CRASH_KEY);
+    } catch {}
+  },
+  clear() {
+    crash.disarm();
+    diag.crashGuard = false;
+  },
+};
+try {
+  if (localStorage.getItem(CRASH_KEY)) {
+    localStorage.removeItem(CRASH_KEY);
+    diag.crashGuard = true;
+    fxAuto = fxNext = false;
+  }
+} catch {}
 const lobby = createLobby();
 scene.add(lobby.group);
-const kartCache = new Map();
+// Karts are kept between races, most recently used last. AI drivers ride a
+// random body each race, so up to v2.7 the cache kept growing with every new
+// combination (about 130 geometries a race, never freed: on a phone that
+// ends in a lost WebGL context). It is now bounded: see trimKarts().
+const kartCache = new Map(),
+  KART_CACHE = 12;
 function kart(key, kind, num, body = "classic") {
   key += "@" + body;
-  if (!kartCache.has(key)) kartCache.set(key, createKart(kind, num, body));
-  return kartCache.get(key);
+  let k = kartCache.get(key);
+  if (k) kartCache.delete(key);
+  else k = createKart(kind, num, body);
+  kartCache.set(key, k);
+  return k;
+}
+// GPU resources (geometries, textures) an object tree draws with. `owned`:
+// leave out the textures of materials kept for the session (a track's road,
+// ground and sky are painted once and reused by its next race).
+function resourcesOf(root, into = new Set(), owned = false) {
+  root.traverse((o) => {
+    if (o.geometry) into.add(o.geometry);
+    for (const m of [].concat(o.material || [])) {
+      if (owned && m.userData?.cached) continue;
+      for (const k in m) if (m[k]?.isTexture) into.add(m[k]);
+      for (const k in m.uniforms || {}) if (m.uniforms[k]?.value?.isTexture) into.add(m.uniforms[k].value);
+    }
+  });
+  return into;
+}
+// Frees what the given trees drew with, unless something still in use (the
+// scene, a cached kart, a cached or shared resource) draws with it too.
+function release(roots) {
+  const keep = resourcesOf(scene);
+  for (const k of kartCache.values()) resourcesOf(k, keep);
+  let freed = 0;
+  for (const root of roots)
+    for (const r of resourcesOf(root, new Set(), true))
+      if (!keep.has(r) && !r.userData?.shared && !r.userData?.cached && !r.isRenderTargetTexture) {
+        keep.add(r);
+        r.dispose();
+        freed++;
+      }
+  diag.freed += freed;
+  return freed;
+}
+// Drops the least recently used karts beyond KART_CACHE, never one in `inUse`.
+function trimKarts(inUse) {
+  const dropped = [];
+  for (const [key, k] of kartCache) {
+    if (kartCache.size - dropped.length <= KART_CACHE) break;
+    if (inUse.has(k)) continue;
+    dropped.push(key);
+  }
+  const gone = dropped.map((key) => {
+    const k = kartCache.get(key);
+    kartCache.delete(key);
+    k.parent?.remove(k);
+    return k;
+  });
+  if (gone.length) {
+    release(gone);
+    // (A driver's skeleton keeps its bones in a small texture of its own.)
+    for (const k of gone) k.traverse((o) => o.isSkinnedMesh && o.skeleton?.dispose());
+  }
 }
 // Garage copy for the kart bodies: what each one is good at, and the change
 // to the speed / acceleration / handling bars it makes.
@@ -219,7 +311,8 @@ audio.volume = save.volume;
 let fpsFrames = 0,
   fpsTime = 0,
   slowWindows = 0,
-  adaptiveLow = false;
+  adaptiveLow = false,
+  lowNext = false; // what adaptiveLow becomes at the next scene change
 const coarse = matchMedia("(pointer:coarse)").matches;
 const touchLayout = () => coarse || innerWidth <= 900 || innerHeight <= 520;
 // Render resolution (v2.6): adaptive, to stay smooth. It starts where V2.5
@@ -230,15 +323,24 @@ const touchLayout = () => coarse || innerWidth <= 900 || innerHeight <= 520;
 // (v2.7: with the post chain on, the resolution only steps down to 1.25x; if
 // frames still drop there the chain is switched off and the resolution may
 // climb back, since a sharp picture matters more than the glow.)
-const SCALE = { step: 0.25, min: 1, max: 2, fxFloor: 1.25 };
+// v2.7.1: switching the post chain or the shadows changes the shader of
+// every material in the scene, and a phone recompiles them all in one frame:
+// the "freeze" of v2.7 (13 s of frames on the CPU renderer here, about a
+// second or more on a phone). Mid-race those switches are now only booked
+// (fxNext / lowNext) and the resolution drops to 1x at once instead; they
+// take effect at the next race start or return to the garage (settle()),
+// where the shaders are compiled during the countdown. With the chain on the
+// resolution stays at or under 1.5x (fxMax).
+const SCALE = { step: 0.25, min: 1, max: 2, fxFloor: 1.25, fxMax: 1.5 };
 let renderScale = null,
   scaleCap = SCALE.max,
   scaleCalm = 0,
   scaleSettle = 0;
 const intervals = [];
+const scaleTop = () => Math.min(devicePixelRatio, fxOn() ? SCALE.fxMax : SCALE.max);
 function quality() {
   const low = save.quality === "low" || (save.quality === "auto" && adaptiveLow),
-    top = Math.min(devicePixelRatio, SCALE.max);
+    top = scaleTop();
   if (renderScale === null) renderScale = Math.min(top, save.quality === "high" ? 2 : coarse ? 1.5 : 1.8);
   renderScale = Math.max(Math.min(1, top), Math.min(renderScale, scaleCap, top));
   renderer.setPixelRatio(renderer.software ? 0.85 : low ? Math.min(devicePixelRatio, 1) : renderScale);
@@ -253,14 +355,17 @@ function adaptScale() {
   const sorted = [...intervals].sort((a, b) => a - b),
     expected = sorted[Math.floor(sorted.length * 0.25)],
     late = intervals.filter((x) => x > Math.max(expected * 1.6, 0.022)).length / intervals.length,
-    top = Math.min(devicePixelRatio, SCALE.max);
+    top = scaleTop();
   intervals.length = 0;
+  diag.fps = Math.round(1 / Math.max(sorted[Math.floor(sorted.length / 2)], 1e-3)); // (median)
   const slow = late > 0.1 || expected > 0.021;
   if (slow && fxOn() && renderScale <= SCALE.fxFloor) {
-    fxAuto = false;
-    scaleCap = Math.min(top, 1.5);
+    if (fxNext) lighten();
+    else if (renderScale > SCALE.min) {
+      renderScale = scaleCap = SCALE.min;
+      quality();
+    }
     scaleCalm = 0;
-    quality();
   } else if (slow && renderScale > SCALE.min) {
     scaleCap = Math.max(SCALE.min, renderScale - SCALE.step);
     renderScale = scaleCap;
@@ -274,7 +379,33 @@ function adaptScale() {
     }
   } else scaleCalm = 0;
 }
+// Frames drop with the post chain on: it goes at the next scene change; for
+// the rest of this race the resolution drops to 1x (no shader changes now).
+function lighten() {
+  if (fxNext && fxOn()) fxNext = false;
+  else if (!lowNext && !adaptiveLow) lowNext = true;
+  else return;
+  diag.deferred++;
+  renderScale = scaleCap = SCALE.min;
+  scaleCalm = 0;
+  quality();
+}
+// Applies the booked switches (fxNext / lowNext) where a stall does not
+// matter: a race start (before the countdown's compile) or the garage.
+function settle() {
+  if (fxAuto === fxNext && adaptiveLow === lowNext) return;
+  const was = fxOn();
+  fxAuto = fxNext;
+  adaptiveLow = lowNext;
+  // Without the chain the resolution may climb back (to 1.5x at most).
+  if (was && !fxOn()) scaleCap = Math.min(devicePixelRatio, 1.5);
+  quality();
+}
+let lastSize = "";
 function resize() {
+  const size = innerWidth + "x" + innerHeight + "@" + (renderer.getPixelRatio?.() ?? renderer.ratio);
+  if (size !== lastSize) diag.rebuilds++;
+  lastSize = size;
   renderer.setSize(innerWidth, innerHeight, false);
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
@@ -307,40 +438,20 @@ addEventListener("resize", () => {
   resize();
 });
 quality();
-// Haptic ticks, best effort. Android vibrates. iOS has no vibration API; a
-// switch-style checkbox being toggled gives a light system tick on recent
-// iOS, so a hidden one is toggled instead. Nothing happens where neither
-// works.
-const hapticSwitch = (() => {
-  try {
-    const l = document.createElement("label"),
-      i = document.createElement("input");
-    i.type = "checkbox";
-    i.setAttribute("switch", "");
-    i.tabIndex = -1;
-    l.id = "haptic";
-    l.setAttribute("aria-hidden", "true");
-    l.append(i);
-    document.body.append(l);
-    return l;
-  } catch {
-    return null;
-  }
-})();
+// Haptic ticks where the browser has a vibration API (Android). iOS has
+// none. (v2.7 toggled a hidden switch control on iOS for a system tick: it
+// clicked and focused a form control in the middle of a race, and the trick
+// reportedly stopped working in iOS 26.5. v2.7.1 removes it; the setting is
+// only shown where vibration works.)
+const canVibrate = typeof navigator.vibrate === "function";
 let lastHaptic = 0;
 function haptic(ms = 12) {
-  if (save.haptics === false) return;
+  if (!canVibrate || save.haptics === false) return;
   const now = performance.now();
   if (now - lastHaptic < 45) return;
   lastHaptic = now;
   try {
-    if (navigator.vibrate) navigator.vibrate(ms);
-    else if (hapticSwitch) {
-      hapticSwitch.click();
-      // (Clicking a label also focuses its control; hand the focus back.)
-      const box = hapticSwitch.firstChild;
-      if (document.activeElement === box) box.blur();
-    }
+    navigator.vibrate(ms);
   } catch {}
 }
 function notify(text, seconds = 2.5) {
@@ -890,14 +1001,20 @@ function applyAtmosphere(a) {
   skids?.setGlow(a.name === "night", 1);
 }
 function clearRace() {
-  if (raceGroup) scene.remove(raceGroup);
+  // The track and the race props are freed (up to v2.7 only plain
+  // BufferGeometry was, so ground, sky dome, cones, arches and labels piled
+  // up race after race). The karts stay cached: they are taken out first.
+  const old = [];
+  if (raceGroup) {
+    scene.remove(raceGroup);
+    for (const k of cars) raceGroup.remove(k);
+    old.push(raceGroup);
+  }
   if (world) {
     scene.remove(world.group);
-    world.group.traverse((o) => {
-      if (o.isMesh && o.geometry && !o.geometry.userData.shared && o.geometry.type === "BufferGeometry")
-        o.geometry.dispose();
-    });
+    old.push(world.group);
   }
+  if (old.length) release(old);
   world = null;
   raceGroup = null;
   dynamicMeshes.clear();
@@ -908,12 +1025,16 @@ function clearRace() {
   sprites?.clear();
   skids?.clear();
 }
-// Scene changes open with an iris: the screen is covered at once and a
-// circle of the new scene grows from the middle. Nothing waits for it.
+// Scene changes open with a short fade from a solid colour. Nothing waits
+// for it. (v2.7's iris was a circle with a 220vmax shadow scaled 42 times:
+// on a 3x phone screen that asks the compositor for a layer thousands of
+// pixels wide at every race start. An opacity fade of a screen-sized layer
+// is the cheapest thing a compositor does.)
 const wipeEl = document.createElement("div");
 wipeEl.id = "wipe";
 wipeEl.setAttribute("aria-hidden", "true");
 document.body.append(wipeEl);
+wipeEl.addEventListener("animationend", () => wipeEl.classList.remove("on"));
 function wipe() {
   if (save.reduced) return;
   wipeEl.classList.remove("on");
@@ -997,6 +1118,7 @@ function startRace(trackIndex = save.track) {
   inputClear();
   stopConfetti();
   wipe();
+  settle(); // switches booked during the last race (before this race's compile)
   toastTimer = 0;
   $("toast").classList.remove("show");
   $("toast").textContent = "";
@@ -1120,42 +1242,56 @@ function startRace(trackIndex = save.track) {
   $("start-hint").textContent = touchLayout() ? "就是现在！倒数一结束就点屏幕 → 起步加速" : "就是现在！倒数一结束就按 ↑ 或空格 → 起步加速";
   lastCount = 0;
   updateHUD();
-  // Compile every shader the race can need (flames, shields, fade dither,
-  // particles) now, during the countdown, instead of stalling the first time
-  // a boost or shield appears mid-race.
   if (!renderer.software) {
     cars.slice(1).forEach((k) => setKartFade(k, k.userData.fade ?? 1));
-    // compile() only sees visible objects: briefly show what is hidden until
-    // a boost or a special (flames, the 必杀无敌 aura, transform parts, the
-    // emote bubble) so the first one does not stall a frame.
-    const shownForCompile = [];
-    const reveal = (o) => {
-      if (o && !o.visible) {
-        o.visible = true;
-        shownForCompile.push(o);
-      }
-    };
-    for (const k of cars) {
-      const d = k.userData;
-      reveal(d.aura);
-      d.exhaust.forEach((f) => reveal(f.nozzle));
-      d.rig?.parts.forEach((part) => reveal(part.obj));
-    }
     emote(cars[0], "!", 0);
-    reveal(cars[0].userData.emote.sprite);
-    try {
-      // (The post chain draws into its own target, which has its own
-      // programs.)
-      if (fxOn()) post.compile(scene, camera);
-      else renderer.compile(scene, camera);
-    } catch {}
-    shownForCompile.forEach((o) => (o.visible = false));
   }
+  // Karts beyond the cache's size that this race does not use are freed.
+  trimKarts(new Set([...cars, selected]));
+  precompile();
+  crash.arm();
+}
+// Compile every shader the race can need (flames, shields, fade dither,
+// particles, tyre marks) now, during the countdown, instead of stalling the
+// first time a boost or shield appears mid-race.
+function precompile() {
+  if (renderer.software || !race || !world) return;
+  // compile() only sees visible objects: briefly show what is hidden until
+  // a boost or a special (flames, the 必杀无敌 aura, transform parts, the
+  // emote bubble, the particle layers before the first particle) so the
+  // first one does not stall a frame.
+  const shownForCompile = [];
+  const reveal = (o) => {
+    if (o && !o.visible) {
+      o.visible = true;
+      shownForCompile.push(o);
+    }
+  };
+  for (const k of cars) {
+    const d = k.userData;
+    reveal(d.aura);
+    d.exhaust.forEach((f) => reveal(f.nozzle));
+    d.rig?.parts.forEach((part) => reveal(part.obj));
+  }
+  reveal(cars[0]?.userData.emote?.sprite);
+  sprites?.layers.forEach((l) => reveal(l.mesh));
+  reveal(skids?.mesh);
+  trails.forEach((t) => reveal(t.mesh));
+  reveal(ring?.mesh);
+  try {
+    // (The post chain draws into its own target, which has its own
+    // programs.)
+    if (fxOn()) post.compile(scene, camera);
+    else renderer.compile(scene, camera);
+  } catch {}
+  shownForCompile.forEach((o) => (o.visible = false));
 }
 function goHome() {
   mode = "home";
+  crash.disarm();
   stopConfetti();
   wipe();
+  settle();
   inputClear();
   toastTimer = 0;
   $("toast").classList.remove("show");
@@ -1198,8 +1334,11 @@ function pause() {
   inputClear();
   show("countdown", false);
   show("start-hint", false);
+  pauseMenu();
+}
+function pauseMenu() {
   modal(
-    '<span class="dialog-eyebrow">A LITTLE PIT STOP</span><h2>进站，歇一会儿。</h2><p>比赛已暂停。准备好了，继续向终点出发。</p><div class="dialog-actions"><button class="primary" id="resume">继续比赛</button><button class="secondary" id="restart">重新开始</button></div><div class="dialog-actions"><button class="secondary" id="race-settings">驾驶设置</button><button class="secondary" id="home">返回车库</button></div><div class="modal-footer">版本 2.7 · ' + BUILD + '</div>',
+    '<span class="dialog-eyebrow">A LITTLE PIT STOP</span><h2>进站，歇一会儿。</h2><p>比赛已暂停。准备好了，继续向终点出发。</p><div class="dialog-actions"><button class="primary" id="resume">继续比赛</button><button class="secondary" id="restart">重新开始</button></div><div class="dialog-actions"><button class="secondary" id="race-settings">驾驶设置</button><button class="secondary" id="home">返回车库</button></div><div class="modal-footer">版本 2.7.1 · ' + BUILD + '</div>',
   );
   $("resume").onclick = resume;
   $("restart").onclick = () => startRace(race.track.index);
@@ -1214,6 +1353,7 @@ function resume() {
   inputClear();
   audio.unlock();
   show("countdown", true);
+  crash.arm();
 }
 $("pause").onclick = pause;
 // Respond on the touch itself too, so pausing works while another finger is
@@ -1224,11 +1364,11 @@ $("pause").addEventListener("pointerup", (e) => {
 function help() {
   if (mode === "race") pause();
   modal(
-    '<button class="dialog-close" id="close-dialog" aria-label="关闭">×</button><span class="dialog-eyebrow">YOUR FIRST LAP</span><h2>快乐超车，从这里开始。</h2><p>默认自动油门，专心转向和使用道具。跑完三圈即冲线，杯赛累积三站积分；竞速赛没有道具，比拼漂移和氮气。</p><div class="help-grid"><div><b>01 / 转向与过弯</b><p>手机：按住屏幕左半边左转，右半边右转。急弯会把车往外甩，只靠方向会掉速、贴外侧，漂移过弯更快。键盘 ← → 或 A / D。</p></div><div><b>02 / 漂移</b><p>手机：进弯按住方向就会漂移，一直按着保持，火花变蓝、橙、紫后松开，冲刺一次比一次猛；也可以点一下漂移键开始。键盘：转向时按住 Shift。漂移会掉一点速度，只有过弯时集气快：直道上一直漂、贴着护栏漂都会越漂越慢，出弯就松手。</p></div><div><b>03 / 道具（两个槽）</b><p>撞碎问号箱抽道具，最多存两个，点道具框（键盘空格）使用。问号箱每人一份；越落后道具越强，最后几名还可能抽到火箭。</p></div><div><b>04 / 必杀技</b><p>每位车手都有专属必杀技。漂移加速、吃金币、打中对手都会给必杀槽充能，满了点必杀键（键盘 E）释放。放必杀时金光护体、车子变形，3 秒内无敌（小金毛 3.6 秒）：任何攻击都打不动你，撞车也是对方被弹开。流星雨、熊抱冲撞这类攻击必杀会用红圈标出要打的车；前面没人可打时不让你白放。</p></div><div><b>05 / 竞速赛与尾流</b><p>竞速赛没有道具和必杀：漂移给氮气槽充能，最多存两管，点 N₂O 键（键盘空格）喷射。两种比赛都有尾流：紧跟在别的车正后方一小会儿，就会被吸着加速超过去。</p></div><div><b>06 / 小地图与后方雷达</b><p>右上角小地图：方格线是终点，黄色箭头是你，彩色圆点是对手，离你近的会描白边；下方进度条显示每个人离终点多远。屏幕下方的雷达会提示从后面逼近的车和距离。</p></div><div><b>07 / 起步加速</b><p>倒数快结束时屏幕中间会提示「就是现在」：倒数结束的瞬间点一下屏幕（键盘 ↑ 或空格），就能起步加速，越准越猛；按得太早就没有。</p></div><div><b>08 / 车型与变形</b><p>车库点「车型」可以换车：经典卡丁（均衡）、闪电 GT（极速更高、起步稍慢）、喷射火箭（所有加速多 12%）、幻影星舰（集气快 15%、抓地稳）。每次加速都会变形：尾翼升起、侧翼展开、火箭外推，幻影星舰还会收起车轮变成悬浮模式。</p></div><div><b>09 / 碰撞</b><p>护栏和其他车都会把你弹开：撞得越正越减速，漂移也会被打断。贴着护栏开会一路碰撞、越来越慢，记得松开方向回到路中间。</p></div><div><b>10 / 画面与手感</b><p>三条赛道分别是正午、夕阳和星夜。设置（⚙）里可以开关「画面特效」（泛光、调色、冲刺光晕）、「震动反馈」和「减少镜头变化」（开场运镜、镜头侧倾）。手机卡顿时游戏会先自动降低清晰度，还不够就关掉特效。</p></div></div><div class="help-items">' +
+    '<button class="dialog-close" id="close-dialog" aria-label="关闭">×</button><span class="dialog-eyebrow">YOUR FIRST LAP</span><h2>快乐超车，从这里开始。</h2><p>默认自动油门，专心转向和使用道具。跑完三圈即冲线，杯赛累积三站积分；竞速赛没有道具，比拼漂移和氮气。</p><div class="help-grid"><div><b>01 / 转向与过弯</b><p>手机：按住屏幕左半边左转，右半边右转。急弯会把车往外甩，只靠方向会掉速、贴外侧，漂移过弯更快。键盘 ← → 或 A / D。</p></div><div><b>02 / 漂移</b><p>手机：进弯按住方向就会漂移，一直按着保持，火花变蓝、橙、紫后松开，冲刺一次比一次猛；也可以点一下漂移键开始。键盘：转向时按住 Shift。漂移会掉一点速度，只有过弯时集气快：直道上一直漂、贴着护栏漂都会越漂越慢，出弯就松手。</p></div><div><b>03 / 道具（两个槽）</b><p>撞碎问号箱抽道具，最多存两个，点道具框（键盘空格）使用。问号箱每人一份；越落后道具越强，最后几名还可能抽到火箭。</p></div><div><b>04 / 必杀技</b><p>每位车手都有专属必杀技。漂移加速、吃金币、打中对手都会给必杀槽充能，满了点必杀键（键盘 E）释放。放必杀时金光护体、车子变形，3 秒内无敌（小金毛 3.6 秒）：任何攻击都打不动你，撞车也是对方被弹开。流星雨、熊抱冲撞这类攻击必杀会用红圈标出要打的车；前面没人可打时不让你白放。</p></div><div><b>05 / 竞速赛与尾流</b><p>竞速赛没有道具和必杀：漂移给氮气槽充能，最多存两管，点 N₂O 键（键盘空格）喷射。两种比赛都有尾流：紧跟在别的车正后方一小会儿，就会被吸着加速超过去。</p></div><div><b>06 / 小地图与后方雷达</b><p>右上角小地图：方格线是终点，黄色箭头是你，彩色圆点是对手，离你近的会描白边；下方进度条显示每个人离终点多远。屏幕下方的雷达会提示从后面逼近的车和距离。</p></div><div><b>07 / 起步加速</b><p>倒数快结束时屏幕中间会提示「就是现在」：倒数结束的瞬间点一下屏幕（键盘 ↑ 或空格），就能起步加速，越准越猛；按得太早就没有。</p></div><div><b>08 / 车型与变形</b><p>车库点「车型」可以换车：经典卡丁（均衡）、闪电 GT（极速更高、起步稍慢）、喷射火箭（所有加速多 12%）、幻影星舰（集气快 15%、抓地稳）。每次加速都会变形：尾翼升起、侧翼展开、火箭外推，幻影星舰还会收起车轮变成悬浮模式。</p></div><div><b>09 / 碰撞</b><p>护栏和其他车都会把你弹开：撞得越正越减速，漂移也会被打断。贴着护栏开会一路碰撞、越来越慢，记得松开方向回到路中间。</p></div><div><b>10 / 画面与手感</b><p>三条赛道分别是正午、夕阳和星夜。设置（⚙）里可以开关「画面特效」（泛光、调色、冲刺光晕）和「减少镜头变化」（开场运镜、镜头侧倾），安卓手机还有「震动反馈」。手机卡顿时游戏会先降低清晰度，还不够就从下一场起关掉特效。</p></div></div><div class="help-items">' +
       Object.entries(ITEMS)
         .map(([k, v]) => "<div><span>" + v.icon + "</span><b>" + v.name + "</b>" + v.desc + "</div>")
         .join("") +
-      '</div><p>关闭自动油门后：W / ↑ 或屏幕油门键加速，S / ↓ 刹车。P / Esc 暂停；切换应用会自动暂停。</p><div class="dialog-actions sticky-actions"><button id="got-it" class="primary">准备好啦</button></div><div class="modal-footer">非官方同人作品 · 角色造型参考，原创赛道与音乐 · 版本 2.7 · ' + BUILD + '</div>',
+      '</div><p>关闭自动油门后：W / ↑ 或屏幕油门键加速，S / ↓ 刹车。P / Esc 暂停；切换应用会自动暂停。</p><div class="dialog-actions sticky-actions"><button id="got-it" class="primary">准备好啦</button></div><div class="modal-footer">非官方同人作品 · 角色造型参考，原创赛道与音乐 · 版本 2.7.1 · ' + BUILD + '</div>',
   );
   $("got-it").onclick = closeModal;
   $("close-dialog").onclick = closeModal;
@@ -1248,8 +1388,9 @@ function settings() {
         ["assist", "辅助转向", "在赛道边缘轻轻帮你一把"],
         ["reduced", "减少镜头变化", "关闭开场运镜、镜头侧倾和屏幕光效"],
         ["fx", "画面特效", "泛光、调色和冲刺光晕；手机发热或卡顿时可关闭"],
-        ["haptics", "震动反馈", "漂移、撞击时轻震；Android 支持，新系统的 iPhone 多半没有"],
+        ["haptics", "震动反馈", "漂移、撞击时轻震"],
       ]
+        .filter(([id]) => id !== "haptics" || canVibrate) // (iPhone browsers cannot vibrate)
         .map(
           ([id, n, d]) =>
             '<label class="setting"><span>' +
@@ -1265,18 +1406,29 @@ function settings() {
         .join("") +
       '<label class="setting"><span>音乐与音效</span><input type="range" id="volume" min="0" max="100" value="' +
       save.volume * 100 +
-      '"></label><label class="setting"><span>画面质量</span><select id="quality"><option value="auto">自动 · 推荐</option><option value="high">精致 · 动态阴影</option><option value="low">流畅 · 节省电量</option></select></label><p>成绩保存在当前浏览器。手机横屏视野更宽，竖屏也可以完整游玩。</p><div class="dialog-actions sticky-actions"><button class="primary" id="done-settings">保存并返回</button></div>',
+      '"></label><label class="setting"><span>画面质量</span><select id="quality"><option value="auto">自动 · 推荐</option><option value="high">精致 · 动态阴影</option><option value="low">流畅 · 节省电量</option></select></label><p>成绩保存在当前浏览器。手机横屏视野更宽，竖屏也可以完整游玩。</p><details class="diag" id="diag"><summary>运行诊断</summary><p>遇到卡顿、卡死或画面异常时，展开这里截图发给开发者。这些信息只显示在你的手机上，不会上传。</p><pre id="diag-text"></pre><button class="secondary" id="diag-copy">复制诊断信息</button></details><div class="dialog-actions sticky-actions"><button class="primary" id="done-settings">保存并返回</button></div>',
   );
+  $("diag").ontoggle = () => ($("diag-text").textContent = diagText());
+  $("diag-copy").onclick = () => {
+    const text = diagText();
+    $("diag-text").textContent = text;
+    navigator.clipboard?.writeText(text).then(
+      () => notify("诊断信息已复制", 1.6),
+      () => notify("无法复制，请直接截图", 1.6),
+    );
+  };
   $("quality").value = save.quality;
   for (const k of ["autoGas", "autoDrift", "assist", "reduced", "fx", "haptics"])
-    $("setting-" + k).onchange = (e) => {
+    if ($("setting-" + k)) $("setting-" + k).onchange = (e) => {
       save[k] = e.target.checked;
       persist();
       show("accelerate", !save.autoGas);
       document.body.classList.toggle("manual-gas", !save.autoGas);
       if (k === "fx") {
-        fxAuto = true; // asked for again: try it, whatever the frame rate did before
+        fxAuto = fxNext = true; // asked for again: try it, whatever the frame rate did before
+        if (save.fx) crash.clear(); // (and whatever happened last time)
         quality();
+        precompile(); // now, while the game is paused, not in the next frame of racing
       }
       if (k === "haptics" && save.haptics) haptic(15);
     };
@@ -1288,14 +1440,44 @@ function settings() {
   };
   $("quality").onchange = (e) => {
     save.quality = e.target.value;
-    adaptiveLow = false;
+    adaptiveLow = lowNext = false;
     renderScale = null; // start again from this choice
     scaleCap = SCALE.max;
     quality();
+    precompile(); // (shadows on or off change the shaders: compile them while paused)
     persist();
   };
   $("close-dialog").onclick = closeModal;
   $("done-settings").onclick = closeModal;
+}
+// The diagnostics page (settings → 运行诊断): what the device is, what the
+// renderer is doing, and what went wrong, for a screenshot.
+function diagText() {
+  const on = (v) => (v ? "开" : "关"),
+    info = renderer.info,
+    px = renderer.getPixelRatio?.() ?? renderer.ratio;
+  let gpu = "";
+  try {
+    const gl = renderer.software ? null : renderer.getContext(),
+      ext = gl?.getExtension("WEBGL_debug_renderer_info");
+    gpu = gl ? gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER) : "";
+  } catch {}
+  return [
+    "版本 2.7.1 · " + BUILD,
+    "渲染：" + (renderer.software ? "兼容模式（无 WebGL2）" : "WebGL2 · " + gpu),
+    "屏幕：" + innerWidth + "×" + innerHeight + " · 像素比 " + devicePixelRatio + " · 渲染倍率 " + +px.toFixed(2) + "（上限 " + scaleCap + "）",
+    "画面特效：" +
+      ({ on: "开", off: "关", unsupported: "不支持" }[document.documentElement.dataset.fx] || "-") +
+      (post?.reason ? "（" + post.reason + "）" : "") +
+      (post ? " · 采样 " + post.samples + " · 建立 " + post.builds + " 次" : "") +
+      (fxNext !== fxAuto ? " · 下一场" + on(fxNext) : ""),
+    "阴影：" + on(renderer.shadowMap.enabled) + (lowNext !== adaptiveLow ? " · 下一场关" : "") + " · 画质设定 " + save.quality,
+    "帧率：" + (diag.fps ? diag.fps + " fps" : "-") + " · 比赛中最慢一帧 " + diag.worst + " ms · 自动降档 " + diag.deferred + " 次",
+    "画面中断：" + diag.lost + " 次（恢复 " + diag.restored + " 次）· 画面尺寸变化 " + diag.rebuilds + " 次" + (diag.crashGuard ? " · 上次异常退出" : ""),
+    "资源：几何体 " + (info?.memory?.geometries ?? "-") + " · 贴图 " + (info?.memory?.textures ?? "-") + " · 着色器 " + (info?.programs?.length ?? "-") + " · 已释放 " + diag.freed + " · 车辆缓存 " + kartCache.size,
+    "错误：" + diag.errors + (diag.lastError ? " · " + diag.lastError : ""),
+    navigator.userAgent,
+  ].join("\n");
 }
 $("settings").onclick = settings;
 $("sound").onclick = () => {
@@ -1393,6 +1575,7 @@ addEventListener("keyup", (e) => keys.delete(e.code));
 function leave() {
   inputClear();
   if (mode === "race") pause();
+  crash.disarm(); // a normal exit (another app, a locked phone), not a crash
 }
 addEventListener("blur", leave);
 addEventListener("pagehide", leave);
@@ -1656,6 +1839,7 @@ function showResult() {
   if (ended) return;
   ended = true;
   mode = "result";
+  crash.disarm();
   inputClear();
   show("countdown", false);
   show("banner", false);
@@ -2769,8 +2953,37 @@ function renderRace(dt) {
   sun.position.copy(s.p).addScaledVector(sunDir, 56);
   sun.target.position.copy(s.p);
 }
+// One frame. An error thrown in it no longer leaves a frozen picture with
+// nothing said (v2.7.1): it is counted for the diagnostics, the post chain
+// (the newest code on the GPU side) is switched off, and if frames keep
+// failing the player gets a way out.
 function frame(now) {
   requestAnimationFrame(frame);
+  try {
+    tick(now);
+  } catch (e) {
+    frameError(e);
+  }
+}
+let errorRun = 0;
+function frameError(e) {
+  diag.errors++;
+  errorRun++;
+  diag.lastError = String(e?.message || e).slice(0, 160);
+  if (diag.errors <= 3) console.error(e);
+  if (post?.ok) {
+    post.fail("frame error: " + diag.lastError);
+    syncPost();
+  }
+  if (errorRun === 90) {
+    if (mode === "race") pause();
+    modal(
+      '<span class="dialog-eyebrow">SOMETHING WENT WRONG</span><h2>画面出错了。</h2><p>成绩已经保存。重新载入页面就能继续玩；如果反复出现，请在设置 → 运行诊断里截图发给开发者。</p><div class="dialog-actions"><button class="primary" id="reload">重新载入</button></div>',
+    );
+    $("reload").onclick = () => location.reload();
+  }
+}
+function tick(now) {
   const raw = (now - last) / 1000,
     dt = Math.min(0.25, Math.max(0, raw));
   last = now;
@@ -2778,6 +2991,7 @@ function frame(now) {
   // Auto quality: judge only steady racing (one-off stalls such as loading or
   // shader compilation are ignored) and drop to "low" after two slow windows
   // in a row, so a single hitch at the start cannot cost the whole session.
+  if (mode === "race" && resumeTimer <= 0 && race?.phase === "racing" && raw < 30) diag.worst = Math.max(diag.worst, Math.round(raw * 1000));
   if (mode === "race" && resumeTimer <= 0 && race?.phase === "racing" && raw < 0.25) {
     fpsFrames++;
     fpsTime += raw;
@@ -2789,13 +3003,11 @@ function frame(now) {
   }
   if (fpsTime > 4) {
     slowWindows = fpsFrames / fpsTime < 26 ? slowWindows + 1 : 0;
-    if (slowWindows >= 2 && save.quality === "auto" && !adaptiveLow) {
-      // Under 26 fps: the post chain goes first, then shadows and resolution.
-      if (fxOn()) {
-        fxAuto = false;
-        slowWindows = 0;
-      } else adaptiveLow = true;
-      quality();
+    if (slowWindows >= 2 && save.quality === "auto" && !lowNext) {
+      // Under 26 fps: the post chain goes first, then shadows (both at the
+      // next scene change; the resolution drops now).
+      lighten();
+      slowWindows = 0;
     }
     fpsFrames = 0;
     fpsTime = 0;
@@ -2901,10 +3113,12 @@ function frame(now) {
     const rushing = mode === "race" && pl && !save.reduced && (pl.boost > 0 || pl.star > 0 || pl.rocket > 0) && pl.rescue <= 0;
     post.uniforms.rush.value = easeTo(post.uniforms.rush.value, rushing ? (pl.rocket > 0 || /drift3|item|nitro|start/.test(pl.boostKind) ? 1 : 0.6) : 0, rushing ? 9 : 4, dt);
   }
+  if (contextLost) return;
   if (!(fxOn() && post.render(scene, camera))) {
     if (post && !post.ok && document.documentElement.dataset.fx === "on") syncPost(); // it just failed: plain drawing from here on
     renderer.render(scene, camera);
   }
+  errorRun = 0;
 }
 // Garage music starts with the first tap or key press (browsers only allow
 // sound after a user gesture).
@@ -2917,13 +3131,52 @@ for (const type of ["pointerup", "touchend", "keydown"]) addEventListener(type, 
 show("loading", false);
 $("start").disabled = false;
 document.documentElement.dataset.ready = "true";
+if (diag.crashGuard) notify("上次比赛时画面意外中断，这次已先关闭「画面特效」；可在设置里重新打开", 6);
 requestAnimationFrame(frame);
+// The GPU can take the WebGL context away (iOS does under memory pressure).
+// The race pauses; the picture comes back when the context is restored.
+// v2.7.1: a context lost with the post chain on turns the chain off for the
+// rest of the session (the phone ran short of GPU memory with it), and if
+// no restore comes within a few seconds the player is offered a reload
+// instead of a frozen picture.
+let contextLost = false;
 $("scene").addEventListener("webglcontextlost", (e) => {
   e.preventDefault();
+  contextLost = true;
+  diag.lost++;
+  if (fxOn()) {
+    fxNext = false;
+    try {
+      localStorage.setItem(CRASH_KEY, "1"); // if this ends in a reload, start without the chain
+    } catch {}
+  }
   if (mode === "race") pause();
   notify("画面连接暂时中断，正在恢复…", 7);
+  const lost = diag.lost;
+  setTimeout(() => {
+    if (!contextLost || diag.lost !== lost) return;
+    if (mode === "race") pause();
+    modal(
+      '<span class="dialog-eyebrow">PICTURE LOST</span><h2>画面中断了。</h2><p>手机暂时收回了图形资源。成绩已经保存，重新载入后会先关闭画面特效。</p><div class="dialog-actions"><button class="primary" id="reload">重新载入</button></div>',
+    );
+    $("reload").onclick = () => location.reload();
+  }, 6000);
 });
 $("scene").addEventListener("webglcontextrestored", () => {
+  contextLost = false;
+  diag.restored++;
+  crash.disarm();
+  // Everything is uploaded again; the post chain (if still on) rebuilds.
+  fxAuto = fxNext;
+  post?.dispose();
+  post?.recheck();
+  lastSize = "";
   quality();
+  precompile();
+  // The reload offer is withdrawn: back to the pause menu (or the garage).
+  if ($("dialog").open && $("reload")) {
+    if (mode === "paused") pauseMenu();
+    else $("dialog").close();
+  }
   notify("画面已恢复，可继续比赛");
 });

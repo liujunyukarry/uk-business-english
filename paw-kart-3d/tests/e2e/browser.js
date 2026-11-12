@@ -44,7 +44,14 @@ const HOOK = `
   // v2.7: the chase camera's state, the effects, the scene's light and haze.
   get cam(){return typeof cam==="undefined"?null:cam},get post(){return typeof post==="undefined"?null:post},get sprites(){return typeof sprites==="undefined"?null:sprites},get skids(){return typeof skids==="undefined"?null:skids},
   get world(){return typeof world==="undefined"?null:world},get scene(){return typeof scene==="undefined"?null:scene},get sun(){return typeof sun==="undefined"?null:sun},get save(){return save},
-  get framing(){return typeof FRAMING==="undefined"?null:FRAMING},haptic:typeof haptic==="undefined"?null:haptic};
+  get framing(){return typeof FRAMING==="undefined"?null:FRAMING},haptic:typeof haptic==="undefined"?null:haptic,
+  // v2.7.1: the renderer (GPU resource counts), scene changes, the adaptive
+  // quality's booked switches, the kart cache and the diagnostics.
+  renderer,T,startRace,goHome,quality,get raceGroup(){return raceGroup},get world(){return world},
+  setFxAuto(v){fxAuto=fxNext=v;quality()},get fxAuto(){return fxAuto},get fxNext(){return typeof fxNext==="undefined"?null:fxNext},
+  get lowNext(){return typeof lowNext==="undefined"?null:lowNext},get adaptiveLow(){return adaptiveLow},get renderScale(){return renderScale},
+  lighten:typeof lighten==="undefined"?null:lighten,get kartCache(){return kartCache},
+  get diag(){return typeof diag==="undefined"?null:diag},diagText:typeof diagText==="undefined"?null:diagText};
 `;
 
 export async function launch({ webgl = false } = {}) {

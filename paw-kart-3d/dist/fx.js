@@ -147,7 +147,8 @@ export function createPost(renderer) {
     width = 0,
     height = 0,
     samples = 4,
-    checked = 0;
+    checked = 0,
+    verified = false; // the chain has drawn a good frame on this device
   const post = {
     ok: true,
     reason: "",
@@ -160,6 +161,10 @@ export function createPost(renderer) {
     get size() {
       return [width, height];
     },
+    get verified() {
+      return verified;
+    },
+    builds: 0, // times the targets were (re)allocated
     uniforms: final.uniforms,
     look(l) {
       const u = final.uniforms;
@@ -171,6 +176,11 @@ export function createPost(renderer) {
       u.gain.value.fromArray(l.gain);
       u.lift.value.fromArray(l.lift);
       post.threshold = l.threshold;
+    },
+    // Check the next frames again (after the GPU context was restored).
+    recheck() {
+      verified = false;
+      checked = 0;
     },
     fail(reason) {
       post.ok = false;
@@ -223,7 +233,11 @@ export function createPost(renderer) {
       } catch (e) {
         return post.fail("targets: " + (e?.message || e)), false;
       }
-      checked = 0;
+      post.builds++;
+      // Only the first frames this chain ever draws are read back: a read
+      // makes the CPU wait for the GPU (a hitch), so a later rebuild for a
+      // new size is not checked again (v2.7 checked after every rebuild).
+      checked = verified ? 2 : 0;
       return true;
     },
     // Compile the scene's shaders for this chain's target (programs differ
@@ -276,9 +290,12 @@ export function createPost(renderer) {
       renderer.autoClear = auto;
       // The first frames after each (re)build are checked: a chain that
       // leaves the screen black is switched off for good.
-      if (checked < 2 && ++checked && !post.verify()) {
-        post.fail("blank frame");
-        return false;
+      if (checked < 2 && ++checked) {
+        if (!post.verify()) {
+          post.fail("blank frame");
+          return false;
+        }
+        if (checked === 2) verified = true;
       }
       return true;
     },

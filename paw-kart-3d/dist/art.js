@@ -1,8 +1,8 @@
 import * as T from "./vendor/three.module.js";
-import { kartAsset } from "./kart-assets.js?v=e52b2ef9";
-import { buildBody, classicRig, poseRig, setEnvironment as setBodyEnvironment } from "./kart-bodies.js?v=e52b2ef9";
-import { dog, animateDog, reactDog, material, ellipsoid, roundedBox, star as starMesh, faceDepth } from "./models.js?v=e52b2ef9";
-import { CHARACTERS, seeded } from "./race.js?v=e52b2ef9";
+import { kartAsset } from "./kart-assets.js?v=c995fd2b";
+import { buildBody, classicRig, poseRig, setEnvironment as setBodyEnvironment } from "./kart-bodies.js?v=c995fd2b";
+import { dog, animateDog, reactDog, material, ellipsoid, roundedBox, star as starMesh, faceDepth } from "./models.js?v=c995fd2b";
+import { CHARACTERS, seeded } from "./race.js?v=c995fd2b";
 const scenerySphere = new T.SphereGeometry(1, 12, 8);
 const sphere = new T.SphereGeometry(1, 24, 18),
   unitBox = new T.BoxGeometry(1, 1, 1),
@@ -1799,8 +1799,13 @@ function paintTexture(w, h, draw) {
 // Textures and materials made per track are kept for the session (v2.6 made
 // a new road texture for every race and never freed it).
 const worldCache = new Map();
+// (Flagged, so the game never frees them when a race is cleared up.)
 const cached = (key, make) => {
-  if (!worldCache.has(key)) worldCache.set(key, make());
+  if (!worldCache.has(key)) {
+    const made = make();
+    if (made?.userData) made.userData.cached = true;
+    worldCache.set(key, made);
+  }
   return worldCache.get(key);
 };
 // Unlit and brighter than white: reads as a light source, and glows when the
