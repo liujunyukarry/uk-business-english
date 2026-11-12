@@ -447,3 +447,39 @@ No phone was used, so none of this is confirmed on the iPhone 14 Pro Max.
 - Haptics. iOS has no vibration API; the switch-toggle method reportedly stopped working in iOS 26.5, so a current iPhone most likely gives no ticks.
 - Loudness of the new wind sound against the music.
 
+
+# v2.7.1 Verification — 2026-11-13
+
+Build id `c995fd2b`. A hotfix for a report from the iPhone 14 Pro Max: on v2.7 the game sometimes froze in the middle of a race, and sometimes stuttered. Same container environment as before (headless Chrome on two CPU cores, no phone). The freeze itself could not be reproduced here: it happens on the phone's GPU. What follows are the causes found in the code and measured in the container, the fixes, and the guards added in case something else is behind it.
+
+## Causes found, and the measurements
+
+| Cause | Measured here on v2.7 | Fix in v2.7.1 |
+|---|---|---|
+| Frames dropping in a race switched the post chain off (and later the shadows) on the spot. Both change the shader of every material in the scene, so all of them were compiled in one frame. | SwiftShader, 360×640, 蜜桃 speed race: switching the chain off mid-race compiled 35 new shader programs (61 → 96) and the next two frames took 12.9 s, against about 2 s before and after. A phone compiles faster, but it is still a stop of a second or more in the middle of a race. | Mid-race the switches are only booked (`fxNext`, `lowNext`) and the resolution drops to 1x at once. They take effect at the next race start (compiled during the countdown) or on return to the garage. Test: no new shader program while racing after the switch is booked. |
+| A race's track and props were not freed when it ended: only geometries of the plain `BufferGeometry` type were, so the ground, sky dome, cones, arches, labels, item boxes, coins and boost pads stayed in GPU memory. | Geometries held by the renderer, in the garage after each of six races on 花田 (SwiftShader, 320×568): 166 at start, then 350, 507, 573, 709, 765, 822, rising with every race; textures 27 → 88. | Leaving a race frees what its track and props drew with, except what the garage, a cached kart or a cached material still uses. Test: every geometry of the old track and props is freed, five races in a row. |
+| Every new driver and kart-body pair was built and cached for good. AI drivers ride a random body each race, so the cache grew by about one kart (with its driver model) per AI driver per race. | (included in the row above) | At most 12 karts are kept, least recently used first out, never one the current race uses. The same six races: 166, then 327, 403, 373, 349, 386, 468 geometries (it moves with which karts are cached, within the cap); textures 27 → 48. A separate trace of five races found the last textures that piled up (the bone textures of dropped drivers' skeletons, now freed); with that fix the textures held stayed at 25–26 from the third race on. |
+| With the chain on, the resolution could climb to 2x after a few calm windows. | — | Capped at 1.5x with the chain on (less heat). |
+| The blank-frame check read pixels back after every rebuild of the chain's targets (a read makes the CPU wait for the GPU). | — | Only the first frames the chain ever draws are read back, and again after a context restore. |
+| The iris between scenes was a 6vmax circle with a 220vmax box shadow scaled 42 times: a compositing layer thousands of pixels wide on a 3x screen at every race start. | — | A plain opacity fade of a screen-sized layer. |
+| Sprite particle, tyre-mark and boost-trail shaders were compiled the first time one appeared mid-race. | — | Revealed for the countdown's compile. |
+| On iOS a hidden switch control was clicked (and focused) for each haptic tick, mid-race. The trick reportedly stopped working in iOS 26.5. | — | Removed. Haptics only where the browser can vibrate (Android); the 震动反馈 setting is hidden elsewhere. |
+
+## Guards
+
+- An error thrown in a frame no longer leaves a frozen picture: it is caught and counted, the post chain is switched off, and the game carries on. If frames keep failing for about 1.5 s the race pauses and offers a reload.
+- A lost WebGL context pauses the race. When the context comes back the chain stays off for the session and the pause menu returns. If nothing comes back within 6 s, a reload is offered (records are already saved).
+- Crash guard: a mark is kept in storage while a race runs with the chain on, and cleared when the race ends or the page is left normally. A page that loads and finds the mark starts with the chain off and says so; turning 画面特效 on again in settings clears it.
+- 运行诊断 in settings: version and build, renderer and GPU name, screen size, device pixel ratio and render scale, post chain state (and why it is off), shadows, median frame rate, the slowest frame of the current session's racing, context losses and restores, size changes, GPU resource counts and karts cached, errors and the last message, and the user agent. It can be copied. It is shown on the phone only and sent nowhere.
+
+## Tests
+
+- `npm test`: 96 of 96 pass.
+- `npm run test:e2e`: 56 of 56 pass, in about 10.5 minutes. The last full run caught the fade test reading the layer after it had already switched itself off; the test now records each time the fade starts and passed three reruns in a row. New in `tests/e2e/v271.test.js` (6 tests): leaving a race frees its track and props and the kart cache stays at 12 or fewer (five races); an error in one frame is caught and the race goes on, and frames failing in a row offer a reload; the crash guard; the diagnostics; (WebGL) slow frames book the chain and the shadows off without compiling anything mid-race, and both apply in the garage; (WebGL) a lost context pauses the race, offers a reload, and comes back drawn without the chain.
+- Changed: the haptics test (nothing at all, and no setting, where the browser cannot vibrate), the fallback test (frames are read back on the first build and after a restore, so it calls `recheck()`), and the fade test (was the iris).
+- Layout audit, 9 devices × 2 orientations, with 运行诊断 opened in settings: no issues, no page errors. `docs/qa-2.7.1/diagnostics.jpg` is the panel on a 430×932 page (CPU renderer, so it says 兼容模式 and shows no GPU counts).
+
+## Not verified — needs the phone
+
+- That the freeze is gone on the iPhone 14 Pro Max. The fixes remove the causes found here. If it happens again, a screenshot of 设置 → 运行诊断 right after it shows the slowest frame, context losses and errors.
+- Frame rate and heat at the 1.5x cap with the chain on.

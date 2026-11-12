@@ -3429,52 +3429,27 @@ header {
 /* ---------------------------------------------------------------------------
    v2.7
    --------------------------------------------------------------------------- */
-/* The hidden switch that gives a haptic tick on iOS (see haptic() in game.js). */
-#haptic {
-  position: fixed;
-  left: -200px;
-  top: -200px;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
 /* Iris between scenes: a small clear circle with a very large shadow covers
    the screen, then grows until the cover has left it. */
 #wipe {
   position: fixed;
-  left: 50%;
-  top: 52%;
-  width: 6vmax;
-  height: 6vmax;
-  margin: -3vmax 0 0 -3vmax;
-  border-radius: 50%;
-  box-shadow: 0 0 0 220vmax #2f4a3c;
+  inset: 0;
+  background: #2f4a3c;
   z-index: 60;
   pointer-events: none;
   opacity: 0;
-  transform: scale(0);
 }
+/* v2.7.1: a plain fade (opacity only). */
 #wipe.on {
-  animation: wipe-open 0.62s cubic-bezier(0.55, 0, 0.2, 1) forwards;
+  animation: wipe-fade 0.5s ease-out forwards;
 }
-@keyframes wipe-open {
-  0% {
+@keyframes wipe-fade {
+  0%,
+  24% {
     opacity: 1;
-    transform: scale(0);
-  }
-  18% {
-    opacity: 1;
-    transform: scale(0);
-  }
-  99% {
-    opacity: 1;
-    transform: scale(42);
   }
   100% {
     opacity: 0;
-    transform: scale(42);
   }
 }
 /* Countdown: each number lands with a pop. */
@@ -3752,4 +3727,49 @@ dialog {
 /* (A long description must not squeeze the checkbox beside it.) */
 .setting input[type="checkbox"] {
   flex: none;
+}
+
+/* v2.7.1: diagnostics (settings → 运行诊断), for a screenshot. */
+.diag {
+  margin: 14px 0 4px;
+  border-top: 1px solid #e2e7da;
+}
+.diag summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #456048;
+  cursor: pointer;
+  list-style: none;
+}
+.diag summary::-webkit-details-marker {
+  display: none;
+}
+.diag summary::after {
+  content: "›";
+  margin-left: auto;
+  font-size: 18px;
+  line-height: 1;
+  color: #89957f;
+  transition: transform 0.2s;
+}
+.diag[open] summary::after {
+  transform: rotate(90deg);
+}
+.diag pre {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f1f4ec;
+  color: #3f5242;
+  font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.diag button {
+  min-height: 40px;
 }
