@@ -143,6 +143,22 @@ export class KartAudio {
       this.skidFilter.connect(this.skidGain);
       this.skidGain.connect(this.sfx);
       this.skid.start();
+      // Wind (v2.7): the same noise, slowed and band-passed low, that rises
+      // with speed and rushes in a boost.
+      this.windFilter = c.createBiquadFilter();
+      this.windFilter.type = "bandpass";
+      this.windFilter.Q.value = 0.5;
+      this.windFilter.frequency.value = 500;
+      this.windGain = c.createGain();
+      this.windGain.gain.value = 0;
+      this.wind = c.createBufferSource();
+      this.wind.buffer = this.noiseBuffer();
+      this.wind.loop = true;
+      this.wind.playbackRate.value = 0.7;
+      this.wind.connect(this.windFilter);
+      this.windFilter.connect(this.windGain);
+      this.windGain.connect(this.sfx);
+      this.wind.start();
     }
     this.ctx.resume().catch(() => {});
     this.mix();
@@ -305,6 +321,12 @@ export class KartAudio {
     if (this.ctx) this.after = { name: "menu", at: this.ctx.currentTime + 3 };
     if (rank <= 3) this.fanfare([67, 72, 76, 79, 84, 79, 84, 88], 0.12, 0.12, true);
     else this.fanfare([67, 72, 74, 76, 72], 0.15, 0.1, true);
+    // The grandstand cheers a podium finish (v2.7): two swells of noise.
+    if (rank <= 3 && this.ctx && !this.muted) {
+      const t = this.ctx.currentTime;
+      this.noise(1.7, 1100, 1900, 0.07, 0.7, t + 0.05, "bandpass");
+      this.noise(1.3, 2600, 3400, 0.035, 0.9, t + 0.25, "bandpass");
+    }
   }
   fanfare(notes, gap, v, chordEnd = false) {
     if (!this.ctx || this.muted) return;
@@ -561,6 +583,9 @@ export class KartAudio {
     const level = state.drift ?? -1;
     this.skidGain.gain.setTargetAtTime(active && level >= 0 ? 0.035 + level * 0.008 : 0, t, 0.05);
     this.skidFilter.frequency.setTargetAtTime(1100 + Math.max(0, level) * 350, t, 0.08);
+    const wind = Math.min(1, speed / 46);
+    this.windGain.gain.setTargetAtTime(active ? wind * wind * 0.02 + (boost ? 0.018 : 0) : 0, t, 0.2);
+    this.windFilter.frequency.setTargetAtTime(480 + wind * 900 + (boost ? 700 : 0), t, 0.2);
     this.music.gain.setTargetAtTime(state.paused ? 0.12 : 0.42, t, 0.12);
     if (!this.song && this.after && t > this.after.at) this.play(this.after.name);
     if (!this.song || this.muted) return;

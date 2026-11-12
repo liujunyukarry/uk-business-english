@@ -316,3 +316,134 @@ No page errors in any run.
 ## Not verified — needs a real phone
 
 How the transformation, the aura and the faces read at phone size and arm's length; whether the adaptive resolution settles at 1.75–2× on the 14 Pro Max (it can only be measured there); frame rate and heat; the feel of rail bounces and of drifting with touch.
+
+# v2.7 Verification — 2026-11-12
+
+Build id `e52b2ef9`. Same container environment as before: headless Chrome on a two-core machine, no phone. The CPU renderer runs most regression tests and the real-time playthroughs. SwiftShader WebGL (the GPU pipeline run on the CPU, one to two seconds a frame here) runs the post-chain tests, the screenshots and the draw-call counts.
+
+## What was asked and how it was checked
+
+The request was another round of polish for playing on a phone: user experience, picture and handling feel.
+
+| Area | Change | Evidence |
+|---|---|---|
+| The view on a phone held upright | The portrait camera sits further back and higher behind a wider lens. The camera looks into bends, leans with them, and opens each race with a crane shot. | `tests/e2e/v27.test.js` (portrait framing, landscape framing, bend, opening shot). The framing table below. `docs/qa-2.7/framing-before-after.jpg`. |
+| Picture | Each track has its own time of day (noon, sunset, night) with a painted sky. Tone mapping and lights rebalanced. A post chain: bloom, colour grade, vignette, edge streaks in a boost. | `tests/e2e/v27.test.js` (atmospheres, post chain on and off, post chain fallbacks). `docs/qa-2.7/three-tracks.jpg`, `landscape.jpg`. |
+| Effects | Tyre marks and smoke in a drift, glowing sprite particles, thinner boost trails, embers, wind streaks. | `tests/v27.test.js` (sprites, tyre marks). `tests/e2e/v27.test.js` (drifting). `docs/qa-2.7/drift-and-boost.jpg`. |
+| Handling feel | Quicker steering response, the kart's nose turns in at once, haptic ticks where the phone has them, wind sound. | `tests/v27.test.js` (steering, three tests). `tests/e2e/v27.test.js` (haptics). The steering table and balance check below. |
+| Interface | Result card with a medal, counting time, record note and confetti. An iris between scenes. Countdown numbers pop. Dialogs stay inside the safe area. | `tests/e2e/v27.test.js` (result card, iris). Layout audit. `docs/qa-2.7/result-card.jpg`. |
+
+## Framing, measured in the page
+
+Measured in the running page at the same spot of 花田晴空环线 at racing speed. "Kart" is the 1.9 m kart body as a share of the screen's width (wheels and wings make it look wider). "Road" is the share of the screen's width that the 16 m road takes 20 m ahead of the kart: the lower it is, the more of the verges and of the bend's shape is in view.
+
+| Viewport | v2.6 kart · road | v2.7 kart · road |
+|---|---|---|
+| 430×932 | 34% · 92% | 24% · 70% |
+| 393×852 | 34% · 92% | 24% · 70% |
+| 375×667 | 28% · 76% | 20% · 58% |
+| 932×430 | 10% · 24% | 10% · 23% |
+| 844×390 | 10% · 24% | 10% · 23% |
+
+The whole kart as drawn (the screen box of every visible mesh: wheels, wings and driver included), width × height as shares of the screen:
+
+| Viewport, body | v2.6 | v2.7 |
+|---|---|---|
+| 430×932, 经典卡丁 | 47% × 33% | 27% × 19% |
+| 430×932, 闪电 GT | 57% × 35% | 39% × 25% |
+| 932×430, 经典卡丁 | 15% × 47% | 13% × 40% |
+
+- In portrait the kart with its wheels took about half the screen's width; it takes between a quarter and four tenths now, and covers about a third of the area it did.
+- The view 20 m ahead is about 30% wider.
+- The gain is sideways. The kart's height on screen (63% → 65% of the way down) and where the road 40 m ahead is drawn (44% → 46%) are almost unchanged.
+- The portrait framing test fails on the v2.6 build with "kart body is 34% of the screen's width".
+
+## Steering response
+
+Deterministic simulation on a straight, the player alone (`STEER` in `dist/race.js`).
+
+| | v2.6 | v2.7 |
+|---|---|---|
+| Time to half the top sideways speed | 167 ms | 150 ms |
+| Time from release to 10% sideways speed | 333 ms | 267 ms |
+| Coast across after releasing at full lock | 1.52 m | 1.13 m |
+| A 0.1 s tap moves the kart | 0.82 m | 0.71 m |
+| Top sideways speed | 7.72 m/s | 7.72 m/s |
+
+Balance, same bots as the v2.6 table (mean time · mean place; the number of races is in brackets):
+
+| Driving | v2.6 | v2.7 |
+|---|---|---|
+| Speed race 100cc, drifting every bend (9) | 56.0 s · 1.0 | 56.1 s · 1.0 |
+| Speed race 150cc, drifting every bend (9) | 55.8 s · 1.9 | 56.0 s · 2.3 |
+| Item race 150cc, drifting every bend (27) | 55.2 s · 2.0 | 55.7 s · 2.3 |
+| Speed race 100cc, drifting everywhere (27) | 62.0 s · 3.7 | 62.7 s · 4.4 |
+| Item race 100cc, drifting everywhere (27) | 62.9 s · 2.8 | 62.2 s · 2.3 |
+| Along the rail, or one long drift | 8th every time | 8th in all 72 races, 102–115 s |
+
+The quicker steering leaves results where they were, within the spread between runs: proper driving still wins every 100cc race, drifting everywhere is still about six seconds slower than that, and the rail strategies v2.6 closed still finish last.
+
+Real-time touch playthroughs (CPU renderer, 430×932, 150cc speed race, 小金毛 in 闪电 GT, the same scripted fingers on both builds):
+
+| Track | v2.6 | v2.7 |
+|---|---|---|
+| 花田晴空环线 | 6th, 57.4 s, 1 rail hit, 14 drifts | 6th, 58.3 s, 0 rail hits, 15 drifts |
+| 蜜桃糖果海湾 | 4th, 59.4 s, 2 rail hits, 12 drifts | 4th, 58.9 s, 2 rail hits, 14 drifts |
+| 星光云端公路 | 3rd, 57.7 s, 1 rail hit, 18 drifts | 5th, 58.1 s, 1 rail hit, 16 drifts |
+
+Times are within a second of v2.6 and rail hits are no higher. Three more v2.7 races were played to the result card with no page errors: a 150cc item race with 薄荷熊 in 幻影星舰 on 花田 (6th, 56.9 s, field 54.5–57.4 s), a 150cc item race with 小金毛 in 闪电 GT on 蜜桃 (4th, 60.2 s), and a 100cc speed race in landscape with 桃桃兔 in 喷射火箭 on 星光 (3rd, 61.6 s).
+
+## Post chain
+
+- `tests/e2e/v27.test.js` runs it for real under SwiftShader: on in the garage and in a race, the frame read back is not blank, 画面特效 in settings turns it off and on, and the choice is saved.
+- Fallbacks, also under SwiftShader. When the chain's frames read back blank after a rebuild, or the chain throws, it is switched off for good and the same frame is drawn directly. A race started after that is drawn directly too.
+- The chain is not created for the CPU renderer or when the browser has no float colour buffers (`tests/v27.test.js`).
+- Cost on SwiftShader at 430×932, the same spots with the chain on and off: 1.75–2.4 s a frame with it, 1.0–1.8 s without. This is CPU rasterising and says little about a phone's GPU.
+
+Draw calls and triangles per frame at three spots of each lap (SwiftShader, 430×932, 精致 quality):
+
+| | v2.6 | v2.7 |
+|---|---|---|
+| Draw calls | 372–522 | 481–568 |
+| Triangles | 338k–405k | 366k–465k |
+
+## Mobile layout audit
+
+Nine devices, portrait and landscape (18 combinations): iPhone 14 Pro Max, iPhone 16 Pro Max, iPhone 15, iPhone 13 mini, iPhone SE, Pixel 7, a small Android, iPad mini, iPad Air. Screens: home with both garage tabs, help, item race HUD, pause, speed race HUD, settings and the result card. No overlap, nothing outside the safe area, no page errors.
+
+- The first run found the result card outside the safe area on eight combinations. The card is taller in v2.7 and the dialog was sized to 90% of the screen: on a phone 852 px tall its top edge sat 15 px under the Dynamic Island inset, and in landscape its foot sat 8 px into the home-indicator strip. Dialogs are now placed and sized inside the safe area, and the result-card test checks it.
+- The same run measured the settings rows at 37 px tall. They are 44 px or more on portrait phones now, and stay compact (34 px) on landscape phones where the dialog would otherwise need more scrolling.
+
+## Tests
+
+- `npm test`: 96 of 96 pass. New in `tests/v27.test.js`: steering response and release, a tap as a small correction, continuity through quick taps, sprite particles, streaks relative to the camera, tyre marks, and when the post chain is not created.
+- `npm run test:e2e`: 50 of 50 pass, in about 11 minutes on this machine (the three WebGL tests take most of it). New in `tests/e2e/v27.test.js`: portrait and landscape framing, the look into a bend and the lean, the opening shot, a time of day per track, the result card, the iris, haptics, the post chain on and off, the post chain's fallbacks, tyre marks and smoke.
+- In the first full run four of the new tests did not pass.
+  - A product bug: the haptic switch took keyboard focus when toggled. Fixed.
+  - A test mistake: the seeded personal best was one the forced finish beat.
+  - The two slowest WebGL tests: one ran past its time limit and starved the next. They were split up and given longer limits.
+  - Rerun, the drift test showed that at one frame every two seconds no tyre marks join up at full speed, so it now holds the drift in slow motion.
+
+## Screenshots
+
+SwiftShader WebGL with the post chain on, at 430×932 and 932×430. The two licensed-character karts are parked out of view in every race shot, and the script checks that they are off screen.
+
+- `docs/qa-2.7/framing-before-after.jpg`: the same spot of 花田晴空环线 in v2.6 and in v2.7.
+- `docs/qa-2.7/three-tracks.jpg`: noon, sunset and night.
+- `docs/qa-2.7/drift-and-boost.jpg`: a drift with tyre marks by day, a drift with lines of light at night, and a boost at sunset.
+- `docs/qa-2.7/landscape.jpg`: the sunset bay, and a boost on the night road.
+- `docs/qa-2.7/result-card.jpg`: the head of the result card after a win.
+
+The drifts were started by a held touch and then run in slow motion for the shot. SwiftShader draws about one frame every two seconds here, and tyre marks are laid frame by frame, so at full speed no marks would join up.
+
+## Not verified — needs a real phone
+
+No phone was used, so none of this is confirmed on the iPhone 14 Pro Max.
+
+- Frame rate and heat with the post chain on, and where the adaptive resolution settles.
+- That the phone's GPU draws into multisampled half-float targets. The fallbacks were exercised only under SwiftShader.
+- How the bloom, grade and night track read on the phone's screen, indoors and in daylight.
+- Whether the camera's lean, its look into bends and the opening shot feel comfortable, and whether the quicker steering feels better in the hand.
+- Haptics. iOS has no vibration API; the switch-toggle method reportedly stopped working in iOS 26.5, so a current iPhone most likely gives no ticks.
+- Loudness of the new wind sound against the music.
+

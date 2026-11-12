@@ -1,8 +1,8 @@
 import * as T from "./vendor/three.module.js";
-import { kartAsset } from "./kart-assets.js?v=b39a18aa";
-import { buildBody, classicRig, poseRig, setEnvironment as setBodyEnvironment } from "./kart-bodies.js?v=b39a18aa";
-import { dog, animateDog, reactDog, material, ellipsoid, roundedBox, star as starMesh, faceDepth } from "./models.js?v=b39a18aa";
-import { CHARACTERS, seeded } from "./race.js?v=b39a18aa";
+import { kartAsset } from "./kart-assets.js?v=e52b2ef9";
+import { buildBody, classicRig, poseRig, setEnvironment as setBodyEnvironment } from "./kart-bodies.js?v=e52b2ef9";
+import { dog, animateDog, reactDog, material, ellipsoid, roundedBox, star as starMesh, faceDepth } from "./models.js?v=e52b2ef9";
+import { CHARACTERS, seeded } from "./race.js?v=e52b2ef9";
 const scenerySphere = new T.SphereGeometry(1, 12, 8);
 const sphere = new T.SphereGeometry(1, 24, 18),
   unitBox = new T.BoxGeometry(1, 1, 1),
@@ -1236,8 +1236,10 @@ export function animateKart(g, t, r, dt = 1 / 60, showcase = false, ctx = {}) {
   // --- Body pose --------------------------------------------------------
   // Slip: the nose follows the actual direction of travel (lane velocity),
   // so steering visibly turns the kart instead of sliding it sideways.
-  const slipTarget = showcase ? 0 : Math.atan2(r?.lateral || 0, Math.max(8, speed)) * 0.9;
-  v.slip = ease(v.slip, slipTarget, 10, dt);
+  // The nose also turns in with the wheel at once (v2.7), before the kart
+  // has started to move across: a touch on the screen shows immediately.
+  const slipTarget = showcase ? 0 : Math.atan2(r?.lateral || 0, Math.max(8, speed)) * 0.9 + (drifting ? 0 : steer * 0.075 * Math.min(1, speed / 10));
+  v.slip = ease(v.slip, slipTarget, 12, dt);
   // Drift: KartRider-style angle into the corner, modulated by steering.
   const driftTarget = drifting ? (r.driftDirection || Math.sign(steer) || 1) * (0.42 + steer * (r.driftDirection || 1) * 0.12) : 0;
   v.drift = ease(v.drift, driftTarget, drifting ? 7 : 5, dt);
@@ -1579,13 +1581,21 @@ function flower(g, rng) {
     ball(g, col, [Math.cos(j * 1.257) * 0.25, 0.12, Math.sin(j * 1.257) * 0.25], [0.2, 0.09, 0.2]);
   ball(g, 0xe9b650, [0, 0.15, 0], [0.14, 0.11, 0.14]);
 }
-function cloud(g, p, s = 1) {
-  const c = new T.Group();
+// Clouds glow a little of their own colour, so that seen from below (they
+// float above the track) they are bright, not grey.
+const cloudMats = new Map();
+function cloud(g, p, s = 1, colour = 0xfffbed) {
+  if (!cloudMats.has(colour)) cloudMats.set(colour, new T.MeshStandardMaterial({ color: colour, emissive: colour, emissiveIntensity: 0.42, roughness: 1 }));
+  const c = new T.Group(),
+    m = compatibility ? colour : cloudMats.get(colour);
   c.position.set(...p);
   c.scale.setScalar(s);
-  ball(c, 0xfffbed, [0, 0, 0], [4, 1.5, 1.8]);
-  ball(c, 0xfffbed, [-1.4, 0.9, 0], [1.7, 1.8, 1.4]);
-  ball(c, 0xfffbed, [1, 0.8, 0], [2.3, 2, 1.7]);
+  for (const [at, size] of [
+    [[0, 0, 0], [4, 1.5, 1.8]],
+    [[-1.4, 0.9, 0], [1.7, 1.8, 1.4]],
+    [[1, 0.8, 0], [2.3, 2, 1.7]],
+  ])
+    ball(c, m, at, size).castShadow = false;
   g.add(c);
 }
 function windmill(g) {
@@ -1631,13 +1641,16 @@ function staticBatch(group) {
         plain = m.isMeshStandardMaterial && !m.map && !m.transparent && !m.vertexColors && m.emissive.getHex() === 0 && m.metalness === 0;
       at.setFromMatrixPosition(o.matrixWorld);
       const key = (plain ? "plain:" + m.roughness : m.uuid) + ":" + Math.floor(at.x / 90) + ":" + Math.floor(at.z / 90);
-      if (!batches.has(key)) batches.set(key, { p: [], n: [], c: [], mat: plain ? batchMaterial(m.roughness) : m, plain });
+      if (!batches.has(key)) batches.set(key, { p: [], n: [], c: [], u: [], mat: plain ? batchMaterial(m.roughness) : m, plain, mapped: !plain && !!m.map, cast: false });
       const b = batches.get(key),
         source = o.geometry === sphere ? scenerySphere : o.geometry,
         geo = source.index ? source.toNonIndexed() : source.clone();
       geo.applyMatrix4(o.matrixWorld);
+      b.cast ||= o.castShadow;
       b.p.push(geo.attributes.position.array);
       b.n.push(geo.attributes.normal.array);
+      // Textured materials (the candy-cane arches) keep their UVs.
+      if (b.mapped) b.u.push(geo.attributes.uv ? geo.attributes.uv.array : new Float32Array(geo.attributes.position.count * 2));
       if (plain) {
         const n = geo.attributes.position.count,
           col = new Float32Array(n * 3);
@@ -1667,15 +1680,113 @@ function staticBatch(group) {
     geo.setAttribute("position", new T.BufferAttribute(merge(b.p), 3));
     geo.setAttribute("normal", new T.BufferAttribute(merge(b.n), 3));
     if (b.plain) geo.setAttribute("color", new T.BufferAttribute(merge(b.c), 3));
+    if (b.mapped) geo.setAttribute("uv", new T.BufferAttribute(merge(b.u), 2));
     const mesh = new T.Mesh(geo, m);
-    mesh.castShadow = true;
+    // Lights (neon rails, lanterns) and clouds cast no shadows, which also
+    // keeps them out of the shadow pass.
+    mesh.castShadow = b.cast && !m.isMeshBasicMaterial;
     mesh.receiveShadow = true;
     root.add(mesh);
   }
   return root;
 }
-// Asphalt: fine grain, darker racing line, white edge lines. Painted in the
-// track's road colour; v repeats every 8 m along the road.
+// ---------------------------------------------------------------------------
+// Atmosphere (v2.7)
+// ---------------------------------------------------------------------------
+// Each track has its own time of day — sky, sun, ambient light, haze, palette
+// and colour grade — where v2.6 had three tints of one pale, hazy look:
+// a clear summer noon, a golden-hour bay, and a neon night above the clouds.
+// `sky` lists [elevation in degrees, colour] from below the horizon up;
+// `fog` is [colour, near, far]; `sun.dir` points at the sun (or the moon);
+// `hemi` is [sky colour, ground bounce, intensity]; `look` goes to the post
+// chain (fx.js).
+export const ATMOS = [
+  {
+    name: "noon",
+    sky: [
+      [-6, "#d9f1fb"],
+      [0, "#cfecfa"],
+      [7, "#a6d9f8"],
+      [24, "#5fb0f2"],
+      [70, "#2476dc"],
+    ],
+    fog: [0xc6e7f7, 170, 540],
+    sun: { dir: [-0.5, 0.72, 0.48], colour: 0xfff0d0, intensity: 2.5 },
+    hemi: [0xd4e9ff, 0x7dbf63, 1.2],
+    disc: { colour: [1.9, 1.75, 1.3], size: 150 },
+    cloud: ["#ffffff", "#c6e0f5", 26, 0xfffdf4],
+    ranges: [0x5aa57a, 0x79b889, 0x4a9480],
+    ground: 0x63b94b,
+    verge: ["#6ec653", "#5db345"],
+    shoulder: 0xcdc391,
+    road: 0x566373,
+    curb: 0xf07a5f,
+    rail: [0xfff0d6, 0xe7c48e],
+    water: 0x6cc4dc,
+    hills: 0x7fc266,
+    smoke: 0xffffff,
+    look: { bloom: 0.5, threshold: 0.96, exposure: 1, saturation: 1.12, contrast: 0.2, vignette: 0.18, gain: [1, 1, 0.985], lift: [0, 0.004, 0.012] },
+  },
+  {
+    name: "sunset",
+    sky: [
+      [-6, "#ffdcb2"],
+      [0, "#ffd3a8"],
+      [5, "#ffb9a8"],
+      [14, "#f59bc0"],
+      [32, "#a88ae0"],
+      [70, "#5a6fd2"],
+    ],
+    fog: [0xffcdb0, 150, 500],
+    sun: { dir: [-0.6, 0.33, 0.73], colour: 0xffb777, intensity: 2.45 },
+    hemi: [0xf3b6e0, 0xffc89a, 1.1],
+    disc: { colour: [2.5, 1.55, 0.8], size: 230 },
+    cloud: ["#ffe9d2", "#ec8fb6", 22, 0xffe2d0],
+    ranges: [0xe59ab8, 0xb78fd6, 0xf2b08a],
+    ground: 0xf3c9a0,
+    verge: ["#f8d5ae", "#f1c399"],
+    shoulder: 0xfde6c9,
+    road: 0x6c5180,
+    curb: 0xf08fb6,
+    rail: [0xfff1dc, 0xf3b6c9],
+    water: 0x3fb5cf,
+    hills: 0xf0b6a4,
+    smoke: 0xffe9de,
+    look: { bloom: 0.5, threshold: 1, exposure: 1, saturation: 1.1, contrast: 0.24, vignette: 0.24, gain: [1.02, 0.99, 0.97], lift: [0.012, 0, 0.018] },
+  },
+  {
+    name: "night",
+    sky: [
+      [-6, "#3d2e80"],
+      [0, "#372a7c"],
+      [8, "#1f1f5e"],
+      [26, "#0d1238"],
+      [70, "#04061a"],
+    ],
+    fog: [0x2d2769, 120, 430],
+    sun: { dir: [0.36, 0.74, 0.57], colour: 0xa8baff, intensity: 1.5 },
+    hemi: [0x6a78d8, 0x2b2160, 1.05],
+    disc: { colour: [1.25, 1.3, 1.5], size: 84, moon: true },
+    cloud: ["#4a56a8", "#232a66", 12, 0x8f9bd8],
+    ranges: [0x2c2f6b, 0x3b3480, 0x252a5c],
+    ground: 0x34407a,
+    verge: ["#3b4788", "#313c76"],
+    shoulder: 0x4d5aa0,
+    road: 0x2a3058,
+    curb: 0x3a3f7c,
+    rail: [0x8f9fe0, 0x6f7fc4],
+    water: 0x1c2452,
+    hills: 0x46558c,
+    smoke: 0x5a64ad, // smoke is unlit: at night it takes the night's colour
+    // (The threshold sits above anything the moon lights: the neon glows,
+    // white karts and drivers do not.)
+    look: { bloom: 0.85, threshold: 0.95, exposure: 1.05, saturation: 1.15, contrast: 0.24, vignette: 0.3, gain: [0.98, 0.99, 1.04], lift: [0.008, 0, 0.024] },
+  },
+];
+const smooth = (a, b, x) => {
+  const t = clampN((x - a) / (b - a), 0, 1);
+  return t * t * (3 - 2 * t);
+};
 function paintTexture(w, h, draw) {
   const c = document.createElement("canvas");
   c.width = w;
@@ -1685,75 +1796,397 @@ function paintTexture(w, h, draw) {
   tex.colorSpace = T.SRGBColorSpace;
   return tex;
 }
-function roadMaterial(hex, theme) {
-  const base = new T.Color(hex),
-    tex = paintTexture(128, 256, (ctx, w, h) => {
-      const rng = seeded(31 + theme);
-      ctx.fillStyle = "#" + base.getHexString();
-      ctx.fillRect(0, 0, w, h);
-      for (let i = 0; i < 2600; i++) {
-        const v = rng();
-        ctx.fillStyle = v < 0.5 ? "rgba(0,0,0," + (0.05 + v * 0.08) + ")" : "rgba(255,255,255," + (v - 0.5) * 0.12 + ")";
-        ctx.fillRect(rng() * w, rng() * h, 1 + rng() * 1.5, 1 + rng() * 2);
-      }
-      // Rubbered-in racing line, slightly off-centre on each side.
-      for (const x of [0.32, 0.68]) {
-        const gr = ctx.createLinearGradient((x - 0.08) * w, 0, (x + 0.08) * w, 0);
-        gr.addColorStop(0, "rgba(0,0,0,0)");
-        gr.addColorStop(0.5, "rgba(0,0,0,0.09)");
-        gr.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.fillStyle = gr;
-        ctx.fillRect((x - 0.08) * w, 0, 0.16 * w, h);
-      }
-      ctx.fillStyle = theme === 2 ? "#cfd8ff" : "#fffaf0";
-      ctx.fillRect(0.035 * w, 0, 0.022 * w, h);
-      ctx.fillRect(0.943 * w, 0, 0.022 * w, h);
-    });
-  tex.wrapS = T.ClampToEdgeWrapping;
-  tex.wrapT = T.RepeatWrapping;
-  tex.anisotropy = 4;
-  const m = new T.MeshStandardMaterial({ map: tex, roughness: 0.86, metalness: 0 });
-  return m;
+// Textures and materials made per track are kept for the session (v2.6 made
+// a new road texture for every race and never freed it).
+const worldCache = new Map();
+const cached = (key, make) => {
+  if (!worldCache.has(key)) worldCache.set(key, make());
+  return worldCache.get(key);
+};
+// Unlit and brighter than white: reads as a light source, and glows when the
+// post chain's bloom is on.
+function neon(hex, k = 1.7) {
+  return cached("neon" + hex + ":" + k, () => new T.MeshBasicMaterial({ color: new T.Color(hex).multiplyScalar(k) }));
 }
-// Gradient sky dome (follows the camera) with a soft sun glow; stars at night.
-function skyDome(theme, horizonHex) {
-  const top = [0x4aa3e4, 0x86c9ee, 0x070a24][theme],
+const glowSprite = () =>
+  cached("glowSprite", () =>
+    paintTexture(64, 64, (ctx, w) => {
+      const g = ctx.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2);
+      g.addColorStop(0, "rgba(255,255,255,1)");
+      g.addColorStop(0.25, "rgba(255,255,255,0.55)");
+      g.addColorStop(0.6, "rgba(255,255,255,0.12)");
+      g.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, w);
+    }),
+  );
+// Asphalt: fine grain, a darker racing line and edge lines, in the track's
+// road colour; v repeats every 8 m along the road. On the night track the
+// edge lines are lit.
+function roadMaterial(theme) {
+  return cached("road" + theme + compatibility, () => {
+    const base = new T.Color(ATMOS[theme].road),
+      edges = (ctx, w, h, colour) => {
+        ctx.fillStyle = colour;
+        ctx.fillRect(0.035 * w, 0, 0.022 * w, h);
+        ctx.fillRect(0.943 * w, 0, 0.022 * w, h);
+      },
+      tex = paintTexture(128, 256, (ctx, w, h) => {
+        const rng = seeded(31 + theme);
+        ctx.fillStyle = "#" + base.getHexString();
+        ctx.fillRect(0, 0, w, h);
+        for (let i = 0; i < 2600; i++) {
+          const v = rng();
+          ctx.fillStyle = v < 0.5 ? "rgba(0,0,0," + (0.05 + v * 0.08) + ")" : "rgba(255,255,255," + (v - 0.5) * 0.12 + ")";
+          ctx.fillRect(rng() * w, rng() * h, 1 + rng() * 1.5, 1 + rng() * 2);
+        }
+        // Rubbered-in racing line, slightly off-centre on each side.
+        for (const x of [0.32, 0.68]) {
+          const gr = ctx.createLinearGradient((x - 0.08) * w, 0, (x + 0.08) * w, 0);
+          gr.addColorStop(0, "rgba(0,0,0,0)");
+          gr.addColorStop(0.5, "rgba(0,0,0,0.09)");
+          gr.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = gr;
+          ctx.fillRect((x - 0.08) * w, 0, 0.16 * w, h);
+        }
+        edges(ctx, w, h, theme === 2 ? "#c8f6ff" : "#fffaf0");
+      });
+    tex.wrapS = T.ClampToEdgeWrapping;
+    tex.wrapT = T.RepeatWrapping;
+    tex.anisotropy = 4;
+    const m = new T.MeshStandardMaterial({ map: tex, roughness: theme === 2 ? 0.6 : 0.86, metalness: 0 });
+    if (theme === 2 && !compatibility) {
+      const lit = paintTexture(128, 8, (ctx, w, h) => {
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, w, h);
+        edges(ctx, w, h, "#fff");
+      });
+      lit.wrapT = T.RepeatWrapping;
+      m.emissiveMap = lit;
+      m.emissive = new T.Color(0x49dcff);
+      m.emissiveIntensity = 1.8;
+    }
+    return m;
+  });
+}
+// The ground: the track's colour, mottled so that it does not read as one
+// flat fill (tiles every ~23 m).
+function groundMaterial(theme) {
+  const a = ATMOS[theme];
+  if (compatibility) return mat(a.ground);
+  return cached("ground" + theme, () => {
+    const tex = paintTexture(256, 256, (ctx, w, h) => {
+      const rng = seeded(610 + theme);
+      ctx.fillStyle = "#" + new T.Color(a.ground).getHexString();
+      ctx.fillRect(0, 0, w, h);
+      for (let i = 0; i < 46; i++) {
+        const x = rng() * w,
+          y = rng() * h,
+          r = 14 + rng() * 34,
+          tone = rng() < 0.5 ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
+        // (Drawn again one tile over, so the pattern wraps without seams.)
+        for (const [ox, oy] of [[0, 0], [w, 0], [-w, 0], [0, h], [0, -h]]) {
+          const g = ctx.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, r);
+          g.addColorStop(0, tone);
+          g.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = g;
+          ctx.fillRect(x + ox - r, y + oy - r, r * 2, r * 2);
+        }
+      }
+      for (let i = 0; i < 900; i++) {
+        ctx.fillStyle = rng() < 0.5 ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.07)";
+        ctx.fillRect(rng() * w, rng() * h, 1.5, 1.5 + rng() * 2);
+      }
+    });
+    tex.wrapS = tex.wrapT = T.RepeatWrapping;
+    tex.repeat.set(28, 28);
+    tex.anisotropy = 4;
+    return new T.MeshStandardMaterial({ map: tex, roughness: 0.95 });
+  });
+}
+// The strip either side of the road: mown in bands across the track (lawn,
+// raked sand, or cloud), which also makes speed easier to read.
+function vergeMaterial(theme) {
+  const a = ATMOS[theme];
+  if (compatibility) return mat(new T.Color(a.verge[0]).getHex());
+  return cached("verge" + theme, () => {
+    const tex = paintTexture(64, 128, (ctx, w, h) => {
+      const rng = seeded(640 + theme);
+      ctx.fillStyle = a.verge[0];
+      ctx.fillRect(0, 0, w, h / 2);
+      ctx.fillStyle = a.verge[1];
+      ctx.fillRect(0, h / 2, w, h / 2);
+      for (let i = 0; i < 500; i++) {
+        ctx.fillStyle = rng() < 0.5 ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.06)";
+        ctx.fillRect(rng() * w, rng() * h, 1.5, 1 + rng() * 2);
+      }
+    });
+    tex.wrapS = T.ClampToEdgeWrapping;
+    tex.wrapT = T.RepeatWrapping;
+    tex.repeat.set(1, 0.5); // one light and one dark band every 16 m
+    tex.anisotropy = 4;
+    return new T.MeshStandardMaterial({ map: tex, roughness: 0.95 });
+  });
+}
+// Three rows of flowers, one colour each, laid along the track like a tulip
+// field (one ribbon and one texture for the three).
+function flowerRows(hues) {
+  return cached("flowers" + hues.join(), () => {
+    const tex = paintTexture(192, 64, (ctx, w, h) => {
+      ctx.clearRect(0, 0, w, h);
+      hues.forEach((hex, row) => {
+        const rng = seeded(hex % 977),
+          petal = "#" + new T.Color(hex).getHexString(),
+          light = "#" + new T.Color(hex).lerp(new T.Color(0xffffff), 0.45).getHexString();
+        for (let i = 0; i < 7; i++) {
+          const x = row * 64 + 12 + rng() * 40,
+            y = 6 + ((i * 9 + rng() * 5) % 52),
+            r = 4.6 + rng() * 2.2;
+          ctx.fillStyle = "#3f9440";
+          ctx.fillRect(x - r * 1.2, y + r * 0.5, r * 2.4, 2.2);
+          ctx.fillStyle = petal;
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, 7);
+          ctx.fill();
+          ctx.fillStyle = light;
+          ctx.beginPath();
+          ctx.arc(x - r * 0.25, y - r * 0.25, r * 0.45, 0, 7);
+          ctx.fill();
+        }
+      });
+    });
+    tex.wrapS = T.ClampToEdgeWrapping;
+    tex.wrapT = T.RepeatWrapping;
+    tex.repeat.set(1, 4); // a 2 m tile along the track
+    return new T.MeshStandardMaterial({ map: tex, alphaTest: 0.5, roughness: 0.8 });
+  });
+}
+// Painted sky, wrapped on a dome that follows the camera: the gradient,
+// stylised clouds, and at night stars, a band of milky way and an aurora.
+// It covers elevations SKY_LOW..SKY_HIGH; above that the top colour repeats.
+const SKY_W = 4096,
+  SKY_H = 800,
+  SKY_LOW = -6,
+  SKY_HIGH = 70;
+const skyY = (deg) => SKY_H * (1 - (deg - SKY_LOW) / (SKY_HIGH - SKY_LOW));
+function paintCloud(ctx, x, base, w, h, light, shade, rng) {
+  const n = 4 + Math.floor(rng() * 4),
+    lobes = [];
+  for (let i = 0; i < n; i++) {
+    const t = (i + 0.5) / n,
+      r = h * (0.5 + 0.62 * Math.sin(t * Math.PI)) * (0.75 + rng() * 0.4);
+    lobes.push([(t - 0.5) * w * 0.9, r]);
+  }
+  for (const shift of [0, SKY_W, -SKY_W]) {
+    if (x + shift + w < 0 || x + shift - w > SKY_W) continue;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x + shift - w, base - h * 2.4, w * 2, h * 2.4); // flat underside
+    ctx.clip();
+    const g = ctx.createLinearGradient(0, base - h * 1.5, 0, base);
+    g.addColorStop(0, light);
+    g.addColorStop(1, shade);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    for (const [dx, r] of lobes) {
+      ctx.moveTo(x + shift + dx + r * 1.25, base - r * 0.35);
+      ctx.ellipse(x + shift + dx, base - r * 0.35, r * 1.25, r, 0, 0, Math.PI * 2);
+    }
+    ctx.fill();
+    ctx.restore();
+  }
+}
+function paintNight(ctx, W, H, rng) {
+  ctx.globalCompositeOperation = "lighter";
+  // Milky way: a tilted band of faint dust.
+  for (let i = 0; i < 260; i++) {
+    const t = rng(),
+      x = t * W,
+      y = skyY(34 + Math.sin(t * Math.PI * 2 + 0.6) * 18 + (rng() - 0.5) * 16),
+      r = 30 + rng() * 80,
+      g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, rng() < 0.5 ? "rgba(120,140,255,0.05)" : "rgba(200,140,255,0.04)");
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g;
+    // (Also one sky-width over, so the band has no seam where the texture
+    // wraps round.)
+    for (const shift of [0, W, -W]) {
+      ctx.setTransform(1, 0, 0, 1, shift, 0);
+      ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+  // Aurora: curtains of light low in the sky, teal at the foot fading to
+  // violet above.
+  for (const [phase, lift, alpha] of [
+    [0.4, 13, 0.34],
+    [2.3, 20, 0.24],
+    [4.4, 9, 0.2],
+  ])
+    for (let x = 0; x < W; x += 5) {
+      const u = (x / W) * Math.PI * 2,
+        // (Whole numbers of waves round the sky, so it meets itself.)
+        on = Math.max(0, Math.sin(u * 2 + phase) * 0.7 + Math.sin(u * 4 + phase * 2) * 0.3);
+      if (on < 0.05) continue;
+      const foot = skyY(lift + Math.sin(u * 3 + phase) * 3.5 + Math.sin(u * 11 + phase) * 0.8),
+        tall = (110 + 90 * Math.sin(u * 7 + phase * 3)) * (0.6 + on * 0.6),
+        g = ctx.createLinearGradient(0, foot, 0, foot - tall),
+        a = alpha * on * (0.75 + 0.25 * Math.sin(x * 0.9));
+      g.addColorStop(0, "rgba(60,255,200," + a.toFixed(3) + ")");
+      g.addColorStop(0.35, "rgba(80,200,255," + (a * 0.6).toFixed(3) + ")");
+      g.addColorStop(1, "rgba(190,90,255,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(x, foot - tall, 6, tall);
+    }
+  // Stars: many faint, a few bright with a soft glow and a cross flare.
+  for (let i = 0; i < 2600; i++) {
+    const y = Math.pow(rng(), 1.4) * skyY(1),
+      s = 0.7 + rng() * 1.5;
+    ctx.fillStyle = "rgba(" + (rng() < 0.3 ? "190,210,255" : "255,246,224") + "," + (0.25 + rng() * 0.7).toFixed(2) + ")";
+    ctx.fillRect(rng() * W, y, s, s);
+  }
+  for (let i = 0; i < 46; i++) {
+    const x = rng() * W,
+      y = rng() * skyY(8),
+      r = 5 + rng() * 8,
+      g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, "rgba(255,255,255,0.95)");
+    g.addColorStop(0.25, "rgba(200,220,255,0.35)");
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.5)";
+    ctx.fillRect(x - r * 1.3, y - 0.5, r * 2.6, 1);
+    ctx.fillRect(x - 0.5, y - r * 1.3, 1, r * 2.6);
+  }
+  ctx.globalCompositeOperation = "source-over";
+}
+function skyTexture(theme) {
+  // One sky at a time: a 4096 x 800 texture is 13 MB, so the last track's is
+  // freed when another track's is painted.
+  for (const [key, tex] of worldCache)
+    if (key.startsWith("sky") && key !== "sky" + theme) {
+      tex.dispose();
+      worldCache.delete(key);
+    }
+  return cached("sky" + theme, () => {
+    const a = ATMOS[theme],
+      rng = seeded(1200 + theme),
+      tex = paintTexture(SKY_W, SKY_H, (ctx, W, H) => {
+        const g = ctx.createLinearGradient(0, 0, 0, H);
+        for (const [deg, col] of a.sky) g.addColorStop(clampN(skyY(deg) / H, 0, 1), col);
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+        if (theme === 2) paintNight(ctx, W, H, rng);
+        // Clouds: far rows small and low, nearer ones bigger and higher.
+        const [light, shade, count] = a.cloud;
+        ctx.globalAlpha = theme === 2 ? 0.55 : 0.96;
+        for (let i = 0; i < count; i++) {
+          const near = rng(),
+            deg = 2.5 + near * near * 30 + rng() * 3,
+            w = 120 + near * 380 + rng() * 80;
+          paintCloud(ctx, rng() * W, skyY(deg), w, w * (0.2 + rng() * 0.1), light, shade, rng);
+        }
+        ctx.globalAlpha = 1;
+        // Haze: the horizon colour laid softly over the lowest clouds.
+        const haze = ctx.createLinearGradient(0, skyY(7), 0, skyY(0));
+        haze.addColorStop(0, "rgba(255,255,255,0)");
+        haze.addColorStop(1, a.sky[1][1]);
+        ctx.fillStyle = haze;
+        ctx.globalAlpha = 0.85;
+        ctx.fillRect(0, skyY(7), W, H - skyY(7));
+        ctx.globalAlpha = 1;
+      });
+    tex.wrapS = T.RepeatWrapping;
+    tex.wrapT = T.ClampToEdgeWrapping;
+    // Sphere uv.y is 0.5 + elevation / 180°; map SKY_LOW..SKY_HIGH to 0..1.
+    tex.repeat.set(1, 180 / (SKY_HIGH - SKY_LOW));
+    tex.offset.set(0, -(90 + SKY_LOW) / (SKY_HIGH - SKY_LOW));
+    tex.generateMipmaps = false;
+    tex.minFilter = T.LinearFilter;
+    return tex;
+  });
+}
+// The sun: a small hot core in a wide soft halo. The moon: a pale disc with
+// a few craters, and a halo of its own.
+function discTexture(moon) {
+  return cached("disc" + moon, () =>
+    paintTexture(256, 256, (ctx, w) => {
+      const c = w / 2,
+        g = ctx.createRadialGradient(c, c, 0, c, c, c);
+      if (moon) {
+        g.addColorStop(0, "rgba(190,205,255,0.5)");
+        g.addColorStop(0.4, "rgba(150,170,255,0.16)");
+        g.addColorStop(1, "rgba(120,140,255,0)");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, w, w);
+        const d = ctx.createRadialGradient(c - 10, c - 12, 4, c, c, 46);
+        d.addColorStop(0, "#ffffff");
+        d.addColorStop(1, "#cfd8ff");
+        ctx.fillStyle = d;
+        ctx.beginPath();
+        ctx.arc(c, c, 44, 0, 7);
+        ctx.fill();
+        ctx.fillStyle = "rgba(150,165,225,0.5)";
+        for (const [x, y, r] of [[-14, -8, 9], [12, 10, 12], [16, -18, 5], [-8, 20, 6], [-24, 8, 4]]) {
+          ctx.beginPath();
+          ctx.arc(c + x, c + y, r, 0, 7);
+          ctx.fill();
+        }
+      } else {
+        g.addColorStop(0, "rgba(255,255,255,1)");
+        g.addColorStop(0.09, "rgba(255,255,255,1)");
+        g.addColorStop(0.16, "rgba(255,255,255,0.5)");
+        g.addColorStop(0.4, "rgba(255,255,255,0.14)");
+        g.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, w, w);
+      }
+    }),
+  );
+}
+function skyDome(theme) {
+  const a = ATMOS[theme];
+  if (compatibility) return flatSky(theme, new T.Color(a.sky[1][1]).getHex());
+  const dome = new T.Mesh(
+    new T.SphereGeometry(560, 48, 24),
+    new T.MeshBasicMaterial({ map: skyTexture(theme), side: T.BackSide, fog: false, depthWrite: false }),
+  );
+  dome.renderOrder = -10;
+  const disc = new T.Sprite(
+    new T.SpriteMaterial({
+      map: discTexture(!!a.disc.moon),
+      color: new T.Color(...a.disc.colour),
+      blending: a.disc.moon ? T.NormalBlending : T.AdditiveBlending,
+      transparent: true,
+      depthWrite: false,
+      fog: false,
+    }),
+  );
+  disc.position.set(...a.sun.dir).normalize().multiplyScalar(520);
+  disc.scale.setScalar(a.disc.size);
+  disc.renderOrder = -8;
+  dome.add(disc);
+  return dome;
+}
+// Vertex-coloured gradient dome, for the compatibility renderer.
+function flatSky(theme, horizonHex) {
+  const top = [0x2476dc, 0x5a6fd2, 0x070a24][theme],
     horizon = new T.Color(horizonHex),
     zenith = new T.Color(top),
     geo = new T.SphereGeometry(560, 32, 16),
     colors = [],
     p = geo.attributes.position,
-    sun = new T.Vector3(-0.55, 0.32, 0.77).normalize(),
-    glow = new T.Color(theme === 2 ? 0x8f7dff : 0xfff3d6),
     c = new T.Color(),
     v = new T.Vector3();
   for (let i = 0; i < p.count; i++) {
     v.fromBufferAttribute(p, i).normalize();
-    const h = Math.max(0, v.y);
-    c.copy(horizon).lerp(zenith, Math.pow(h, 0.55));
-    if (v.y < 0) c.copy(horizon);
-    c.lerp(glow, Math.pow(Math.max(0, v.dot(sun)), 12) * 0.6);
+    c.copy(horizon).lerp(zenith, Math.pow(Math.max(0, v.y), 0.55));
     colors.push(c.r, c.g, c.b);
   }
   geo.setAttribute("color", new T.Float32BufferAttribute(colors, 3));
-  const dome = new T.Mesh(
-    geo,
-    new T.MeshBasicMaterial({ vertexColors: true, side: T.BackSide, fog: false, depthWrite: false }),
-  );
+  const dome = new T.Mesh(geo, new T.MeshBasicMaterial({ vertexColors: true, side: T.BackSide, fog: false, depthWrite: false }));
   dome.renderOrder = -10;
-  if (theme === 2) {
-    const rng = seeded(404),
-      star = [];
-    for (let i = 0; i < 700; i++) {
-      v.set(rng() * 2 - 1, rng() * 0.9 + 0.08, rng() * 2 - 1).normalize().multiplyScalar(540);
-      star.push(v.x, v.y, v.z);
-    }
-    const g = new T.BufferGeometry();
-    g.setAttribute("position", new T.Float32BufferAttribute(star, 3));
-    const pts = new T.Points(g, new T.PointsMaterial({ color: 0xfff6d8, size: 2.2, sizeAttenuation: false, fog: false, depthWrite: false }));
-    pts.renderOrder = -9;
-    dome.add(pts);
-  }
   return dome;
 }
 // Distant ranges around the circuit, tinted toward the horizon colour with
@@ -1765,11 +2198,7 @@ function ranges(track, theme, horizonHex) {
     cx = pts.reduce((s, p) => s + p.x, 0) / pts.length,
     cz = pts.reduce((s, p) => s + p.z, 0) / pts.length,
     horizon = new T.Color(horizonHex),
-    palettes = [
-      [0x5f9b7a, 0x7fae86, 0x4f8a76],
-      [0xf2b6c8, 0xbfe3d4, 0xf7d59c],
-      [0x2c2f63, 0x3b3477, 0x252a55],
-    ][theme];
+    palettes = ATMOS[theme].ranges;
   const mats = new Map(),
     matFor = (col) => {
       const key = col.getHex();
@@ -1782,7 +2211,7 @@ function ranges(track, theme, horizonHex) {
         r = 360 + ring * 70 + rng() * 40,
         h = (theme === 1 ? 40 : 70) + rng() * (theme === 1 ? 40 : 90),
         w = 60 + rng() * 70,
-        col = new T.Color(palettes[Math.floor(rng() * 3)]).lerp(horizon, 0.35 + ring * 0.25);
+        col = new T.Color(palettes[Math.floor(rng() * 3)]).lerp(horizon, 0.3 + ring * 0.28);
       col.setHex(col.getHex()); // quantise so materials can be shared
       const geo = theme === 1 ? new T.SphereGeometry(1, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2) : new T.ConeGeometry(1, 1, 6 + Math.floor(rng() * 3));
       const m = new T.Mesh(geo, matFor(col));
@@ -1795,7 +2224,9 @@ function ranges(track, theme, horizonHex) {
         const cap = new T.Mesh(new T.ConeGeometry(1, 1, m.geometry.parameters.radialSegments), matFor(new T.Color(0xf6fbff).lerp(horizon, 0.2)));
         cap.position.copy(m.position);
         cap.position.y += h * 0.32;
-        cap.scale.set(w * 0.36, h * 0.36, m.scale.z * 0.36);
+        // (A little wider than the peak under it: the same slope would be
+        // coplanar with it and flicker, as v2.6's caps did.)
+        cap.scale.set(w * 0.395, h * 0.36, m.scale.z * 0.395);
         cap.rotation.y = m.rotation.y;
         g.add(cap);
       }
@@ -1851,17 +2282,121 @@ function grandstand(g, decor, track, theme, moving) {
     moving.push({ mesh: grp, type: "balloon", y: grp.position.y, phase: rng() * 6 });
   }
 }
+// An arch over the road, one kind per track: a flower arch, a candy cane, or
+// a neon hoop. Driving through them every few seconds gives the eye
+// something to judge speed by.
+function gate(theme, width, index) {
+  const g = new T.Group(),
+    R = width / 2 + 1.9,
+    arch = (radius, tube, material) => {
+      const m = new T.Mesh(new T.TorusGeometry(radius, tube, 10, 44, Math.PI), material);
+      m.castShadow = true;
+      g.add(m);
+      return m;
+    };
+  if (theme === 0) {
+    arch(R, 0.34, mat(0x4f9d54));
+    const petals = [0xff6f7d, 0xffd447, 0xff9fd0, 0xffffff, 0xb48cff, 0xff9c45];
+    for (let i = 0; i <= 18; i++) {
+      const a = (i / 18) * Math.PI;
+      ball(g, petals[(i + index) % petals.length], [Math.cos(a) * R, Math.sin(a) * R, i % 2 ? 0.22 : -0.22], [0.62, 0.62, 0.62]);
+    }
+  } else if (theme === 1) {
+    const stripes = cached("cane", () => {
+      const tex = paintTexture(64, 64, (ctx, w, h) => {
+        ctx.fillStyle = "#fffaf2";
+        ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = "#f2557f";
+        for (let k = -1; k < 3; k++) {
+          ctx.beginPath();
+          ctx.moveTo(k * 32, 0);
+          ctx.lineTo(k * 32 + 16, 0);
+          ctx.lineTo(k * 32 + 16 + 64, h);
+          ctx.lineTo(k * 32 + 64, h);
+          ctx.fill();
+        }
+      });
+      tex.wrapS = tex.wrapT = T.RepeatWrapping;
+      tex.repeat.set(9, 1);
+      return compatibility ? mat(0xf7a3b8) : new T.MeshStandardMaterial({ map: tex, roughness: 0.35 });
+    });
+    arch(R, 0.5, stripes);
+    for (const s of [-1, 1]) ball(g, [0xffd36e, 0x9ee6d4][(index + (s > 0 ? 1 : 0)) % 2], [s * R, 0.7, 0], [1.1, 1.1, 1.1]);
+  } else {
+    const colour = [0x4de3ff, 0xff5fd0, 0xffd95e][index % 3];
+    // (Kept modest: the kart passes right under these, where a brighter
+    // tube would flood the top of the screen with glow.)
+    arch(R, 0.2, neon(colour, 1.45));
+    arch(R + 0.75, 0.07, neon(colour, 1.15)).position.z = -0.5;
+    arch(R - 0.7, 0.07, neon(0xffffff, 1.05)).position.z = 0.5;
+  }
+  return g;
+}
+// A boost pad: an orange plate with chevrons of light running forward.
+let padArrows = null;
+export function boostPad() {
+  const g = new T.Group();
+  if (compatibility) {
+    box(g, 0xeeb967, [0, 0, 0], [4.8, 0.04, 7]);
+    for (let j = 0; j < 3; j++)
+      for (const s of [-1, 1]) box(g, 0xfff2b0, [s * 0.7, 0.03, (j - 1) * 1.7], [1.9, 0.025, 0.25]).rotation.y = s * 0.5;
+    return g;
+  }
+  if (!padArrows) {
+    padArrows = paintTexture(128, 128, (ctx, w, h) => {
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 17;
+      for (const y of [-32, 32, 96, 160]) {
+        ctx.beginPath();
+        ctx.moveTo(10, y + 24);
+        ctx.lineTo(64, y - 24);
+        ctx.lineTo(118, y + 24);
+        ctx.stroke();
+      }
+    });
+    padArrows.wrapT = T.RepeatWrapping;
+    padArrows.repeat.set(1, 2);
+  }
+  const plane = cached("padGeo", () => {
+      const p = new T.PlaneGeometry(4.8, 7);
+      p.rotateX(-Math.PI / 2);
+      p.rotateY(Math.PI); // texture "up" runs forward (+z)
+      p.userData.shared = true;
+      return p;
+    }),
+    base = new T.Mesh(plane, cached("padBase", () => new T.MeshBasicMaterial({ color: new T.Color(0xff8a1f).multiplyScalar(1.05), transparent: true, opacity: 0.9, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }))),
+    arrows = new T.Mesh(
+      plane,
+      cached("padArrows", () => new T.MeshBasicMaterial({ map: padArrows, color: new T.Color(0xfff0a0).multiplyScalar(1.7), transparent: true, blending: T.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 })),
+    );
+  base.renderOrder = 1;
+  arrows.renderOrder = 2;
+  arrows.position.y = 0.012;
+  g.add(base, arrows);
+  return g;
+}
+// Things in the world that move on their own (the pads' running lights).
+export function updateWorldFx(t) {
+  if (padArrows) padArrows.offset.y = -((t * 1.25) % 1);
+}
 export function createWorld(track) {
   const g = new T.Group(),
     decor = new T.Group(),
     moving = [],
     theme = track.index,
     c = track.config,
+    a = ATMOS[theme],
     rng = seeded(9812 + theme);
-  g.add(ribbon(track, 0, c.width + 24, c.ground, -0.03));
-  g.add(ribbon(track, 0, c.width, roadMaterial(c.road, theme), 0.04));
-  g.add(ribbon(track, 0, c.width + 2.8, c.curb, 0.02));
-  g.add(ribbon(track, 0, c.width + 6, theme === 2 ? 0x626d99 : 0xb7c18d, 0));
+  g.add(ribbon(track, 0, c.width + 24, vergeMaterial(theme), -0.03));
+  g.add(ribbon(track, 0, c.width, roadMaterial(theme), 0.04));
+  g.add(ribbon(track, 0, c.width + 2.8, a.curb, 0.02));
+  g.add(ribbon(track, 0, c.width + 6, a.shoulder, 0));
+  if (theme === 0 && !compatibility) {
+    // Tulip-field rows either side of the road.
+    for (const side of [-1, 1])
+      g.add(ribbon(track, side * (c.width / 2 + 7.7), 6.6, flowerRows(side > 0 ? [0xff5a66, 0xffd23f, 0xa779ff] : [0xff8fc7, 0xffffff, 0xff9838]), 0.02));
+  }
   const terrainGeo = new T.PlaneGeometry(650, 650, 80, 80);
   terrainGeo.rotateX(-Math.PI / 2);
   terrainGeo.translate(65, 0, 0);
@@ -1879,57 +2414,50 @@ export function createWorld(track) {
         height = p.y;
       }
     }
-    const mix = Math.exp(-Math.max(0, Math.sqrt(nearest) - 15) / 28);
-    pos.setY(i, (height - 0.45) * mix + (-1.4 + Math.sin(x * 0.027) * Math.cos(z * 0.023) * 1.3) * (1 - mix));
+    const dist = Math.sqrt(nearest),
+      mix = Math.exp(-Math.max(0, dist - 15) / 28),
+      // The candy coast is a strip of land in a bay: away from the road the
+      // ground runs down under the sea.
+      sink = theme === 1 ? smooth(38, 100, dist) * 4.6 : 0;
+    pos.setY(i, (height - 0.45) * mix + (-1.4 - sink + Math.sin(x * 0.027) * Math.cos(z * 0.023) * 1.3) * (1 - mix));
   }
   terrainGeo.computeVertexNormals();
-  const terrain = new T.Mesh(terrainGeo, mat(c.ground));
+  const terrain = new T.Mesh(terrainGeo, groundMaterial(theme));
   terrain.receiveShadow = true;
   g.add(terrain);
+  const railMat = theme === 2 && !compatibility ? neon(0x4de3ff, 1.5) : a.rail[0];
   for (let i = 0; i < 230; i++)
     for (const side of [-1, 1]) {
-      const a = track.sample((i / 230) * track.length, side * (c.width / 2 + 2.2)).p,
-        b = track.sample(((i + 1) / 230) * track.length, side * (c.width / 2 + 2.2)).p,
-        d = b.clone().sub(a),
-        mid = a.clone().add(b).multiplyScalar(0.5);
-      const rail = box(
-        decor,
-        theme === 2 ? 0x9daee7 : 0xffedce,
-        [mid.x, mid.y + 0.67, mid.z],
-        [0.26, 0.34, d.length() + 0.08],
-      );
+      const p0 = track.sample((i / 230) * track.length, side * (c.width / 2 + 2.2)).p,
+        p1 = track.sample(((i + 1) / 230) * track.length, side * (c.width / 2 + 2.2)).p,
+        d = p1.clone().sub(p0),
+        mid = p0.clone().add(p1).multiplyScalar(0.5);
+      const rail = box(decor, railMat, [mid.x, mid.y + 0.67, mid.z], [theme === 2 ? 0.16 : 0.26, theme === 2 ? 0.16 : 0.34, d.length() + 0.08]);
       rail.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), d.normalize());
-      if (i % 3 === 0)
-        box(decor, theme === 2 ? 0x8397cd : 0xe7c48e, [a.x, a.y + 0.43, a.z], [0.38, 0.86, 0.38]);
+      if (i % 3 === 0) box(decor, a.rail[1], [p0.x, p0.y + 0.43, p0.z], [0.38, 0.86, 0.38]);
     }
   const water = new T.Mesh(
     new T.PlaneGeometry(4000, 4000),
-    mat(theme === 2 ? 0x222d51 : theme === 1 ? 0x9cced0 : 0xa7d6d9),
+    compatibility ? mat(a.water) : cached("water" + theme, () => new T.MeshStandardMaterial({ color: a.water, roughness: 0.16, metalness: 0.1 })),
   );
   water.rotation.x = -Math.PI / 2;
   water.position.y = -3;
+  water.receiveShadow = true;
   g.add(water);
+  // Kerbs: on the night track every other block is lit.
+  const kerbLit = theme === 2 && !compatibility ? neon(0xff5fd0, 1.5) : null;
   for (let i = 0; i < 260; i++) {
     const d = (i / 260) * track.length;
     for (const side of [-1, 1]) {
       const s = track.sample(d, side * (c.width / 2 + 0.55));
-      const curb = box(
-        decor,
-        i % 2 ? 0xfff6e4 : c.curb,
-        [s.p.x, s.p.y + 0.1, s.p.z],
-        [1.05, 0.18, (track.length / 260) * 0.99],
-      );
+      const curb = box(decor, i % 2 ? (kerbLit ?? 0xfff6e4) : a.curb, [s.p.x, s.p.y + 0.1, s.p.z], [1.05, 0.18, (track.length / 260) * 0.99]);
       curb.rotation.set(-Math.asin(s.t.y), s.yaw, 0, "YXZ");
     }
   }
+  const dashMat = theme === 2 && !compatibility ? neon(0xfff0a8, 1.5) : theme === 1 ? 0xfff0dc : 0xeee6cf;
   for (let i = 0; i < 70; i++) {
     const s = track.sample((i / 70) * track.length);
-    const dash = box(
-      decor,
-      theme === 2 ? 0xb7c2f5 : 0xe2d9be,
-      [s.p.x, s.p.y + 0.065, s.p.z],
-      [0.17, 0.025, 2.4],
-    );
+    const dash = box(decor, dashMat, [s.p.x, s.p.y + 0.065, s.p.z], [0.17, 0.025, 2.4]);
     dash.rotation.set(-Math.asin(s.t.y), s.yaw, 0, "YXZ");
   }
   for (let i = 0; i < 72; i++) {
@@ -1953,15 +2481,9 @@ export function createWorld(track) {
   }
   for (let i = 0; i < 18; i++) {
     const s = track.sample((i / 18) * track.length, (i % 2 ? 1 : -1) * (35 + rng() * 45));
-    ball(
-      decor,
-      theme === 2 ? 0x495c89 : theme === 1 ? 0xe7b9bc : 0x92bc73,
-      [s.p.x, 1, s.p.z],
-      [11 + rng() * 13, 8 + rng() * 12, 13 + rng() * 10],
-    );
+    ball(decor, a.hills, [s.p.x, 1, s.p.z], [11 + rng() * 13, 8 + rng() * 12, 13 + rng() * 10]);
   }
-  for (let i = 0; i < 14; i++)
-    cloud(decor, [rng() * 500 - 180, 45 + rng() * 50, rng() * 500 - 250], 1 + rng() * 2);
+  for (let i = 0; i < (theme === 2 ? 0 : 14); i++) cloud(decor, [rng() * 500 - 180, 45 + rng() * 50, rng() * 500 - 250], 1 + rng() * 2, a.cloud[3]);
   for (const f of [0.18, 0.54, 0.82]) {
     const s = track.sample(f * track.length, track.width / 2 + 14),
       w = new T.Group();
@@ -1977,13 +2499,95 @@ export function createWorld(track) {
       w.add(ring);
       moving.push({ mesh: lol, type: "lollipop" });
     } else {
-      const hoop = new T.Mesh(
-        new T.TorusGeometry(3, 0.2, 8, 40),
-        new T.MeshBasicMaterial({ color: 0xffdc8d }),
-      );
+      const hoop = new T.Mesh(new T.TorusGeometry(3, 0.2, 8, 40), neon(0xffdc8d, 1.6));
       hoop.position.y = 6;
       w.add(hoop);
       moving.push({ mesh: hoop, type: "halo" });
+    }
+  }
+  // Arches over the road around the lap.
+  [0.13, 0.27, 0.41, 0.55, 0.69, 0.83, 0.93].forEach((f, i) => {
+    const s = track.sample(f * track.length),
+      arch = gate(theme, c.width, i);
+    arch.position.copy(s.p);
+    arch.position.y -= 0.3;
+    arch.rotation.set(0, s.yaw, 0);
+    decor.add(arch);
+  });
+  // Trackside lights (dusk and night): lanterns on posts, each with a halo.
+  if (theme > 0) {
+    const halos = [],
+      bulbs = theme === 1 ? [neon(0xffc66e, 1.9)] : [neon(0x4de3ff, 1.9), neon(0xff5fd0, 1.9)],
+      post = theme === 1 ? 0xfff3df : 0x5560a8;
+    for (let i = 0; i < 40; i++) {
+      const side = i % 2 ? 1 : -1,
+        s = track.sample(((i + 0.5) / 40) * track.length, side * (c.width / 2 + 3.3)),
+        lamp = new T.Group();
+      lamp.position.copy(s.p);
+      lamp.rotation.y = s.yaw;
+      cyl(lamp, post, [0, 2.3, 0], [0.09, 4.6, 0.09]);
+      box(lamp, post, [side * 0.55, 4.5, 0], [1.1, 0.09, 0.09]);
+      const bulb = ball(lamp, bulbs[i % bulbs.length], [side * 1.05, 4.2, 0], [0.34, 0.42, 0.34]);
+      bulb.castShadow = false;
+      decor.add(lamp);
+      lamp.updateMatrixWorld(true);
+      halos.push(...bulb.getWorldPosition(new T.Vector3()).toArray());
+    }
+    if (!compatibility) {
+      const geo = new T.BufferGeometry();
+      geo.setAttribute("position", new T.Float32BufferAttribute(halos, 3));
+      const pts = new T.Points(
+        geo,
+        // (Small and faint: a large halo right beside the camera, on the
+        // inside of a bend, washed out that whole side of the picture.)
+        new T.PointsMaterial({ map: glowSprite(), color: new T.Color(theme === 1 ? 0xffb65e : 0x9a8cff).multiplyScalar(0.5), size: 2.4, transparent: true, blending: T.AdditiveBlending, depthWrite: false }),
+      );
+      pts.renderOrder = 3;
+      g.add(pts);
+    }
+  }
+  if (theme === 0) {
+    // Hot-air balloons over the valley.
+    const hues = [0xff6b6b, 0xffc94d, 0x4fc3c8, 0xa685f0, 0xff9a4d, 0x6fb7ff],
+      cx = track.points.reduce((s, p) => s + p.x, 0) / track.points.length,
+      cz = track.points.reduce((s, p) => s + p.z, 0) / track.points.length;
+    for (let i = 0; i < 7; i++) {
+      const ang = (i / 7) * Math.PI * 2 + rng(),
+        r = 250 + rng() * 150,
+        b = new T.Group(),
+        k = 1.5 + rng() * 1.2;
+      b.position.set(cx + Math.cos(ang) * r, 55 + rng() * 80, cz + Math.sin(ang) * r);
+      b.scale.setScalar(k);
+      ball(b, hues[i % hues.length], [0, 0, 0], [5, 6, 5]);
+      ball(b, 0xfffbf0, [0, -0.4, 0], [5.06, 1.3, 5.06]);
+      cyl(b, hues[i % hues.length], [0, -5.6, 0], [1.6, 2.2, 1.6]);
+      box(b, 0xb9895c, [0, -8.6, 0], [1.5, 1.2, 1.5]);
+      decor.add(b);
+    }
+  } else if (theme === 2 && !compatibility) {
+    // Crystals glowing by the roadside, and star lanterns floating above.
+    const gems = [neon(0x6ff3ff, 1.5), neon(0xff7be0, 1.5), neon(0xb69bff, 1.5)],
+      gem = new T.OctahedronGeometry(1, 0);
+    for (let i = 0; i < 34; i++) {
+      const s = track.sample(rng() * track.length, (rng() < 0.5 ? 1 : -1) * (c.width / 2 + 4.5 + rng() * 11)),
+        m = new T.Mesh(gem, gems[i % 3]),
+        k = 0.5 + rng() * 1.1;
+      m.position.copy(s.p);
+      m.position.y += k * 1.1;
+      m.scale.set(k * 0.6, k * 1.7, k * 0.6);
+      m.rotation.set(rng() * 0.5 - 0.25, rng() * 3, rng() * 0.5 - 0.25);
+      decor.add(m);
+    }
+    const lantern = neon(0xffe39a, 1.6),
+      starGeo = starMesh().geometry;
+    for (let i = 0; i < 40; i++) {
+      const s = track.sample(rng() * track.length, (rng() - 0.5) * 70),
+        m = new T.Mesh(starGeo, lantern);
+      m.scale.setScalar(2.2 + rng() * 2.2);
+      m.position.copy(s.p);
+      m.position.y += 16 + rng() * 26;
+      m.rotation.set(rng(), rng() * 3, rng());
+      decor.add(m);
     }
   }
   const start = track.sample(0),
@@ -1999,19 +2603,13 @@ export function createWorld(track) {
   badge(arch, "PAW KART", [0, 6.85, 0.26], 8, 0.75, "#fff1d1", "#345c51");
   badge(arch, "PAW KART", [0, 6.85, -0.26], 8, 0.75, "#fff1d1", "#345c51").rotation.y = Math.PI;
   for (let i = 0; i < 16; i++)
-    for (let j = 0; j < 2; j++) {
-      const mesh = box(
-        arch,
-        (i + j) % 2 ? 0xfff4d9 : 0x4c5a59,
-        [-c.width / 2 + ((i + 0.5) * c.width) / 16, 0.07, j * 0.8 - 0.4],
-        [c.width / 16, 0.025, 0.8],
-      );
-    }
+    for (let j = 0; j < 2; j++)
+      box(arch, (i + j) % 2 ? 0xfff4d9 : 0x4c5a59, [-c.width / 2 + ((i + 0.5) * c.width) / 16, 0.07, j * 0.8 - 0.4], [c.width / 16, 0.025, 0.8]);
   for (let i = 0; i < 16; i++) {
-    const a = track.sample((i / 16) * track.length, (i % 2 ? 1 : -1) * (c.width / 2 + 3)),
+    const at = track.sample((i / 16) * track.length, (i % 2 ? 1 : -1) * (c.width / 2 + 3)),
       sign = new T.Group();
-    sign.position.copy(a.p);
-    sign.rotation.y = a.yaw;
+    sign.position.copy(at.p);
+    sign.rotation.y = at.yaw;
     g.add(sign);
     sign.rotation.y += Math.PI;
     cyl(sign, 0xd7c49c, [0, 1.4, 0], [0.08, 2.8, 0.08]);
@@ -2026,11 +2624,11 @@ export function createWorld(track) {
     );
   }
   grandstand(g, decor, track, theme, moving);
-  g.add(ranges(track, theme, c.fog));
-  const sky = skyDome(theme, c.fog);
+  g.add(ranges(track, theme, new T.Color(a.sky[1][1]).getHex()));
+  const sky = skyDome(theme);
   g.add(sky);
   g.add(staticBatch(decor));
-  return { group: g, moving, sky };
+  return { group: g, moving, sky, atmos: a };
 }
 // Item boxes share one material whose colour cycles through the rainbow,
 // like Mario Kart's boxes; the edges glow in the complementary hue.
@@ -2241,16 +2839,23 @@ export function createShowroomKart(bodyId = "classic") {
   if (premium?.rig) poseRig(premium.rig, 0);
   return g;
 }
-// Light trail for boosts: a flat ribbon of light laid along the kart's path
-// from a point on the kart (a rear wheel), fading out over `life` seconds,
-// so from the raised chase camera it reads as a streak on the road. Points
-// are sampled at most 60 times a second and recycled (no per-frame garbage).
-export function speedTrail({ points = 24, life = 0.36, width = 0.2 } = {}) {
-  const pos = new Float32Array(points * 6),
-    col = new Float32Array(points * 8),
+// Light trail for boosts: a ribbon of light laid along the kart's path from a
+// point on the kart (a rear corner), fading out over `life` seconds, so from
+// the raised chase camera it reads as a streak on the road. Each point has an
+// edge, a centre and an edge vertex: the centre is bright and the edges are
+// clear, which gives the ribbon a soft outline, and it narrows to a point at
+// its tail (v2.6 drew two flat, hard-edged bands). Points are sampled at most
+// 60 times a second and recycled (no per-frame garbage).
+export function speedTrail({ points = 26, life = 0.42, width = 0.17 } = {}) {
+  const pos = new Float32Array(points * 9),
+    col = new Float32Array(points * 12),
     geo = new T.BufferGeometry(),
     index = [];
-  for (let i = 0; i < points - 1; i++) index.push(i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2);
+  for (let i = 0; i < points - 1; i++) {
+    const a = i * 3,
+      b = a + 3;
+    index.push(a, a + 1, b, a + 1, b + 1, b, a + 1, a + 2, b + 1, a + 2, b + 2, b + 1);
+  }
   geo.setIndex(index);
   geo.setAttribute("position", new T.BufferAttribute(pos, 3).setUsage(T.DynamicDrawUsage));
   geo.setAttribute("color", new T.BufferAttribute(col, 4).setUsage(T.DynamicDrawUsage));
@@ -2262,7 +2867,6 @@ export function speedTrail({ points = 24, life = 0.36, width = 0.2 } = {}) {
       blending: T.AdditiveBlending,
       depthWrite: false,
       side: T.DoubleSide,
-      toneMapped: false,
       fog: false,
     }),
   );
@@ -2281,7 +2885,7 @@ export function speedTrail({ points = 24, life = 0.36, width = 0.2 } = {}) {
       count = 0;
       mesh.visible = false;
     },
-    update(anchor, active, colour, now, eye) {
+    update(anchor, active, colour, now) {
       if (count && at(0).p.distanceToSquared(anchor) > 400) count = 0; // a teleport: start over
       if (active) {
         if (!count || now - at(0).t >= 1 / 60) {
@@ -2297,29 +2901,40 @@ export function speedTrail({ points = 24, life = 0.36, width = 0.2 } = {}) {
       mesh.visible = count > 1;
       if (!mesh.visible) return;
       for (let i = 0; i < points; i++) {
+        const o9 = i * 9,
+          o12 = i * 12;
         if (i >= count) {
-          col[i * 8 + 3] = col[i * 8 + 7] = 0;
-          pos.copyWithin(i * 6, Math.max(0, count - 1) * 6, Math.max(0, count - 1) * 6 + 6);
+          // Unused points collapse onto the tail, invisible.
+          const last = Math.max(0, count - 1) * 9;
+          pos.copyWithin(o9, last, last + 9);
+          col[o12 + 3] = col[o12 + 7] = col[o12 + 11] = 0;
           continue;
         }
         const h = at(i),
           o = at(Math.min(count - 1, i + 1)),
           age = Math.min(1, (now - h.t) / life),
-          fade = (1 - age) * (1 - age);
+          fade = (1 - age) * (1 - age),
+          // Thin at the kart, widest a little way back, a point at the tail.
+          w = width * Math.min(1, 0.35 + age * 5) * (1 - age);
         tan.subVectors(h.p, o.p);
         if (tan.lengthSq() < 1e-6) tan.set(0, 0, 1);
-        side.crossVectors(tan, UP).normalize().multiplyScalar(width * (1 - age * 0.6));
-        pos[i * 6] = h.p.x + side.x;
-        pos[i * 6 + 1] = h.p.y + side.y;
-        pos[i * 6 + 2] = h.p.z + side.z;
-        pos[i * 6 + 3] = h.p.x - side.x;
-        pos[i * 6 + 4] = h.p.y - side.y;
-        pos[i * 6 + 5] = h.p.z - side.z;
-        for (const k of [0, 4]) {
-          col[i * 8 + k] = h.c.r;
-          col[i * 8 + k + 1] = h.c.g;
-          col[i * 8 + k + 2] = h.c.b;
-          col[i * 8 + k + 3] = 0.9 * fade;
+        side.crossVectors(tan, UP).normalize().multiplyScalar(w);
+        pos[o9] = h.p.x + side.x;
+        pos[o9 + 1] = h.p.y + side.y;
+        pos[o9 + 2] = h.p.z + side.z;
+        pos[o9 + 3] = h.p.x;
+        pos[o9 + 4] = h.p.y;
+        pos[o9 + 5] = h.p.z;
+        pos[o9 + 6] = h.p.x - side.x;
+        pos[o9 + 7] = h.p.y - side.y;
+        pos[o9 + 8] = h.p.z - side.z;
+        for (let k = 0; k < 3; k++) {
+          // The centre runs brighter than white so the bloom catches it.
+          const gain = k === 1 ? 1.5 : 1;
+          col[o12 + k * 4] = h.c.r * gain;
+          col[o12 + k * 4 + 1] = h.c.g * gain;
+          col[o12 + k * 4 + 2] = h.c.b * gain;
+          col[o12 + k * 4 + 3] = k === 1 ? 0.85 * fade : 0;
         }
       }
       geo.attributes.position.needsUpdate = true;

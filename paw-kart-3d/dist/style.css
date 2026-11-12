@@ -3425,3 +3425,331 @@ header {
     max-width: 108px;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   v2.7
+   --------------------------------------------------------------------------- */
+/* The hidden switch that gives a haptic tick on iOS (see haptic() in game.js). */
+#haptic {
+  position: fixed;
+  left: -200px;
+  top: -200px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+/* Iris between scenes: a small clear circle with a very large shadow covers
+   the screen, then grows until the cover has left it. */
+#wipe {
+  position: fixed;
+  left: 50%;
+  top: 52%;
+  width: 6vmax;
+  height: 6vmax;
+  margin: -3vmax 0 0 -3vmax;
+  border-radius: 50%;
+  box-shadow: 0 0 0 220vmax #2f4a3c;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0);
+}
+#wipe.on {
+  animation: wipe-open 0.62s cubic-bezier(0.55, 0, 0.2, 1) forwards;
+}
+@keyframes wipe-open {
+  0% {
+    opacity: 1;
+    transform: scale(0);
+  }
+  18% {
+    opacity: 1;
+    transform: scale(0);
+  }
+  99% {
+    opacity: 1;
+    transform: scale(42);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(42);
+  }
+}
+/* Countdown: each number lands with a pop. */
+#countdown.pop {
+  animation: count-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+@keyframes count-pop {
+  0% {
+    transform: translate(-50%, -50%) scale(2.1);
+    opacity: 0;
+  }
+  45% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+/* Result card (v2.7): a medal that drops in, the time counting up, rows
+   arriving one after another, and confetti for a podium. */
+#confetti {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100svh;
+  pointer-events: none;
+  z-index: 5;
+}
+.medal {
+  --disc: #9db8a4;
+  --edge: #6f927a;
+  --band: #5d8a70;
+  position: relative;
+  width: 78px;
+  height: 92px;
+  margin: 8px auto 2px;
+  animation: medal-in 0.62s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+.rank-1 .medal {
+  --disc: #ffd76a;
+  --edge: #e2a52c;
+  --band: #e8674f;
+}
+.rank-2 .medal {
+  --disc: #e6ebf0;
+  --edge: #a9b5c2;
+  --band: #5b8fd6;
+}
+.rank-3 .medal {
+  --disc: #f0b98a;
+  --edge: #c98450;
+  --band: #5cae86;
+}
+/* Ribbon: two tails behind the disc. */
+.medal i::before,
+.medal i::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 20px;
+  height: 46px;
+  background: var(--band);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+}
+.medal i::before {
+  left: 16px;
+  transform: rotate(14deg);
+}
+.medal i::after {
+  right: 16px;
+  transform: rotate(-14deg);
+  filter: brightness(0.88);
+}
+.medal b {
+  position: absolute;
+  left: 7px;
+  bottom: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, #ffffffd0 0 9%, #ffffff00 34%), var(--disc);
+  border: 4px solid var(--edge);
+  box-shadow: 0 5px 0 #2c463a26;
+  display: grid;
+  place-items: center;
+  font-size: 32px;
+  font-style: italic;
+  font-weight: 950;
+  color: #3a4f3f;
+  line-height: 1;
+  padding-bottom: 9px;
+  overflow: hidden;
+}
+/* A shine sweeps across the winner's medal. */
+.rank-1 .medal b::after {
+  content: "";
+  position: absolute;
+  inset: -20% -60%;
+  background: linear-gradient(105deg, #fff0 42%, #ffffffd9 50%, #fff0 58%);
+  animation: medal-shine 2.4s 0.7s ease-in-out infinite;
+}
+.medal em {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 9px;
+  font-size: 6.5px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  color: #3a4f3fb8;
+  text-align: center;
+}
+@keyframes medal-in {
+  0% {
+    transform: translateY(-46px) scale(0.3) rotate(-18deg);
+    opacity: 0;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes medal-shine {
+  0%,
+  55% {
+    transform: translateX(-70%);
+  }
+  100% {
+    transform: translateX(70%);
+  }
+}
+.result-top h2 {
+  animation: rise-in 0.45s 0.18s both;
+}
+.new-record {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #fff1cc;
+  color: #a86f1f;
+  font-weight: 750;
+  animation: record-pop 0.6s 0.55s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+.new-record small {
+  margin-left: 8px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+.record-gap {
+  font-size: 10.5px;
+  color: #8b937b;
+  margin: 8px 0;
+  font-variant-numeric: tabular-nums;
+}
+.result-stats {
+  animation: rise-in 0.45s 0.3s both;
+}
+.result-stats b {
+  font-variant-numeric: tabular-nums;
+}
+.result-table tr {
+  animation: row-in 0.36s calc(0.42s + var(--i, 0) * 0.055s) both;
+}
+.result-table td i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 7px;
+  vertical-align: 0;
+  box-shadow: 0 0 0 1.5px #ffffffc0;
+}
+.result-table tr.me {
+  background: linear-gradient(90deg, #f6e3b4, #f3e9cf);
+}
+@keyframes rise-in {
+  0% {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes row-in {
+  0% {
+    transform: translateX(-14px);
+    opacity: 0;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes record-pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+@media (max-height: 520px) {
+  .medal {
+    width: 58px;
+    height: 66px;
+    margin: 2px auto 0;
+  }
+  .medal i::before,
+  .medal i::after {
+    width: 15px;
+    height: 32px;
+  }
+  .medal i::before {
+    left: 12px;
+  }
+  .medal i::after {
+    right: 12px;
+  }
+  .medal b {
+    left: 6px;
+    width: 46px;
+    height: 46px;
+    font-size: 23px;
+    border-width: 3px;
+    padding-bottom: 6px;
+  }
+  .medal em {
+    font-size: 5px;
+    bottom: 6px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #wipe.on,
+  #countdown.pop,
+  .medal,
+  .rank-1 .medal b::after,
+  .result-top h2,
+  .new-record,
+  .result-stats,
+  .result-table tr {
+    animation: none;
+  }
+}
+/* With the post chain on, the frame itself streaks and glows in a boost, so
+   the overlay's lines and tint are lighter. */
+html[data-fx="on"] #speed-lines.active {
+  opacity: 0.45;
+}
+/* Dialogs stay inside the safe area. (The result card is taller in v2.7; at
+   90svh its top edge sat under the Dynamic Island on phones under about
+   880 px tall, and its foot in the home-indicator strip in landscape.) */
+dialog {
+  --dialog-max: 90svh;
+  inset: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  max-height: min(var(--dialog-max), calc(100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 12px));
+}
+@media (max-height: 520px) {
+  dialog {
+    --dialog-max: 94svh;
+  }
+}
+/* Settings rows are whole-row tap targets: at least 44 px tall on a phone. */
+@media (pointer: coarse) and (min-height: 521px) {
+  .setting {
+    min-height: 44px;
+    margin: 10px 0;
+  }
+}
+/* (A long description must not squeeze the checkbox beside it.) */
+.setting input[type="checkbox"] {
+  flex: none;
+}
