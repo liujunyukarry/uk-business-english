@@ -8,7 +8,7 @@
 // coherent while looping. On the final lap the tempo rises, as in Mario Kart.
 
 const midi = (n) => 440 * 2 ** ((n - 69) / 12);
-const SCALES = { major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10] };
+const SCALES = { major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10], hijaz: [0, 1, 4, 5, 7, 8, 10] };
 
 // Motifs: [step, degree above the chord root, length in 16th steps].
 const MOTIF = {
@@ -66,6 +66,35 @@ const SONGS = {
     lead: "sawtooth",
     arp: true,
   },
+  // Snowflake Run / Crystal Canyon: E♭ major, sparkling arpeggios, quick.
+  snow: {
+    bpm: 156,
+    root: 63,
+    scale: "major",
+    bars: [0, 3, 4, 0, 5, 3, 1, 4, 3, 4, 2, 5, 3, 4, 0, 0],
+    melody: ["soar", "stars", "climb", "cadence", "soar", "stars", "glide", "cadence", "stars", "soar", "stars", "answer", "soar", "stars", "climb", "cadence"],
+    kick: [0, 8, 11],
+    snare: [4, 12],
+    bass: [0, 7, 0, 4, 0, 7, 4, 7],
+    stabs: [2, 6, 10, 14],
+    lead: "triangle",
+    arp: true,
+  },
+  // Golden Oasis / Red Rock Canyon: D with a desert flavour (the scale with
+  // the minor second and major third), driving drums.
+  desert: {
+    bpm: 148,
+    root: 62,
+    scale: "hijaz",
+    bars: [0, 1, 0, 6, 0, 1, 4, 0, 3, 1, 0, 6, 3, 4, 1, 0],
+    melody: ["hop", "answer", "hop", "cadence", "hop", "answer", "bounce", "cadence", "answer", "hop", "answer", "soar", "hop", "answer", "bounce", "cadence"],
+    kick: [0, 3, 8, 11],
+    snare: [4, 12],
+    bass: [0, 0, 1, 0, 0, 7, 1, 0],
+    stabs: [2, 6, 10, 14],
+    lead: "square",
+    arp: false,
+  },
   // Garage theme: relaxed D major.
   menu: {
     bpm: 108,
@@ -82,7 +111,8 @@ const SONGS = {
     soft: true,
   },
 };
-const TRACK_SONGS = ["meadow", "candy", "starlight"];
+// Songs by theme (race.js THEMES).
+const TRACK_SONGS = ["meadow", "candy", "starlight", "snow", "desert"];
 
 export class KartAudio {
   constructor() {

@@ -1,6 +1,6 @@
 import * as T from "./vendor/three.module.js";
 import { RoomEnvironment } from "./vendor/RoomEnvironment.js";
-import { Race, Track, TRACKS, CHARACTERS, ITEMS, SPECIALS, DRIFT, NITRO_RULES, DRAFT, KARTS, START, SPECIAL_GUARD, driftLevel, clamp } from "./race.js?v=c995fd2b";
+import { Race, Track, TRACKS, THEMES, CUPS, DIFFICULTIES, themeOf, CHARACTERS, ITEMS, SPECIALS, DRIFT, NITRO_RULES, DRAFT, KARTS, SERIES, START, SPECIAL_GUARD, driftLevel, clamp } from "./race.js?v=39cf6a4b";
 import {
   createKart,
   animateKart,
@@ -27,11 +27,11 @@ import {
   ATMOS,
   boostPad,
   updateWorldFx,
-} from "./art.js?v=c995fd2b";
-import { createPost, createSprites, createSkids, LOOKS, GLOW, PUFF, STAR, CARD } from "./fx.js?v=c995fd2b";
-import { KartAudio } from "./audio.js?v=c995fd2b";
-import { bindTouchControls, CONTROLS } from "./input.js?v=c995fd2b";
-import { SoftwareRenderer } from "./software-renderer.js?v=c995fd2b";
+} from "./art.js?v=39cf6a4b";
+import { createPost, createSprites, createSkids, LOOKS, GLOW, PUFF, STAR, CARD } from "./fx.js?v=39cf6a4b";
+import { KartAudio } from "./audio.js?v=39cf6a4b";
+import { bindTouchControls, CONTROLS } from "./input.js?v=39cf6a4b";
+import { SoftwareRenderer } from "./software-renderer.js?v=39cf6a4b";
 // Build id stamped by tools/stamp.mjs; shown in the pause and help dialogs so
 // a tester can tell exactly which version is running.
 const BUILD = document.querySelector('meta[name="paw-build"]')?.content || "dev";
@@ -52,22 +52,37 @@ const defaults = {
   reduced: matchMedia("(prefers-reduced-motion:reduce)").matches,
   records: {},
   races: 0,
-  mode: "single", // 道具赛 (single), 竞速赛 (speed) or 杯赛 (cup)
+  rules: "item", // 道具赛 (item) or 竞速赛 (speed)
+  format: "single", // one race (single) or a three-race cup (cup), v2.8
+  cup: 0, // CUPS index
+  cups: {}, // best cup finish by cup, rules and class (trophies)
   kart: "classic", // kart body (车型), see KARTS
   specialsTotal: 0, // the "use your special" coaching stops after a few
   fx: true, // bloom, colour grade and the boost blur (v2.7)
   haptics: true, // vibration ticks, where the phone has them
 };
-let save = { ...defaults };
+let save = { ...defaults },
+  stored = null;
 try {
   const v = JSON.parse(localStorage.getItem(KEY) || "null");
-  if (v && typeof v === "object")
+  if (v && typeof v === "object") {
+    stored = v;
     save = { ...defaults, ...v, records: v.records && typeof v.records === "object" ? v.records : {} };
+  }
 } catch {}
 if (!CHARACTERS.some((c) => c.id === save.character)) save.character = "gold";
-save.track = clamp(Number(save.track) || 0, 0, 2);
-if (!["easy", "normal", "hard"].includes(save.difficulty)) save.difficulty = "normal";
-if (!["single", "speed", "cup"].includes(save.mode)) save.mode = "single";
+save.track = clamp(Number(save.track) || 0, 0, TRACKS.length - 1);
+if (!DIFFICULTIES.includes(save.difficulty)) save.difficulty = "normal";
+// v2.7 and before kept one "mode": item race, speed race or (item) cup.
+if (stored && typeof stored.mode === "string" && !("rules" in stored)) {
+  save.rules = stored.mode === "speed" ? "speed" : "item";
+  save.format = stored.mode === "cup" ? "cup" : "single";
+}
+delete save.mode;
+if (!["item", "speed"].includes(save.rules)) save.rules = "item";
+if (!["single", "cup"].includes(save.format)) save.format = "single";
+save.cup = clamp(Number(save.cup) || 0, 0, CUPS.length - 1);
+if (!save.cups || typeof save.cups !== "object") save.cups = {};
 if (!KARTS[save.kart]) save.kart = "classic";
 save.volume = clamp(Number(save.volume) || 0, 0, 1);
 let storageWarned = false;
@@ -114,6 +129,8 @@ const GARAGE = { sun: [0xfff2d7, 2.3], hemi: [0xfff7e5, 0x9db894, 1.25] },
     { sun: [0xfff2d7, 2.3], hemi: [0xfff7e5, 0x9db894, 1.25] },
     { sun: [0xffd2a6, 2.35], hemi: [0xffe6e0, 0xe2b49c, 1.2] },
     { sun: [0xd9e0ff, 2.2], hemi: [0xe2e6ff, 0x959fd6, 1.15] },
+    { sun: [0xf2f6ff, 2.25], hemi: [0xeef4ff, 0xb7c7d8, 1.25] },
+    { sun: [0xffe2b4, 2.35], hemi: [0xfff0dc, 0xd9ab78, 1.2] },
   ];
 const hemi = new T.HemisphereLight(GARAGE.hemi[0], GARAGE.hemi[1], GARAGE.hemi[2]);
 scene.add(hemi);
@@ -249,12 +266,31 @@ function trimKarts(inUse) {
 }
 // Garage copy for the kart bodies: what each one is good at, and the change
 // to the speed / acceleration / handling bars it makes.
-const KART_INFO = {
-  classic: { tag: "均衡 · 好上手", perk: "四项均衡", bars: [0, 0, 0], morph: "弹出大尾翼和双推进器" },
-  thunder: { tag: "极速型", perk: "极速更高 · 起步稍慢", bars: [1, -1, 0], morph: "尾翼升起 · 侧刃弹出 · 鸭翼展开" },
-  jet: { tag: "冲刺型", perk: "所有加速多 12%", bars: [0, 1, -1], morph: "后掠翼展开 · 火箭外推 · 涡轮全开" },
-  phantom: { tag: "操控型", perk: "集气快 15% · 抓地稳", bars: [-1, 0, 1], morph: "车轮收起变悬浮 · X 翼展开" },
+// (v2.8: five series, KartRider style; a series shares its body and its
+// transformation, each livery leans its own way.)
+const MORPH = {
+  classic: "弹出大尾翼和双推进器",
+  thunder: "尾翼升起 · 侧刃弹出 · 鸭翼展开",
+  jet: "后掠翼展开 · 火箭外推 · 涡轮全开",
+  phantom: "车轮收起变悬浮 · X 翼展开",
+  puff: "棉花糖云朵鼓起 · 糖果火箭推出 · 棒棒糖飞转",
 };
+const KART_INFO = {
+  classic: { tag: "均衡 · 好上手", perk: "四项均衡", bars: [0, 0, 0] },
+  thunder: { tag: "极速型", perk: "极速更高 · 起步稍慢", bars: [1, -1, 0] },
+  thunder2: { tag: "极速型 · 黑金", perk: "极速最高 · 起步最慢", bars: [1, -1, 0] },
+  thunder3: { tag: "极速型 · 冰蓝", perk: "极速高 · 更好开", bars: [1, 0, 0] },
+  jet: { tag: "冲刺型", perk: "所有加速多 12%", bars: [0, 1, -1] },
+  jet2: { tag: "冲刺型 · 烈焰", perk: "所有加速多 17%", bars: [0, 1, -1] },
+  jet3: { tag: "冲刺型 · 星尘", perk: "加速多 8% · 起步快", bars: [0, 1, 0] },
+  phantom: { tag: "操控型", perk: "集气快 15% · 抓地稳", bars: [-1, 0, 1] },
+  phantom2: { tag: "操控型 · 暗夜", perk: "集气快 20% · 抓地最稳", bars: [-1, 0, 1] },
+  phantom3: { tag: "操控型 · 极光", perk: "集气快 10% · 速度更均衡", bars: [0, 0, 1] },
+  puff: { tag: "起步型 · 蜜桃", perk: "起步最快 · 被撞后回速快", bars: [-1, 1, 0] },
+  puff2: { tag: "起步型 · 薄荷", perk: "起步快 · 抓地稳", bars: [-1, 1, 1] },
+  puff3: { tag: "起步型 · 葡萄", perk: "起步快 · 加速多 8%", bars: [-1, 1, 0] },
+};
+for (const id in KART_INFO) KART_INFO[id].morph = MORPH[KARTS[id].series];
 let selected = kart("hero-" + save.character, save.character, 1, save.kart);
 lobby.group.add(selected);
 selected.position.y = 0.08;
@@ -270,8 +306,7 @@ let world = null,
   coins = null,
   dynamicMeshes = new Map(),
   mode = "home",
-  raceMode = save.mode,
-  cup = null,
+  cup = null, // the cup being run: { index, round, scores }
   ended = false,
   clock = 0,
   last = performance.now(),
@@ -472,6 +507,12 @@ function banner(text, sub = "", seconds = 2.1) {
 // Best times per track, class and rules. Item races keep the original key,
 // so records set before the speed race existed still count.
 const recordKey = (track, rules) => (rules === "speed" ? "speed-" : "") + track + "-" + save.difficulty;
+// Trophies: the best finish in a cup, by rules and class.
+const cupKey = (index, rules = save.rules, difficulty = save.difficulty) => CUPS[index].id + "-" + rules + "-" + difficulty;
+const TROPHY = ["", "🥇", "🥈", "🥉"];
+// The class as shown: 50cc, 100cc, 150cc or 大师.
+const CLASS_LABEL = { easy: "50cc", normal: "100cc", hard: "150cc", master: "大师" };
+const classLabel = (d = save.difficulty) => CLASS_LABEL[d] || "100cc";
 function timeText(t) {
   const m = Math.floor(t / 60),
     s = Math.floor(t % 60),
@@ -490,11 +531,43 @@ function updateHome() {
     b.classList.toggle("active", active);
     b.setAttribute("aria-pressed", String(active));
   });
+  const cupFormat = save.format === "cup",
+    theme = themeOf(save.track);
   document.querySelectorAll("[data-track]").forEach((b) => {
-    const active = raceMode === "cup" || Number(b.dataset.track) === save.track;
+    const active = Number(b.dataset.track) === save.track;
     b.classList.toggle("active", active);
     b.setAttribute("aria-pressed", String(active));
+    b.classList.toggle("hidden", Number(b.dataset.theme) !== theme);
   });
+  document.querySelectorAll("[data-theme-tab]").forEach((b) => {
+    const active = !cupFormat && Number(b.dataset.themeTab) === theme;
+    b.classList.toggle("active", active);
+    b.setAttribute("aria-selected", String(active));
+  });
+  for (const b of document.querySelectorAll("[data-format]")) {
+    b.classList.toggle("active", cupFormat);
+    b.setAttribute("aria-selected", String(cupFormat));
+  }
+  // On a narrow phone the tab row scrolls: keep the chosen tab in view
+  // (sideways only; the page itself never moves).
+  const tabs = $("themes"),
+    on = tabs.querySelector(".active");
+  if (on && tabs.scrollWidth > tabs.clientWidth) {
+    const left = on.offsetLeft - tabs.offsetLeft,
+      right = left + on.offsetWidth;
+    if (left < tabs.scrollLeft) tabs.scrollLeft = left - 8;
+    else if (right > tabs.scrollLeft + tabs.clientWidth) tabs.scrollLeft = right - tabs.clientWidth + 8;
+  }
+  document.querySelectorAll("[data-cup]").forEach((b) => {
+    const i = Number(b.dataset.cup),
+      active = i === save.cup,
+      best = save.cups[cupKey(i)];
+    b.classList.toggle("active", active);
+    b.setAttribute("aria-pressed", String(active));
+    b.querySelector(".trophy").textContent = TROPHY[best] || "";
+  });
+  show("tracks", !cupFormat);
+  show("cups", cupFormat);
   $("difficulty").value = save.difficulty;
   document.querySelectorAll("[data-kart]").forEach((b) => {
     const active = b.dataset.kart === save.kart;
@@ -529,30 +602,34 @@ function updateHome() {
       );
     })
     .join("");
-  document.querySelectorAll("[data-mode]").forEach((x) => {
-    const on = x.dataset.mode === raceMode;
+  document.querySelectorAll("[data-rules]").forEach((x) => {
+    const on = x.dataset.rules === save.rules;
     x.classList.toggle("active", on);
     x.setAttribute("aria-pressed", String(on));
   });
-  $("start-copy").textContent =
-    raceMode === "cup"
-      ? "出发 · 挑战三站冠军"
-      : (raceMode === "speed" ? "竞速 · " : "出发 · ") + TRACKS[save.track].name;
-  const rec = save.records[recordKey(save.track, raceMode === "speed" ? "speed" : "item")];
-  $("record").textContent =
-    raceMode === "cup"
-      ? "三条赛道 · 积分争冠"
-      : rec
-        ? (raceMode === "speed" ? "竞速最佳 " : "个人最佳 ") + timeText(rec)
-        : raceMode === "speed"
-          ? "没有道具 · 漂移攒氮气 · 拼技术"
-          : "三圈决胜 · 约 90 秒一局";
+  const speed = save.rules === "speed",
+    cupNow = CUPS[save.cup],
+    trophy = save.cups[cupKey(save.cup)];
+  $("start-copy").textContent = cupFormat
+    ? (speed ? "竞速 · " : "出发 · ") + cupNow.name + " · 三站"
+    : (speed ? "竞速 · " : "出发 · ") + TRACKS[save.track].name;
+  const rec = save.records[recordKey(save.track, save.rules)];
+  $("record").textContent = cupFormat
+    ? trophy
+      ? "最好成绩 " + TROPHY[trophy] + " 第 " + trophy + " 名 · " + classLabel() + (speed ? " 竞速" : " 道具")
+      : cupNow.tracks.map((i) => TRACKS[i].name).join(" · ")
+    : rec
+      ? (speed ? "竞速最佳 " : "个人最佳 ") + timeText(rec)
+      : speed
+        ? "没有道具 · 漂移攒氮气 · 拼技术"
+        : "三圈决胜 · 约 90 秒一局";
   $("sound").textContent = save.muted ? "♩" : "♫";
   $("sound").setAttribute("aria-label", save.muted ? "开启声音" : "关闭声音");
-  scene.background.set([0xe3ede0, 0xf1e3dd, 0xd5ddec][save.track]);
+  const look = cupFormat ? themeOf(cupNow.tracks[0]) : theme;
+  scene.background.set([0xe3ede0, 0xf1e3dd, 0xd5ddec, 0xe4edf6, 0xf2e6d2][look]);
   scene.fog.color.copy(scene.background);
   if (mode === "home") {
-    const mood = GARAGE_MOOD[raceMode === "cup" ? 0 : save.track];
+    const mood = GARAGE_MOOD[look];
     sun.color.set(mood.sun[0]);
     sun.intensity = mood.sun[1];
     hemi.color.set(mood.hemi[0]);
@@ -612,32 +689,38 @@ function buildMenu() {
       c.tag +
       "</small></button>",
   ).join("");
-  $("tracks").innerHTML = TRACKS.map((t, i) => {
-    const tr = new Track(i);
-    const pts = tr.points.filter((_, j) => j % 30 === 0);
-    const xs = pts.map((p) => p.x),
+  // Track outlines (shared by the track cards and the cup cards).
+  const outline = (i, w = 85, h = 33, ox = 7, oy = 4) => {
+    const pts = new Track(i).points.filter((_, j) => j % 30 === 0),
+      xs = pts.map((p) => p.x),
       zs = pts.map((p) => p.z),
       minX = Math.min(...xs),
       minZ = Math.min(...zs),
-      w = Math.max(...xs) - minX,
-      h = Math.max(...zs) - minZ;
-    const path =
-      pts
-        .map(
-          (p, j) =>
-            (j ? "L" : "M") +
-            (((p.x - minX) / w) * 85 + 7).toFixed(1) +
-            "," +
-            (((p.z - minZ) / h) * 33 + 4).toFixed(1),
-        )
-        .join(" ") + "Z";
-    return (
+      sx = Math.max(...xs) - minX,
+      sz = Math.max(...zs) - minZ,
+      k = Math.min(w / sx, h / sz),
+      dx = ox + (w - sx * k) / 2,
+      dz = oy + (h - sz * k) / 2;
+    return pts.map((p, j) => (j ? "L" : "M") + ((p.x - minX) * k + dx).toFixed(1) + "," + ((p.z - minZ) * k + dz).toFixed(1)).join(" ") + "Z";
+  };
+  // One row of tabs (KartRider style): the cups, then the five themes; a
+  // theme shows its tracks, the cup tab the three cups.
+  $("themes").innerHTML =
+    '<button role="tab" data-format="cup" aria-selected="false" aria-label="杯赛：三站积分">🏆<span>杯赛</span></button>' +
+    THEMES.map(
+      (th, i) =>
+        '<button role="tab" data-theme-tab="' + i + '" aria-selected="false" aria-label="' + th.name + "主题，" + th.time + '">' + th.icon + "<span>" + th.name.slice(-2) + "</span></button>",
+    ).join("");
+  $("tracks").innerHTML = TRACKS.map(
+    (t, i) =>
       '<button class="track-card" data-track="' +
       i +
+      '" data-theme="' +
+      t.theme +
       '" aria-label="选择' +
       t.name +
       '"><svg viewBox="0 0 100 42"><path d="' +
-      path +
+      outline(i) +
       '" fill="none" stroke="' +
       t.accent +
       '" stroke-width="3.5" stroke-linecap="round"/></svg><b>' +
@@ -645,13 +728,34 @@ function buildMenu() {
       "</b><small>" +
       t.level +
       " · " +
-      ["正午", "夕阳", "星夜"][i] +
-      "</small></button>"
-    );
-  }).join("");
+      THEMES[t.theme].time +
+      "</small></button>",
+  ).join("");
+  $("cups").innerHTML = CUPS.map(
+    (c, i) =>
+      '<button class="track-card cup-card" data-cup="' +
+      i +
+      '" aria-label="选择' +
+      c.name +
+      "：" +
+      c.tracks.map((t) => TRACKS[t].name).join("、") +
+      '"><span class="cup-icon">' +
+      c.icon +
+      '</span><span class="trophy" aria-hidden="true"></span><b>' +
+      c.name +
+      "</b><small>" +
+      c.level +
+      " · " +
+      c.tracks.map((t) => THEMES[TRACKS[t].theme].icon).join("") +
+      "</small></button>",
+  ).join("");
+  // Kart cards in series order; each series opens with its label.
   $("karts").innerHTML = Object.entries(KARTS)
     .map(
-      ([id, k]) =>
+      ([id, k], i, all) =>
+        (i === 0 || all[i - 1][1].series !== k.series
+          ? '<div class="series-label" aria-hidden="true"><b>' + SERIES.find((x) => x.id === k.series).name + "</b><small>" + SERIES.find((x) => x.id === k.series).tag + "</small></div>"
+          : "") +
         '<button class="character-card kart-card" data-kart="' +
         id +
         '" aria-label="选择车型：' +
@@ -683,18 +787,44 @@ function buildMenu() {
   document.querySelectorAll("[data-track]").forEach(
     (b) =>
       (b.onclick = () => {
-        if (raceMode === "cup") notify("杯赛会依次游玩全部三条赛道");
-        else {
-          save.track = Number(b.dataset.track);
-          audio.cue("tap");
-          updateHome();
-        }
+        save.track = Number(b.dataset.track);
+        audio.cue("tap");
+        updateHome();
       }),
   );
-  document.querySelectorAll("[data-mode]").forEach(
+  // A theme tab shows its tracks and picks the first (or keeps the current
+  // track if it is in that theme).
+  document.querySelectorAll("[data-theme-tab]").forEach(
     (b) =>
       (b.onclick = () => {
-        raceMode = save.mode = b.dataset.mode;
+        const theme = Number(b.dataset.themeTab);
+        if (themeOf(save.track) !== theme) save.track = TRACKS.findIndex((t) => t.theme === theme);
+        save.format = "single";
+        audio.cue("tap");
+        updateHome();
+      }),
+  );
+  document.querySelectorAll("[data-format]").forEach(
+    (b) =>
+      (b.onclick = () => {
+        save.format = "cup";
+        audio.cue("tap");
+        updateHome();
+      }),
+  );
+  document.querySelectorAll("[data-cup]").forEach(
+    (b) =>
+      (b.onclick = () => {
+        save.cup = Number(b.dataset.cup);
+        audio.cue("tap");
+        updateHome();
+        notify(CUPS[save.cup].name + "：" + CUPS[save.cup].tracks.map((t) => TRACKS[t].name).join(" → "), 2.2);
+      }),
+  );
+  document.querySelectorAll("[data-rules]").forEach(
+    (b) =>
+      (b.onclick = () => {
+        save.rules = b.dataset.rules;
         audio.cue("tap");
         updateHome();
       }),
@@ -1140,7 +1270,7 @@ function startRace(trackIndex = save.track) {
     track: trackIndex,
     character: save.character,
     difficulty: save.difficulty,
-    rules: raceMode === "speed" ? "speed" : "item",
+    rules: save.rules,
     kart: save.kart,
   });
   const speedRace = race.rules === "speed";
@@ -1154,7 +1284,7 @@ function startRace(trackIndex = save.track) {
   lastPlayerBoost = false;
   lastRank = 0;
   lastPassCue = 0;
-  audio.startRace(trackIndex);
+  audio.startRace(themeOf(trackIndex)); // (music by theme)
   world = createWorld(race.track);
   scene.add(world.group);
   raceGroup = new T.Group();
@@ -1203,8 +1333,8 @@ function startRace(trackIndex = save.track) {
   applyAtmosphere(world.atmos);
   $("track-title").textContent = tc.name;
   $("cup-progress").textContent = cup
-    ? "PAW CUP · 第 " + (cup.round + 1) + " / 3 站"
-    : (speedRace ? "SPEED RACE · " : "ITEM RACE · ") + { easy: "50", normal: "100", hard: "150" }[save.difficulty] + "cc";
+    ? CUPS[cup.index].name + " · 第 " + (cup.round + 1) + " / " + CUPS[cup.index].tracks.length + " 站 · " + classLabel()
+    : (speedRace ? "SPEED RACE · " : "ITEM RACE · ") + classLabel();
   $("item-key").textContent = touchLayout() ? "点击使用" : "SPACE";
   $("kb-item").textContent = speedRace ? "氮气" : "道具";
   // Race progress strip: one marker per racer (the player's on top).
@@ -1319,8 +1449,8 @@ function goHome() {
   updateHome();
 }
 $("start").onclick = () => {
-  cup = raceMode === "cup" ? { round: 0, scores: Array(8).fill(0) } : null;
-  startRace(cup ? 0 : save.track);
+  cup = save.format === "cup" ? { index: save.cup, round: 0, scores: Array(8).fill(0) } : null;
+  startRace(cup ? CUPS[cup.index].tracks[0] : save.track);
 };
 function modal(html) {
   $("dialog-content").innerHTML = html;
@@ -1364,7 +1494,7 @@ $("pause").addEventListener("pointerup", (e) => {
 function help() {
   if (mode === "race") pause();
   modal(
-    '<button class="dialog-close" id="close-dialog" aria-label="关闭">×</button><span class="dialog-eyebrow">YOUR FIRST LAP</span><h2>快乐超车，从这里开始。</h2><p>默认自动油门，专心转向和使用道具。跑完三圈即冲线，杯赛累积三站积分；竞速赛没有道具，比拼漂移和氮气。</p><div class="help-grid"><div><b>01 / 转向与过弯</b><p>手机：按住屏幕左半边左转，右半边右转。急弯会把车往外甩，只靠方向会掉速、贴外侧，漂移过弯更快。键盘 ← → 或 A / D。</p></div><div><b>02 / 漂移</b><p>手机：进弯按住方向就会漂移，一直按着保持，火花变蓝、橙、紫后松开，冲刺一次比一次猛；也可以点一下漂移键开始。键盘：转向时按住 Shift。漂移会掉一点速度，只有过弯时集气快：直道上一直漂、贴着护栏漂都会越漂越慢，出弯就松手。</p></div><div><b>03 / 道具（两个槽）</b><p>撞碎问号箱抽道具，最多存两个，点道具框（键盘空格）使用。问号箱每人一份；越落后道具越强，最后几名还可能抽到火箭。</p></div><div><b>04 / 必杀技</b><p>每位车手都有专属必杀技。漂移加速、吃金币、打中对手都会给必杀槽充能，满了点必杀键（键盘 E）释放。放必杀时金光护体、车子变形，3 秒内无敌（小金毛 3.6 秒）：任何攻击都打不动你，撞车也是对方被弹开。流星雨、熊抱冲撞这类攻击必杀会用红圈标出要打的车；前面没人可打时不让你白放。</p></div><div><b>05 / 竞速赛与尾流</b><p>竞速赛没有道具和必杀：漂移给氮气槽充能，最多存两管，点 N₂O 键（键盘空格）喷射。两种比赛都有尾流：紧跟在别的车正后方一小会儿，就会被吸着加速超过去。</p></div><div><b>06 / 小地图与后方雷达</b><p>右上角小地图：方格线是终点，黄色箭头是你，彩色圆点是对手，离你近的会描白边；下方进度条显示每个人离终点多远。屏幕下方的雷达会提示从后面逼近的车和距离。</p></div><div><b>07 / 起步加速</b><p>倒数快结束时屏幕中间会提示「就是现在」：倒数结束的瞬间点一下屏幕（键盘 ↑ 或空格），就能起步加速，越准越猛；按得太早就没有。</p></div><div><b>08 / 车型与变形</b><p>车库点「车型」可以换车：经典卡丁（均衡）、闪电 GT（极速更高、起步稍慢）、喷射火箭（所有加速多 12%）、幻影星舰（集气快 15%、抓地稳）。每次加速都会变形：尾翼升起、侧翼展开、火箭外推，幻影星舰还会收起车轮变成悬浮模式。</p></div><div><b>09 / 碰撞</b><p>护栏和其他车都会把你弹开：撞得越正越减速，漂移也会被打断。贴着护栏开会一路碰撞、越来越慢，记得松开方向回到路中间。</p></div><div><b>10 / 画面与手感</b><p>三条赛道分别是正午、夕阳和星夜。设置（⚙）里可以开关「画面特效」（泛光、调色、冲刺光晕）和「减少镜头变化」（开场运镜、镜头侧倾），安卓手机还有「震动反馈」。手机卡顿时游戏会先降低清晰度，还不够就从下一场起关掉特效。</p></div></div><div class="help-items">' +
+    '<button class="dialog-close" id="close-dialog" aria-label="关闭">×</button><span class="dialog-eyebrow">YOUR FIRST LAP</span><h2>快乐超车，从这里开始。</h2><p>默认自动油门，专心转向和使用道具。跑完三圈即冲线；竞速赛没有道具，比拼漂移和氮气；杯赛连跑三站，按名次累积积分。</p><div class="help-grid"><div><b>01 / 转向与过弯</b><p>手机：按住屏幕左半边左转，右半边右转。急弯会把车往外甩，只靠方向会掉速、贴外侧，漂移过弯更快。键盘 ← → 或 A / D。</p></div><div><b>02 / 漂移</b><p>手机：进弯按住方向就会漂移，一直按着保持，火花变蓝、橙、紫后松开，冲刺一次比一次猛；也可以点一下漂移键开始。键盘：转向时按住 Shift。漂移会掉一点速度，只有过弯时集气快：直道上一直漂、贴着护栏漂都会越漂越慢，出弯就松手。</p></div><div><b>03 / 道具（两个槽）</b><p>撞碎问号箱抽道具，最多存两个，点道具框（键盘空格）使用。问号箱每人一份；越落后道具越强，最后几名还可能抽到火箭。</p></div><div><b>04 / 必杀技</b><p>每位车手都有专属必杀技。漂移加速、吃金币、打中对手都会给必杀槽充能，满了点必杀键（键盘 E）释放。放必杀时金光护体、车子变形，3 秒内无敌（小金毛 3.6 秒）：任何攻击都打不动你，撞车也是对方被弹开。流星雨、熊抱冲撞这类攻击必杀会用红圈标出要打的车；前面没人可打时不让你白放。</p></div><div><b>05 / 竞速赛与尾流</b><p>竞速赛没有道具和必杀：漂移给氮气槽充能，最多存两管，点 N₂O 键（键盘空格）喷射。两种比赛都有尾流：紧跟在别的车正后方一小会儿，就会被吸着加速超过去。</p></div><div><b>06 / 小地图与后方雷达</b><p>右上角小地图：方格线是终点，黄色箭头是你，彩色圆点是对手，离你近的会描白边；下方进度条显示每个人离终点多远。屏幕下方的雷达会提示从后面逼近的车和距离。</p></div><div><b>07 / 起步加速</b><p>倒数快结束时屏幕中间会提示「就是现在」：倒数结束的瞬间点一下屏幕（键盘 ↑ 或空格），就能起步加速，越准越猛；按得太早就没有。</p></div><div><b>08 / 车型系列与变形</b><p>车库点「车型」可以换车，共 5 个系列 13 款：经典（均衡）、闪电（极速高、起步慢）、火箭（加速时间更长）、幻影（集气快、抓地稳）、棉花糖（起步快、被撞后回速快）。同系列的几款涂装各有侧重。每次加速都会变形：尾翼升起、侧翼展开、火箭外推，幻影还会收起车轮悬浮，棉花糖会鼓起两朵棉花糖云。</p></div><div><b>09 / 碰撞</b><p>护栏和其他车都会把你弹开：撞得越正越减速，漂移也会被打断。贴着护栏开会一路碰撞、越来越慢，记得松开方向回到路中间。</p></div><div><b>10 / 主题与杯赛</b><p>九条赛道分五种主题：花田（正午）、糖果海湾（夕阳）、星光（星夜）、冰雪（清晨，会下雪）和沙漠（午后，会起风沙）。车库里先选主题再选赛道；选「🏆 杯赛」可以挑晴空杯、冒险杯或大师杯，道具赛和竞速赛都能跑杯赛，每站按名次积 15/12/10/8/6/4/2/1 分，总成绩前三名拿奖杯。</p></div><div><b>11 / 难度</b><p>50cc 轻松、100cc 标准、150cc 挑战，以及「大师」：对手几乎每个弯都漂移、起步加速、领先时也不减速，竞速赛的大师最难。</p></div><div><b>12 / 画面与手感</b><p>设置（⚙）里可以开关「画面特效」（泛光、调色、冲刺光晕）和「减少镜头变化」（开场运镜、镜头侧倾），安卓手机还有「震动反馈」。手机卡顿时游戏会先降低清晰度，还不够就从下一场起关掉特效。</p></div></div><div class="help-items">' +
       Object.entries(ITEMS)
         .map(([k, v]) => "<div><span>" + v.icon + "</span><b>" + v.name + "</b>" + v.desc + "</div>")
         .join("") +
@@ -1857,7 +1987,8 @@ function showResult() {
     const pts = [15, 12, 10, 8, 6, 4, 2, 1];
     standings.forEach((r, i) => (cup.scores[r.id] += pts[i]));
   }
-  const finalCup = cup && cup.round === 2,
+  const cupTracks = cup ? CUPS[cup.index].tracks : null,
+    finalCup = cup && cup.round === cupTracks.length - 1,
     overall = cup
       ? [...race.racers].sort(
           (a, b) => cup.scores[b.id] - cup.scores[a.id] || standings.indexOf(a) - standings.indexOf(b),
@@ -1866,26 +1997,38 @@ function showResult() {
   const displayRank = finalCup ? overall.findIndex((r) => r.id === 0) + 1 : rank,
     podium = displayRank <= 3,
     delta = previous ? Math.abs(p.finish - previous).toFixed(2) : null;
+  // A cup on the podium earns its trophy (the best one is kept).
+  let trophy = "";
+  if (finalCup && podium) {
+    const k = cupKey(cup.index, race.rules),
+      before = save.cups[k];
+    if (!before || displayRank < before) {
+      save.cups[k] = displayRank;
+      persist();
+      trophy = '<div class="new-record trophy-won">' + TROPHY[displayRank] + " 获得" + CUPS[cup.index].name + (displayRank === 1 ? "金杯" : displayRank === 2 ? "银杯" : "铜杯") + "！<small>" + classLabel() + (race.rules === "speed" ? " · 竞速" : " · 道具") + "</small></div>";
+    }
+  }
   modal(
     '<div class="result-top rank-' +
       Math.min(displayRank, 4) +
       '"><span class="dialog-eyebrow">' +
-      (finalCup ? "PAW CUP · FINAL RESULTS" : speedRace ? "SPEED RACE · FINISH LINE" : "FINISH LINE, HAPPY TIMES") +
+      (finalCup ? CUPS[cup.index].tag + " · FINAL RESULTS" : speedRace ? "SPEED RACE · FINISH LINE" : "FINISH LINE, HAPPY TIMES") +
       '</span><div class="medal" aria-hidden="true"><i></i><b>' +
       displayRank +
       "</b><em>" +
       (displayRank === 1 ? "WINNER" : podium ? "PODIUM" : "FINISH") +
       "</em></div><h2>" +
       (finalCup
-        ? "三站杯赛 · 第 " + displayRank + " 名！"
+        ? CUPS[cup.index].name + " · 总第 " + displayRank + " 名！"
         : rank === 1
           ? "冠军！快乐领跑。"
           : "第 " + rank + " 名 · 跑得漂亮！") +
       "</h2><p>" +
       race.track.config.name +
       " · " +
-      { easy: "50", normal: "100", hard: "150" }[save.difficulty] +
-      (speedRace ? "cc · 竞速赛</p>" : "cc</p>") +
+      classLabel() +
+      (speedRace ? " · 竞速赛</p>" : "</p>") +
+      trophy +
       (newRecord
         ? '<div class="new-record">✦ 刷新个人最佳纪录！' + (delta ? "<small>比之前快 " + delta + " 秒</small>" : "") + "</div>"
         : '<div class="record-gap">个人最佳 ' + timeText(previous) + " · 这次慢 " + delta + " 秒</div>") +
@@ -1923,7 +2066,7 @@ function showResult() {
         ? '<p class="cup-summary">你的杯赛积分：' +
           cup.scores[0] +
           " 分 · 下一站 " +
-          TRACKS[cup.round + 1].name +
+          TRACKS[cupTracks[cup.round + 1]].name +
           "</p>"
         : "") +
       '<div class="dialog-actions sticky-actions"><button id="next-race" class="primary">' +
@@ -1938,11 +2081,12 @@ function showResult() {
   $("next-race").onclick = () => {
     if (cup && !finalCup) {
       cup.round++;
-      startRace(cup.round);
-    } else {
-      cup = raceMode === "cup" ? { round: 0, scores: Array(8).fill(0) } : null;
-      startRace(cup ? 0 : race.track.index);
-    }
+      startRace(cupTracks[cup.round]);
+    } else if (cup) {
+      // The same cup again, from its first race.
+      cup = { index: cup.index, round: 0, scores: Array(8).fill(0) };
+      startRace(CUPS[cup.index].tracks[0]);
+    } else startRace(race.track.index);
   };
 }
 // Write text only when it changes: an unchanged textContent write still
@@ -2566,6 +2710,12 @@ function camStep(dt) {
     cam.sy += Math.sin(race.time * 71.3 + 1.3) * rumble * 0.8;
   }
 }
+// Drawing-buffer pixels per metre at 1 m from the lens (the weather's
+// flakes and grains keep their size whatever the resolution).
+function weatherScale() {
+  renderer.getDrawingBufferSize(bufferSize);
+  return bufferSize.y / (2 * Math.tan(T.MathUtils.degToRad(camera.fov) / 2));
+}
 // Ease-out with a small overshoot, for things that pop into view.
 const backOut = (t) => 1 + 2.70158 * (t - 1) ** 3 + 1.70158 * (t - 1) ** 2;
 const camTarget = new T.Vector3(),
@@ -2638,7 +2788,7 @@ let skidGlow = false,
   windDebt = 0;
 function renderRace(dt) {
   const p = race.player;
-  skidGlow = race.track.index === 2;
+  skidGlow = world.atmos.name === "night";
   if (smokeFor !== world.atmos) {
     smokeFor = world.atmos;
     SMOKE.forEach((c, i) => (smokeNow[i] = smokeTint.set(c).multiply(tmpTint.set(world.atmos.smoke)).getHex()));
@@ -2662,7 +2812,7 @@ function renderRace(dt) {
         if (!w.front && Math.random() < dt * 14) {
           w.mesh.getWorldPosition(wheelWorld);
           wheelWorld.y = s.p.y + 0.15;
-          const dust = race.track.index === 1 ? 0xf3d9c4 : race.track.index === 2 ? 0x8a93c8 : 0x9bc46e;
+          const dust = [0x9bc46e, 0xf3d9c4, 0x8a93c8, 0xf4f8fd, 0xe9c48c][themeOf(race.track.index)] ?? 0x9bc46e;
           if (sprites) puff(wheelWorld, dust, 0.5, 0.55, carryOf(s, r.speed * 0.35), 1.6);
           else spark(wheelWorld, dust, 0, s.t.clone().multiplyScalar(r.speed * 0.7));
         }
@@ -2863,7 +3013,8 @@ function renderRace(dt) {
       dynamicMeshes.delete(id);
     }
   world.moving.forEach((o) => {
-    if (o.type === "mill") o.mesh.rotation.z = clock * 0.22;
+    if (o.type === "weather") o.update(camera, clock, weatherScale());
+    else if (o.type === "mill") o.mesh.rotation.z = clock * 0.22;
     else if (o.type === "halo") o.mesh.rotation.y = clock * 0.3;
     else if (o.type === "balloon") {
       o.mesh.position.y = o.y + Math.sin(clock * 1.1 + o.phase) * 0.45;

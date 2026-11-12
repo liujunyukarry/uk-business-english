@@ -3773,3 +3773,179 @@ dialog {
 .diag button {
   min-height: 40px;
 }
+
+/* v2.8: rules × format, theme tabs and cups in the garage. */
+.setup-top {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+.setup-top .segmented button {
+  white-space: nowrap;
+}
+.setup-top select {
+  margin-left: auto;
+}
+.theme-chips {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 9px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.theme-chips::-webkit-scrollbar {
+  display: none;
+}
+.theme-chips button {
+  flex: 1 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 7px 8px;
+  border-radius: 999px;
+  border: 1px solid #70896d2b;
+  background: #ffffff3b;
+  color: #4f6652;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: 0.2s;
+}
+.theme-chips button.active {
+  background: #344f42;
+  border-color: #344f42;
+  color: #fff9e3;
+}
+/* The cup tab stands apart from the themes. */
+.theme-chips [data-format] {
+  border-color: #c99a4a66;
+  background: #fff3d44d;
+}
+.theme-chips [data-format].active {
+  background: #8a5a1f;
+  border-color: #8a5a1f;
+}
+.track-options .track-card {
+  width: auto;
+  flex: 1 1 0;
+  min-width: 0;
+}
+.track-card b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cup-card {
+  position: relative;
+  text-align: center;
+}
+.cup-card .cup-icon {
+  display: block;
+  font-size: 19px;
+  line-height: 1.35;
+  margin-bottom: 3px;
+}
+.cup-card .trophy {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 14px;
+  line-height: 1;
+}
+.trophy-won {
+  margin-bottom: 6px;
+}
+@media (max-width: 900px) and (min-height: 521px) {
+  .theme-chips {
+    margin-bottom: 7px;
+  }
+  .theme-chips button {
+    min-height: 32px;
+    padding: 5px 7px;
+  }
+}
+/* Phones held upright: full-size touch targets (44 px). Landscape phones
+   keep the row compact (36 px): the panel has to fit above the garage. */
+@media (pointer: coarse) and (min-height: 521px) {
+  .theme-chips button {
+    min-height: 44px;
+  }
+}
+@media (pointer: coarse) and (max-height: 520px) {
+  .theme-chips button {
+    min-height: 36px;
+  }
+}
+@media (max-height: 680px) and (max-width: 900px) and (min-height: 521px) {
+  .cup-card .cup-icon {
+    font-size: 15px;
+    margin-bottom: 1px;
+  }
+  .cup-card small {
+    display: block !important;
+  }
+}
+@media (max-height: 520px) {
+  .theme-chips {
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+  .theme-chips button {
+    padding: 4px 6px;
+    font-size: 9px;
+    gap: 2px;
+  }
+  .setup-top {
+    gap: 6px;
+  }
+  .cup-card .cup-icon {
+    font-size: 14px;
+    margin-bottom: 0;
+  }
+}
+/* v2.8: kart series in the garage (a vertical label opens each series). */
+.karts {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.karts::-webkit-scrollbar {
+  display: none;
+}
+.karts .kart-card {
+  flex: 0 0 96px;
+}
+.series-label {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  writing-mode: vertical-rl;
+  padding: 4px 1px 4px 4px;
+  border-left: 2px solid #d9af7466;
+  color: #6b5a3c;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+.series-label:first-child {
+  border-left: 0;
+}
+.series-label small {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #a0743f;
+}
+@media (max-width: 900px) and (min-height: 521px) {
+  .karts .kart-card {
+    flex: 0 0 76px;
+  }
+}
+@media (max-height: 520px) {
+  .karts .kart-card {
+    flex: 0 0 72px;
+  }
+  .series-label {
+    font-size: 9px;
+  }
+}

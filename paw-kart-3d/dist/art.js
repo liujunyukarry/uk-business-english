@@ -1,12 +1,15 @@
 import * as T from "./vendor/three.module.js";
-import { kartAsset } from "./kart-assets.js?v=c995fd2b";
-import { buildBody, classicRig, poseRig, setEnvironment as setBodyEnvironment } from "./kart-bodies.js?v=c995fd2b";
-import { dog, animateDog, reactDog, material, ellipsoid, roundedBox, star as starMesh, faceDepth } from "./models.js?v=c995fd2b";
-import { CHARACTERS, seeded } from "./race.js?v=c995fd2b";
+import { kartAsset } from "./kart-assets.js?v=39cf6a4b";
+import { buildBody, classicRig, poseRig, setEnvironment as setBodyEnvironment } from "./kart-bodies.js?v=39cf6a4b";
+import { dog, animateDog, reactDog, material, ellipsoid, roundedBox, star as starMesh, faceDepth } from "./models.js?v=39cf6a4b";
+import { CHARACTERS, KARTS, seeded } from "./race.js?v=39cf6a4b";
 const scenerySphere = new T.SphereGeometry(1, 12, 8);
 const sphere = new T.SphereGeometry(1, 24, 18),
   unitBox = new T.BoxGeometry(1, 1, 1),
-  cylinder = new T.CylinderGeometry(1, 1, 1, 20);
+  cylinder = new T.CylinderGeometry(1, 1, 1, 20),
+  unitCone = new T.ConeGeometry(1, 1, 10);
+// (Shared by everything: never freed when a race is cleared up.)
+for (const geo of [scenerySphere, sphere, unitBox, cylinder, unitCone]) geo.userData.shared = true;
 const mcache = new Map();
 export function mat(c, rough = 0.7) {
   const k = c + ":" + rough;
@@ -33,6 +36,15 @@ export function box(g, c, p, s) {
 }
 export function cyl(g, c, p, s) {
   const m = new T.Mesh(cylinder, typeof c === "number" ? mat(c) : c);
+  m.position.set(...p);
+  m.scale.set(...s);
+  m.castShadow = true;
+  m.receiveShadow = true;
+  g.add(m);
+  return m;
+}
+export function cone(g, c, p, s) {
+  const m = new T.Mesh(unitCone, typeof c === "number" ? mat(c) : c);
   m.position.set(...p);
   m.scale.set(...s);
   m.castShadow = true;
@@ -947,7 +959,9 @@ export function createKart(kind = "gold", number = 1, bodyId = "classic") {
   const info = CHARACTERS.find((c) => c.id === kind),
     accent = info ? new T.Color(info.color).getHex() : 0xeeae55;
   // A premium body (闪电 GT, 喷射火箭, 幻影星舰) or the classic Kenney kart.
-  const premium = bodyId && bodyId !== "classic" ? buildBody(bodyId) : null;
+  // (v2.8: a kart id names a body and its livery.)
+  const spec = KARTS[bodyId],
+    premium = bodyId && bodyId !== "classic" ? buildBody(spec?.body || bodyId, spec?.trim) : null;
   let asset,
     rig = premium?.rig || null,
     extraGlow = [];
@@ -1563,6 +1577,38 @@ function ribbon(track, offset, width, color, y = 0.04) {
   return mesh;
 }
 function tree(g, theme, rng) {
+  if (theme === 3) {
+    // Snowy pine: three tiers, each with snow on its top.
+    cyl(g, 0x6e5038, [0, 0.9, 0], [0.32, 1.8, 0.32]);
+    const green = [0x2f6b52, 0x3a7a5c, 0x2a5f4c][Math.floor(rng() * 3)];
+    for (const [y, r, h] of [[2.4, 2.3, 2.6], [3.9, 1.75, 2.3], [5.2, 1.15, 2]]) {
+      cone(g, green, [0, y, 0], [r, h, r]);
+      cone(g, 0xf7fbff, [0, y + h * 0.28, 0], [r * 0.62, h * 0.45, r * 0.62]);
+    }
+    return;
+  }
+  if (theme === 4) {
+    if (rng() < 0.62) {
+      // Saguaro cactus with two arms.
+      const green = [0x5f9a4c, 0x6aa257, 0x548c45][Math.floor(rng() * 3)],
+        h = 4.2 + rng() * 2;
+      cyl(g, green, [0, h / 2, 0], [0.42, h, 0.42]);
+      ball(g, green, [0, h, 0], [0.42, 0.42, 0.42]);
+      for (const s of [-1, 1]) {
+        const y = h * (0.35 + rng() * 0.25),
+          up = 1.2 + rng() * 1.2;
+        cyl(g, green, [s * 0.7, y, 0], [0.26, 1.1, 0.26]).rotation.z = Math.PI / 2;
+        cyl(g, green, [s * 1.2, y + up / 2, 0], [0.26, up, 0.26]);
+        ball(g, green, [s * 1.2, y + up, 0], [0.26, 0.26, 0.26]);
+      }
+      if (rng() < 0.4) ball(g, 0xff7aa6, [0, h + 0.4, 0], [0.22, 0.16, 0.22]);
+    } else {
+      // Dry shrub on a sandy rock.
+      ball(g, 0xc99a63, [0, 0.4, 0], [1.4, 0.7, 1.2]);
+      ball(g, [0x9aa35a, 0xa8a05c][Math.floor(rng() * 2)], [0.2, 1.1, 0], [1.2, 0.9, 1.1]);
+    }
+    return;
+  }
   const trunk = theme === 1 ? 0xf3eee0 : 0x967952;
   cyl(g, trunk, [0, 1.5, 0], [0.4, 3, 0.4]);
   const color =
@@ -1575,7 +1621,19 @@ function tree(g, theme, rng) {
   ball(g, color, [1.8, 3.9, 0.2], [1.8, 2, 1.8]);
   ball(g, color, [-1.4, 4, 0.4], [1.8, 2.1, 1.8]);
 }
-function flower(g, rng) {
+function flower(g, rng, theme = 0) {
+  if (theme === 3) {
+    // A little drift of snow, sometimes with an ice shard in it.
+    ball(g, 0xf7fbff, [0, 0.05, 0], [0.6, 0.28, 0.5]);
+    if (rng() < 0.4) cone(g, 0xbfe6ff, [0.15, 0.35, 0], [0.14, 0.7, 0.14]);
+    return;
+  }
+  if (theme === 4) {
+    // Pebbles.
+    ball(g, [0xc98a5a, 0xb9784a, 0xd9a676][Math.floor(rng() * 3)], [0, 0.08, 0], [0.34, 0.22, 0.3]);
+    ball(g, 0xd9a676, [0.42, 0.05, 0.1], [0.2, 0.14, 0.18]);
+    return;
+  }
   const col = [0xffe3a4, 0xf3c0c0, 0xfff6dc][Math.floor(rng() * 3)];
   for (let j = 0; j < 5; j++)
     ball(g, col, [Math.cos(j * 1.257) * 0.25, 0.12, Math.sin(j * 1.257) * 0.25], [0.2, 0.09, 0.2]);
@@ -1781,6 +1839,62 @@ export const ATMOS = [
     // (The threshold sits above anything the moon lights: the neon glows,
     // white karts and drivers do not.)
     look: { bloom: 0.85, threshold: 0.95, exposure: 1.05, saturation: 1.15, contrast: 0.24, vignette: 0.3, gain: [0.98, 0.99, 1.04], lift: [0.008, 0, 0.024] },
+  },
+  // v2.8: a crisp snowy morning under a deep blue sky.
+  {
+    name: "snow",
+    sky: [
+      [-6, "#eef6fd"],
+      [0, "#e4f1fc"],
+      [6, "#cbe4fa"],
+      [22, "#8cc2f2"],
+      [70, "#3f86de"],
+    ],
+    fog: [0xdeebf8, 160, 520],
+    sun: { dir: [-0.42, 0.5, 0.64], colour: 0xfff1e2, intensity: 2.1 },
+    hemi: [0xd4e6ff, 0xaec4da, 1.15],
+    disc: { colour: [2, 1.9, 1.7], size: 160 },
+    cloud: ["#ffffff", "#cddff1", 20, 0xffffff],
+    ranges: [0x8ea8c6, 0x7d98ba, 0xa6bcd6],
+    ground: 0xe3ecf6,
+    verge: ["#eef5fd", "#dce8f5"],
+    shoulder: 0xd2e0ee,
+    road: 0x505d75,
+    curb: 0x3d8fe0,
+    rail: [0xffffff, 0x8db7e2],
+    water: 0xb7dcef, // a frozen lake
+    hills: 0xe9f1fa,
+    smoke: 0xffffff,
+    // (White snow in full sun sits near 1: the threshold is above it, so
+    // only lights and boosts glow.)
+    look: { bloom: 0.4, threshold: 1.08, exposure: 0.96, saturation: 1.1, contrast: 0.22, vignette: 0.2, gain: [0.98, 1, 1.03], lift: [0, 0.006, 0.018] },
+  },
+  // v2.8: a golden afternoon in the desert, red mesas on the horizon.
+  {
+    name: "desert",
+    sky: [
+      [-6, "#f6dab0"],
+      [0, "#f3d4a6"],
+      [6, "#ecd7b4"],
+      [20, "#9ccae6"],
+      [70, "#3a8ad4"],
+    ],
+    fog: [0xeed4a8, 170, 560],
+    sun: { dir: [0.46, 0.6, 0.55], colour: 0xffe0b2, intensity: 2.5 },
+    hemi: [0xcfe0ef, 0xd49a60, 1.12],
+    disc: { colour: [2.3, 1.95, 1.4], size: 190 },
+    cloud: ["#fff6ea", "#efd0ad", 8, 0xfff2e4],
+    ranges: [0xc4653a, 0xd5854c, 0xb25632],
+    ground: 0xe3bd84,
+    verge: ["#ecca92", "#e1bd80"],
+    shoulder: 0xefd7a6,
+    road: 0x675244,
+    curb: 0xdc5236,
+    rail: [0xfff0d8, 0xc7884f],
+    water: 0x2aaea6, // the oasis
+    hills: 0xe5b97a,
+    smoke: 0xf2d9b0, // dust
+    look: { bloom: 0.45, threshold: 1, exposure: 1, saturation: 1.14, contrast: 0.22, vignette: 0.22, gain: [1.03, 1, 0.95], lift: [0.012, 0.004, 0] },
   },
 ];
 const smooth = (a, b, x) => {
@@ -2176,7 +2290,7 @@ function skyDome(theme) {
 }
 // Vertex-coloured gradient dome, for the compatibility renderer.
 function flatSky(theme, horizonHex) {
-  const top = [0x2476dc, 0x5a6fd2, 0x070a24][theme],
+  const top = [0x2476dc, 0x5a6fd2, 0x070a24, 0x3f86de, 0x3a8ad4][theme],
     horizon = new T.Color(horizonHex),
     zenith = new T.Color(top),
     geo = new T.SphereGeometry(560, 32, 16),
@@ -2214,17 +2328,33 @@ function ranges(track, theme, horizonHex) {
     for (let i = 0; i < 18; i++) {
       const a = (i / 18) * Math.PI * 2 + ring * 0.17 + rng() * 0.12,
         r = 360 + ring * 70 + rng() * 40,
-        h = (theme === 1 ? 40 : 70) + rng() * (theme === 1 ? 40 : 90),
-        w = 60 + rng() * 70,
+        mesa = theme === 4,
+        h = mesa ? 26 + rng() * 44 : (theme === 1 ? 40 : 70) + rng() * (theme === 1 ? 40 : 90) + (theme === 3 ? 30 : 0),
+        w = (mesa ? 50 : 60) + rng() * 70,
         col = new T.Color(palettes[Math.floor(rng() * 3)]).lerp(horizon, 0.3 + ring * 0.28);
       col.setHex(col.getHex()); // quantise so materials can be shared
-      const geo = theme === 1 ? new T.SphereGeometry(1, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2) : new T.ConeGeometry(1, 1, 6 + Math.floor(rng() * 3));
+      // Hills by the bay, flat-topped mesas in the desert, peaks elsewhere.
+      const geo =
+        theme === 1
+          ? new T.SphereGeometry(1, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2)
+          : mesa
+            ? new T.CylinderGeometry(0.82, 1, 1, 7)
+            : new T.ConeGeometry(1, 1, 6 + Math.floor(rng() * 3));
       const m = new T.Mesh(geo, matFor(col));
       m.position.set(cx + Math.cos(a) * r, theme === 1 ? -6 : h / 2 - 8, cz + Math.sin(a) * r);
       m.scale.set(w, theme === 1 ? h : h, w * (0.7 + rng() * 0.5));
       m.rotation.y = rng() * Math.PI;
       g.add(m);
-      if (theme === 0 && h > 120) {
+      if (mesa) {
+        // A paler band of rock near the top.
+        const band = new T.Mesh(new T.CylinderGeometry(0.835, 0.86, 1, 7), matFor(new T.Color(0xe9b07a).lerp(horizon, 0.3 + ring * 0.28)));
+        band.position.copy(m.position);
+        band.position.y += h * 0.3;
+        band.scale.set(w, h * 0.12, m.scale.z);
+        band.rotation.y = m.rotation.y;
+        g.add(band);
+      }
+      if ((theme === 0 && h > 120) || theme === 3) {
         // Snow caps on the tallest peaks.
         const cap = new T.Mesh(new T.ConeGeometry(1, 1, m.geometry.parameters.radialSegments), matFor(new T.Color(0xf6fbff).lerp(horizon, 0.2)));
         cap.position.copy(m.position);
@@ -2247,8 +2377,8 @@ function grandstand(g, decor, track, theme, moving) {
   stand.position.copy(s.p);
   stand.rotation.y = s.yaw + Math.PI / 2;
   decor.add(stand);
-  const wood = theme === 2 ? 0x7d86c4 : 0xf2e2c4,
-    trim = theme === 2 ? 0xb8c2ff : theme === 1 ? 0xf09cbc : 0xe8a35f;
+  const wood = theme === 2 ? 0x7d86c4 : theme === 3 ? 0xdfe9f4 : 0xf2e2c4,
+    trim = theme === 2 ? 0xb8c2ff : theme === 1 ? 0xf09cbc : theme === 3 ? 0x3d8fe0 : theme === 4 ? 0xd9673f : 0xe8a35f;
   for (let tier = 0; tier < 4; tier++) box(stand, tier % 2 ? wood : 0xfff6e3, [tier * 1.6, 0.5 + tier * 0.9, 0], [1.6, 1 + tier * 1.8, 34]);
   box(stand, trim, [6.6, 5.2, 0], [0.4, 0.5, 34.4]);
   box(stand, trim, [3.2, 7.4, 0], [8, 0.3, 35]).rotation.z = -0.18;
@@ -2327,6 +2457,25 @@ function gate(theme, width, index) {
     });
     arch(R, 0.5, stripes);
     for (const s of [-1, 1]) ball(g, [0xffd36e, 0x9ee6d4][(index + (s > 0 ? 1 : 0)) % 2], [s * R, 0.7, 0], [1.1, 1.1, 1.1]);
+  } else if (theme === 3) {
+    // Ice: a glassy arch crowned with crystals.
+    const ice = compatibility ? mat(0xbfe6ff) : cached("iceArch", () => new T.MeshStandardMaterial({ color: 0xc4ecff, emissive: 0x2f7fb0, emissiveIntensity: 0.25, roughness: 0.12, metalness: 0.05 }));
+    arch(R, 0.42, ice);
+    for (let i = 1; i < 8; i++) {
+      const a = (i / 8) * Math.PI;
+      const shard = cone(g, ice, [Math.cos(a) * (R + 0.55), Math.sin(a) * (R + 0.55), 0], [0.28, 1.3 + ((i + index) % 3) * 0.35, 0.28]);
+      shard.rotation.z = a - Math.PI / 2;
+    }
+  } else if (theme === 4) {
+    // Sandstone arch, with pennants on top.
+    arch(R, 0.62, mat(0xcf8a55, 0.95));
+    arch(R + 0.5, 0.18, mat(0xe8b47e, 0.95)).position.z = 0.3;
+    const pennant = [0xdc5236, 0x2aaea6, 0xf3c24b];
+    for (let i = 1; i < 6; i++) {
+      const a = (i / 6) * Math.PI,
+        f = cone(g, pennant[(i + index) % 3], [Math.cos(a) * (R + 1.2), Math.sin(a) * (R + 1.2), 0], [0.26, 0.9, 0.06]);
+      f.rotation.z = a - Math.PI / 2;
+    }
   } else {
     const colour = [0x4de3ff, 0xff5fd0, 0xffd95e][index % 3];
     // (Kept modest: the kart passes right under these, where a brighter
@@ -2385,11 +2534,96 @@ export function boostPad() {
 export function updateWorldFx(t) {
   if (padArrows) padArrows.offset.y = -((t * 1.25) % 1);
 }
+// Falling snow, or sand blowing across the desert (v2.8): points in a box
+// that follows the camera, moved and wrapped round entirely on the GPU, so
+// it costs one draw call and no work per frame beyond three uniforms.
+const WEATHER_VERT = `
+uniform float time; uniform vec3 centre; uniform vec3 box; uniform float size; uniform float scale; uniform vec3 wind;
+attribute vec4 seed;
+varying float vAlpha;
+void main(){
+  vec3 p = seed.xyz * box + wind * time;
+  p.x += sin(time * 0.9 + seed.w * 6.283) * 0.7;
+  p.z += cos(time * 0.7 + seed.w * 6.283) * 0.7;
+  p = mod(p - centre, box) - box * 0.5 + centre; // wrapped round the camera
+  vec4 mv = modelViewMatrix * vec4(p, 1.0);
+  gl_Position = projectionMatrix * mv;
+  float d = -mv.z;
+  gl_PointSize = size * (0.55 + seed.w * 0.9) * scale / max(d, 0.5);
+  // Fade out right at the lens and towards the edge of the box.
+  vAlpha = smoothstep(0.6, 3.0, d) * (1.0 - smoothstep(box.z * 0.32, box.z * 0.48, d));
+}`;
+const WEATHER_FRAG = `
+uniform vec3 colour; uniform float opacity;
+varying float vAlpha;
+void main(){
+  float r = length(gl_PointCoord - 0.5);
+  float a = smoothstep(0.5, 0.12, r) * vAlpha * opacity;
+  if (a < 0.01) discard;
+  gl_FragColor = vec4(colour, a);
+}`;
+export function weather(kind) {
+  if (compatibility) return null;
+  const snow = kind === "snow",
+    n = snow ? 900 : 560,
+    rng = seeded(snow ? 71 : 72),
+    seeds = new Float32Array(n * 4),
+    geo = new T.BufferGeometry();
+  for (let i = 0; i < seeds.length; i++) seeds[i] = rng();
+  geo.setAttribute("position", new T.BufferAttribute(new Float32Array(n * 3), 3)); // (placed by the shader)
+  geo.setAttribute("seed", new T.BufferAttribute(seeds, 4));
+  const uniforms = {
+    time: { value: 0 },
+    centre: { value: new T.Vector3() },
+    box: { value: new T.Vector3(70, 34, 70) },
+    size: { value: snow ? 0.17 : 0.1 },
+    scale: { value: 800 },
+    wind: { value: snow ? new T.Vector3(1.1, -2.4, 0.6) : new T.Vector3(7.5, -0.3, 2.2) },
+    colour: { value: new T.Color(snow ? 0xffffff : 0xf8e2b8) },
+    opacity: { value: snow ? 0.92 : 0.38 },
+  };
+  const mesh = new T.Points(geo, new T.ShaderMaterial({ vertexShader: WEATHER_VERT, fragmentShader: WEATHER_FRAG, uniforms, transparent: true, depthWrite: false, toneMapped: false, fog: false }));
+  mesh.frustumCulled = false;
+  mesh.renderOrder = 4;
+  return {
+    mesh,
+    type: "weather",
+    // `pixels`: drawing-buffer pixels per unit of point size at 1 m.
+    update(camera, t, pixels) {
+      uniforms.time.value = t;
+      uniforms.centre.value.copy(camera.position);
+      uniforms.scale.value = pixels;
+    },
+  };
+}
+// The widest open spot inside a lap (for a lake or an oasis): the point of
+// the track's bounding box furthest from the road, if it is far enough.
+function infield(track) {
+  const pts = track.points.filter((_, i) => i % 6 === 0),
+    xs = pts.map((p) => p.x),
+    zs = pts.map((p) => p.z);
+  let best = null;
+  for (let x = Math.min(...xs); x <= Math.max(...xs); x += 6)
+    for (let z = Math.min(...zs); z <= Math.max(...zs); z += 6) {
+      let d = Infinity;
+      for (const p of pts) d = Math.min(d, (x - p.x) ** 2 + (z - p.z) ** 2);
+      d = Math.sqrt(d);
+      // Inside the lap: a ray to +x crosses the centre line an odd number of times.
+      let crossings = 0;
+      for (let i = 0; i < pts.length; i++) {
+        const a = pts[i],
+          b = pts[(i + 1) % pts.length];
+        if (a.z > z !== b.z > z && x < a.x + ((z - a.z) / (b.z - a.z)) * (b.x - a.x)) crossings++;
+      }
+      if (crossings % 2 && (!best || d > best.d)) best = { x, z, d };
+    }
+  return best && best.d > 38 ? { x: best.x, z: best.z, r: Math.min(46, best.d - 18) } : null;
+}
 export function createWorld(track) {
   const g = new T.Group(),
     decor = new T.Group(),
     moving = [],
-    theme = track.index,
+    theme = track.config.theme ?? track.index,
     c = track.config,
     a = ATMOS[theme],
     rng = seeded(9812 + theme);
@@ -2406,7 +2640,9 @@ export function createWorld(track) {
   terrainGeo.rotateX(-Math.PI / 2);
   terrainGeo.translate(65, 0, 0);
   const groundPoints = track.points.filter((_, i) => i % 8 === 0),
-    pos = terrainGeo.attributes.position;
+    pos = terrainGeo.attributes.position,
+    // A frozen lake (snow) or an oasis (desert) in the infield.
+    lake = theme === 3 || theme === 4 ? infield(track) : null;
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i),
       z = pos.getZ(i);
@@ -2423,8 +2659,12 @@ export function createWorld(track) {
       mix = Math.exp(-Math.max(0, dist - 15) / 28),
       // The candy coast is a strip of land in a bay: away from the road the
       // ground runs down under the sea.
-      sink = theme === 1 ? smooth(38, 100, dist) * 4.6 : 0;
-    pos.setY(i, (height - 0.45) * mix + (-1.4 - sink + Math.sin(x * 0.027) * Math.cos(z * 0.023) * 1.3) * (1 - mix));
+      sink = theme === 1 ? smooth(38, 100, dist) * 4.6 : 0,
+      // Snow: a valley, the slopes rising away from the road. Desert: dunes.
+      rise = theme === 3 ? smooth(45, 170, dist) * 26 : 0,
+      dunes = theme === 4 ? (Math.sin(x * 0.045 + z * 0.012) * 2.2 + Math.sin(z * 0.06 - x * 0.02) * 1.4 + 1.2) * smooth(26, 70, dist) : 0,
+      pond = lake ? smooth(lake.r, lake.r * 0.45, Math.hypot(x - lake.x, z - lake.z)) * 4.4 : 0;
+    pos.setY(i, (height - 0.45) * mix + (-1.4 - sink + rise + dunes - pond + Math.sin(x * 0.027) * Math.cos(z * 0.023) * 1.3) * (1 - mix));
   }
   terrainGeo.computeVertexNormals();
   const terrain = new T.Mesh(terrainGeo, groundMaterial(theme));
@@ -2479,7 +2719,7 @@ export function createWorld(track) {
         const fl = new T.Group();
         fl.position.copy(track.sample(d, side * (c.width / 2 + 2 + rng() * 3)).p);
         fl.scale.setScalar(1.2 + rng());
-        flower(fl, rng);
+        flower(fl, rng, theme);
         decor.add(fl);
       }
     }
@@ -2503,6 +2743,41 @@ export function createWorld(track) {
       ring.position.set(0, 9, 0.63);
       w.add(ring);
       moving.push({ mesh: lol, type: "lollipop" });
+    } else if (theme === 3) {
+      // A great snowflake on a pole, turning slowly.
+      cyl(w, 0xdfe9f4, [0, 4, 0], [0.3, 8, 0.3]);
+      const flake = new T.Group();
+      flake.position.y = 9.2;
+      w.add(flake);
+      const ice = mat(0xeaf6ff, 0.25);
+      for (let k = 0; k < 6; k++) {
+        const arm = new T.Group();
+        arm.rotation.z = (k * Math.PI) / 3;
+        flake.add(arm);
+        box(arm, ice, [0, 1.5, 0], [0.32, 3, 0.18]);
+        for (const y of [1.3, 2.2])
+          for (const sd of [-1, 1]) box(arm, ice, [sd * 0.38, y + 0.3, 0], [0.16, 0.9, 0.14]).rotation.z = sd * 0.75;
+      }
+      moving.push({ mesh: flake, type: "halo" });
+    } else if (theme === 4) {
+      // A windpump: lattice tower, a bladed wheel turning in the wind.
+      for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+        const leg = box(w, 0x8a6a4a, [sx * 0.8, 4, sz * 0.8], [0.16, 8.2, 0.16]);
+        leg.rotation.set(sz * 0.08, 0, -sx * 0.08);
+      }
+      for (const y of [2.5, 5]) box(w, 0x8a6a4a, [0, y, 0], [1.9 - y * 0.12, 0.12, 1.9 - y * 0.12]);
+      const wheel = new T.Group();
+      wheel.position.set(0, 8.6, 0.9);
+      w.add(wheel);
+      for (let k = 0; k < 12; k++) {
+        const blade = new T.Group();
+        blade.rotation.z = (k / 12) * Math.PI * 2;
+        wheel.add(blade);
+        box(blade, k % 2 ? 0xf2e6d0 : 0xdc5236, [0, 1.35, 0], [0.42, 1.5, 0.05]).rotation.y = 0.35;
+      }
+      ball(wheel, 0x6b5442, [0, 0, 0.05], [0.3, 0.3, 0.3]);
+      box(w, 0xf2e6d0, [0, 8.6, -1.2], [0.08, 0.9, 1.6]);
+      moving.push({ mesh: wheel, type: "mill" });
     } else {
       const hoop = new T.Mesh(new T.TorusGeometry(3, 0.2, 8, 40), neon(0xffdc8d, 1.6));
       hoop.position.y = 6;
@@ -2520,7 +2795,7 @@ export function createWorld(track) {
     decor.add(arch);
   });
   // Trackside lights (dusk and night): lanterns on posts, each with a halo.
-  if (theme > 0) {
+  if (theme === 1 || theme === 2) {
     const halos = [],
       bulbs = theme === 1 ? [neon(0xffc66e, 1.9)] : [neon(0x4de3ff, 1.9), neon(0xff5fd0, 1.9)],
       post = theme === 1 ? 0xfff3df : 0x5560a8;
@@ -2595,6 +2870,74 @@ export function createWorld(track) {
       decor.add(m);
     }
   }
+  if (theme === 3) {
+    // Snowmen along the road, and clusters of ice crystals.
+    for (let i = 0; i < 8; i++) {
+      const s = track.sample(((i + 0.3) / 8) * track.length, (i % 2 ? 1 : -1) * (c.width / 2 + 7 + rng() * 5)),
+        sm = new T.Group();
+      sm.position.copy(s.p);
+      sm.rotation.y = s.yaw + (i % 2 ? -1 : 1) * 1.2;
+      ball(sm, 0xf7fbff, [0, 0.9, 0], [1.1, 1, 1.1]);
+      ball(sm, 0xf7fbff, [0, 2.2, 0], [0.8, 0.75, 0.8]);
+      ball(sm, 0xf7fbff, [0, 3.2, 0], [0.55, 0.55, 0.55]);
+      cone(sm, 0xff8a3d, [0, 3.2, 0.62], [0.1, 0.5, 0.1]).rotation.x = Math.PI / 2;
+      for (const sd of [-1, 1]) ball(sm, 0x2a2f3a, [sd * 0.2, 3.38, 0.48], [0.07, 0.07, 0.05]);
+      cyl(sm, 0x2a2f3a, [0, 3.85, 0], [0.42, 0.55, 0.42]);
+      cyl(sm, 0x2a2f3a, [0, 3.6, 0], [0.62, 0.06, 0.62]);
+      box(sm, [0xdc5236, 0x3d8fe0, 0xf3c24b][i % 3], [0, 2.75, 0.1], [1.1, 0.2, 0.9]);
+      decor.add(sm);
+    }
+    const ice = compatibility ? mat(0xbfe6ff) : cached("iceArch", () => new T.MeshStandardMaterial({ color: 0xc4ecff, emissive: 0x2f7fb0, emissiveIntensity: 0.25, roughness: 0.12, metalness: 0.05 }));
+    for (let i = 0; i < 26; i++) {
+      const s = track.sample(rng() * track.length, (rng() < 0.5 ? 1 : -1) * (c.width / 2 + 5 + rng() * 12));
+      for (let k = 0; k < 3; k++) {
+        const h = 1 + rng() * 2.6,
+          m = cone(decor, ice, [s.p.x + (rng() - 0.5) * 1.6, s.p.y + h * 0.4, s.p.z + (rng() - 0.5) * 1.6], [0.32 + rng() * 0.2, h, 0.32 + rng() * 0.2]);
+        m.rotation.set((rng() - 0.5) * 0.6, rng() * 3, (rng() - 0.5) * 0.6);
+      }
+    }
+  } else if (theme === 4) {
+    // Hoodoos (stacked rock spires) and two pyramids on the horizon.
+    for (let i = 0; i < 16; i++) {
+      const s = track.sample(rng() * track.length, (rng() < 0.5 ? 1 : -1) * (c.width / 2 + 9 + rng() * 16)),
+        h = 3 + rng() * 5;
+      let y = s.p.y;
+      for (let k = 0; k < 3; k++) {
+        const r = (1.6 - k * 0.35) * (0.8 + rng() * 0.4);
+        ball(decor, [0xc4653a, 0xd5854c, 0xe0a067][k], [s.p.x, y + h * 0.18, s.p.z], [r, h * 0.2, r]);
+        y += h * 0.33;
+      }
+    }
+    const cx = track.points.reduce((sum, p) => sum + p.x, 0) / track.points.length,
+      cz = track.points.reduce((sum, p) => sum + p.z, 0) / track.points.length;
+    [[250, 0.8, 70], [300, 1.15, 46]].forEach(([r, ang, h]) => {
+      const py = new T.Mesh(new T.ConeGeometry(h * 1.1, h, 4), mat(0xe8bf84, 0.95));
+      py.position.set(cx + Math.cos(ang) * r, h / 2 - 4, cz + Math.sin(ang) * r);
+      py.rotation.y = Math.PI / 4;
+      g.add(py);
+    });
+  }
+  if (lake) {
+    // Round the water: palms at the oasis, snowy rocks by the frozen lake.
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2 + rng() * 0.3,
+        r = lake.r * (0.92 + rng() * 0.25),
+        at = new T.Group();
+      at.position.set(lake.x + Math.cos(a) * r, -1.2, lake.z + Math.sin(a) * r);
+      if (theme === 4) {
+        const lean = (rng() - 0.5) * 0.5;
+        for (let k = 0; k < 6; k++) cyl(at, 0x9b7652, [lean * k * 0.25, 0.6 + k * 1.1, 0], [0.28 - k * 0.02, 1.15, 0.28 - k * 0.02]);
+        for (let k = 0; k < 6; k++) {
+          const leaf = ball(at, [0x4f9a45, 0x5daa4e][k % 2], [lean * 1.5 + Math.cos((k / 6) * 6.28) * 1.4, 7.1, Math.sin((k / 6) * 6.28) * 1.4], [1.9, 0.18, 0.55]);
+          leaf.rotation.y = -(k / 6) * 6.28;
+          leaf.rotation.z = -0.35;
+        }
+      } else {
+        ball(at, 0xf3f8fd, [0, 0.6, 0], [1.4 + rng(), 0.8, 1.2 + rng()]);
+      }
+      decor.add(at);
+    }
+  }
   const start = track.sample(0),
     arch = new T.Group();
   arch.position.copy(start.p);
@@ -2629,6 +2972,11 @@ export function createWorld(track) {
     );
   }
   grandstand(g, decor, track, theme, moving);
+  const air = theme === 3 ? weather("snow") : theme === 4 ? weather("sand") : null;
+  if (air) {
+    g.add(air.mesh);
+    moving.push(air);
+  }
   g.add(ranges(track, theme, new T.Color(a.sky[1][1]).getHex()));
   const sky = skyDome(theme);
   g.add(sky);
@@ -2839,7 +3187,7 @@ export function makeMeteor() {
 // An empty kart for the garage thumbnails (no driver).
 export function createShowroomKart(bodyId = "classic") {
   const g = new T.Group(),
-    premium = bodyId !== "classic" ? buildBody(bodyId) : null;
+    premium = bodyId !== "classic" ? buildBody(KARTS[bodyId]?.body || bodyId, KARTS[bodyId]?.trim) : null;
   g.add(premium ? premium.group : kartAsset("gold").model);
   if (premium?.rig) poseRig(premium.rig, 0);
   return g;

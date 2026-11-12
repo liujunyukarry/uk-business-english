@@ -258,7 +258,7 @@ test("speed race: nitro button fires stored charges; no specials or coins; separ
   // Back home, the speed race is still the chosen mode.
   await page.click("#back-home");
   await page.waitForTimeout(200);
-  assert.equal(await page.$eval('[data-mode="speed"]', (b) => b.getAttribute("aria-pressed")), "true");
+  assert.equal(await page.$eval('[data-rules="speed"]', (b) => b.getAttribute("aria-pressed")), "true"); // (v2.8: rules and format are separate)
   assert.match(await page.$eval("#start-copy", (e) => e.textContent), /竞速/);
   assert.match(await page.$eval("#record", (e) => e.textContent), /竞速最佳/);
 });

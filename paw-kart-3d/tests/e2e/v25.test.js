@@ -100,7 +100,7 @@ test("start boost: a tap long before GO is too early, and the player is told", a
   assert.match(s.toast, /按早啦/);
 });
 
-test("garage: the 车型 tab shows four bodies; the choice is remembered and raced", async (t) => {
+test("garage: the 车型 tab shows the bodies (four in v2.5, the four series heads among v2.8's thirteen); the choice is remembered and raced", async (t) => {
   const r = await openRace(browser, server.url, { width: 430, height: 932, start: false });
   t.after(() => r.ctx.close());
   const { page } = r;
@@ -109,7 +109,7 @@ test("garage: the 车型 tab shows four bodies; the choice is remembered and rac
   const cards = await page.$$eval("#karts [data-kart]", (els) =>
     els.map((b) => ({ id: b.dataset.kart, img: (b.querySelector("img").src || "").startsWith("data:image/png"), text: b.textContent })),
   );
-  assert.deepEqual(cards.map((c) => c.id), ["classic", "thunder", "jet", "phantom"]);
+  for (const id of ["classic", "thunder", "jet", "phantom"]) assert(cards.some((c) => c.id === id), id + " is offered");
   assert(cards.every((c) => c.img), "each body has a rendered thumbnail");
   assert.equal(await page.$eval("#characters", (e) => e.classList.contains("hidden")), true);
   await page.click('[data-kart="jet"]');
