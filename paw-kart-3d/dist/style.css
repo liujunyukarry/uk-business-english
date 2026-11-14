@@ -3796,12 +3796,12 @@ dialog {
   display: none;
 }
 .theme-chips button {
-  flex: 1 0 auto;
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 3px;
-  padding: 7px 8px;
+  padding: 7px 6px;
   border-radius: 999px;
   border: 1px solid #70896d2b;
   background: #ffffff3b;
@@ -3857,10 +3857,11 @@ dialog {
 @media (max-width: 900px) and (min-height: 521px) {
   .theme-chips {
     margin-bottom: 7px;
+    gap: 5px;
   }
   .theme-chips button {
     min-height: 32px;
-    padding: 5px 7px;
+    padding: 5px 5px;
   }
 }
 /* Phones held upright: full-size touch targets (44 px). Landscape phones
@@ -3947,5 +3948,71 @@ dialog {
   }
   .series-label {
     font-size: 9px;
+  }
+}
+/* Short landscape phones (iPhone SE / mini, 375 px high): the panel must end
+   above the garage row, so the cards drop their track outline and the
+   spacing tightens. (Found by the layout audit: with the tab row added, the
+   start button sat under the garage on these.) */
+@media (max-height: 400px) {
+  .setup {
+    top: 64px;
+  }
+  .setup-top {
+    margin-bottom: 5px;
+  }
+  .theme-chips {
+    margin-bottom: 5px;
+  }
+  .track-options .track-card {
+    padding: 7px 5px;
+  }
+  .track-options .track-card svg {
+    display: none;
+  }
+  .cup-card .cup-icon {
+    display: inline;
+    font-size: 11px;
+    margin: 0 3px 0 0;
+  }
+  .cup-card b {
+    display: inline;
+  }
+  .start {
+    margin-top: 6px;
+    padding: 10px 15px;
+    min-height: 44px;
+  }
+}
+/* Desktop layout in a short window (an iPad on its side, a small laptop):
+   the panel is taller with the tab row, so the heading above it shrinks. */
+@media (max-height: 800px) and (min-width: 901px) {
+  .hero {
+    top: 13%;
+  }
+  .hero h1 {
+    font-size: 50px;
+    margin: 12px 0 8px;
+  }
+}
+@media (max-height: 720px) and (min-width: 901px) {
+  .hero {
+    top: 11%;
+  }
+  .hero h1 {
+    font-size: 40px;
+    letter-spacing: -2px;
+  }
+  .hero .eyebrow {
+    display: none;
+  }
+}
+/* The shortest landscape phones (360 px high). */
+@media (max-height: 370px) {
+  .setup {
+    top: 58px;
+  }
+  .start {
+    margin-top: 5px;
   }
 }

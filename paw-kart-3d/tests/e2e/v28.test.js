@@ -198,6 +198,27 @@ test("every track starts and runs in its theme; themes pick the music", { timeou
     assert.equal(s.atmos, want[i], s.name);
     assert.equal(s.title, s.name);
     assert(s.moved > 3, s.name + " is being driven: " + s.moved.toFixed(1) + " m");
+    // Nothing of the scenery stands on the road: rays dropped from 3 m above
+    // it (under the arches) every 6 m, on three lanes (the middle, and 2 m
+    // in from each kerb), reach the road surface. (A hill set out from one
+    // stretch once landed on the next.)
+    const blocked = await page.evaluate(() => {
+      const { T, world, race } = window.__pk,
+        track = race.track,
+        ray = new T.Raycaster(),
+        down = new T.Vector3(0, -1, 0),
+        found = [];
+      ray.far = 3.4;
+      for (let d = 0; d < track.length; d += 6)
+        for (const lane of [-(track.width / 2 - 2), 0, track.width / 2 - 2]) {
+          const at = track.sample(d, lane).p;
+          ray.set(new T.Vector3(at.x, at.y + 3, at.z), down);
+          const hit = ray.intersectObject(world.group, true).find((h) => h.object.isMesh && h.object.visible);
+          if (hit && hit.point.y > at.y + 0.4) found.push(Math.round(d) + " m, lane " + lane + ", " + (hit.point.y - at.y).toFixed(1) + " m high");
+        }
+      return found;
+    });
+    assert.deepEqual(blocked, [], s.name + ": scenery on the road");
   }
   assert.deepEqual(r.errors, []);
 });

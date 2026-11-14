@@ -34,7 +34,9 @@ test("start boost: tapping a steering half as the countdown runs out gives a per
   const r = await openRace(browser, server.url, { width: 430, height: 932 });
   t.after(() => r.ctx.close());
   await frozenAt(r.page, 0.2);
-  await r.page.waitForTimeout(500); // the labels fade out over 0.4 s
+  // The labels fade out over 0.4 s. (v2.8: waited for, not timed: a fixed
+  // 0.5 s wait read 0.004 once, when a frame came late.)
+  await r.page.waitForFunction(() => getComputedStyle(document.querySelector(".zone span")).opacity === "0", null, { timeout: 5000 });
   // In the start window the hint replaces the steering labels.
   const hint = await r.page.evaluate(() => ({
     shown: !document.querySelector("#start-hint").classList.contains("hidden"),

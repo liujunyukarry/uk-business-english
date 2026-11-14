@@ -483,3 +483,174 @@ Build id `c995fd2b`. A hotfix for a report from the iPhone 14 Pro Max: on v2.7 t
 
 - That the freeze is gone on the iPhone 14 Pro Max. The fixes remove the causes found here. If it happens again, a screenshot of 设置 → 运行诊断 right after it shows the slowest frame, context losses and errors.
 - Frame rate and heat at the 1.5x cap with the chain on.
+
+# v2.8 Verification — 2026-11-14
+
+Build id `5d11c32d`. Same container environment as before (headless Chrome on two CPU cores, no phone): the CPU renderer for most tests, the layout audit and the real-time playthroughs; SwiftShader WebGL for the screenshots and the theme test.
+
+## What was asked and how it was checked
+
+The requests: a speed-rules cup (the cup was item races only); more karts, more tracks and more difficulty, a harder one for speed races above all; tracks grouped by theme and karts in series, as KartRider does; and more review passes of my own.
+
+| Asked | Change | Evidence |
+|---|---|---|
+| A cup under speed rules | Rules (item / speed) and format (single race / cup) are chosen apart. Three cups of three races. Trophies by cup, rules and class. Old saves' `mode` is converted. | `tests/e2e/v28.test.js` (garage; a speed cup run to its final standings). |
+| More tracks, by theme | Nine tracks in five themes; a row of tabs (cups, then themes) in the garage. Two new themes: snow and desert. | `tests/v28.test.js` (geometry of every track), `tests/e2e/v28.test.js` (every track starts and is driven; snow and desert drawn under WebGL). The track table below. `docs/qa-2.8/`. |
+| More karts, in series | Thirteen karts in five series: liveries for the three premium bodies, and a new marshmallow body with its own transformation. | `tests/v28.test.js` (bounds; no kart beats another of its series on every count), `tests/e2e/v28.test.js` (garage row; the new body chosen, raced and transformed). The kart table below. |
+| More difficulty, speed races above all | A fourth class, 大师. The first three classes are unchanged. | `tests/v28.test.js` (the old values; the field is faster at 大师 on every track; a good driver still reaches the podium). The balance tables below. |
+
+## Tracks
+
+| # | Track | Theme | Lap | Tightest bend | Bends | Climb | Steepest | Clearance | AI pace |
+|---|---|---|---|---|---|---|---|---|---|
+| 0 | 花田晴空环线 | 花田 | 816 m | 14.0 m | 5 | 6 m | 4.4% | 52 m | — |
+| 1 | 蜜桃糖果海湾 | 糖果海湾 | 856 m | 9.1 m | 6 | 6 m | 4.7% | 44 m | — |
+| 2 | 星光云端公路 | 星光 | 846 m | 13.8 m | 6 | 15 m | 10.7% | 51 m | — |
+| 3 | 棉花糖码头 | 糖果海湾 | 914 m | 17.9 m | 5 | 3 m | 2.7% | 53 m | 0.984 |
+| 4 | 雪绒花滑道 | 冰雪 | 905 m | 13.0 m | 5 | 13 m | 5.3% | 51 m | 0.961 |
+| 5 | 金沙绿洲 | 沙漠 | 979 m | 16.1 m | 4 | 2 m | 1.8% | 53 m | 0.965 |
+| 6 | 冰晶峡谷 | 冰雪 | 1076 m | 14.2 m | 9 | 11 m | 6.1% | 53 m | 1.09 |
+| 7 | 赤岩峡谷 | 沙漠 | 1007 m | 11.5 m | 7 | 7 m | 4.4% | 48 m | 1.065 |
+| 8 | 银河天梯 | 星光 | 1130 m | 11.1 m | 9 | 20 m | 6.2% | 49 m | 0.967 |
+
+Climb is the height between the lowest and highest point of the lap; steepest is the steepest grade.
+
+- The first three are unchanged. The six new ones are longer and start on a straight.
+- Tightest bend: no new track is tighter than the 9.1 m hairpin of 蜜桃糖果海湾.
+- Clearance is the closest two parts of a lap come to each other (centre lines, more than 60 m apart along the lap). The scenery generator needs about 44 m.
+- Two layouts were thrown away on the way: a spiral that crossed itself (the terrain cannot do a bridge) and a canyon with a 5.2 m bend.
+- Boost pads on the new tracks sit on the straightest stretch near 20%, 50% and 80% of the lap.
+
+## Balance
+
+All figures come from the simulation's racer bot: it steers the line, drifts every bend with auto-drift and fires nitro on straights. "With start" adds a perfect start boost. Ranks are of eight.
+
+**Per-track AI pace.** Without it, the same class was easy on one track and hard on the next: at 150cc the AI's best time against the bot's ran from 2.5% faster (银河天梯) to 7% slower (冰晶峡谷), because AI karts lose more than a drifting player in tight bends and less on flowing tracks. Each new track has an `aiPace` factor set so that this ratio is close to that of the first three tracks.
+
+150cc, six seeds per track and rules (ranks in seed order). A ratio above 1: the fastest AI is slower than the bot.
+
+| Track | Speed race: AI best / bot | Bot's ranks | Item race: AI best / bot | Bot's ranks |
+|---|---|---|---|---|
+| 花田晴空环线 | 0.990 | 254631 | 1.004 | 413323 |
+| 蜜桃糖果海湾 | 1.004 | 311121 | 1.004 | 314111 |
+| 星光云端公路 | 0.993 | 221133 | 0.981 | 718412 |
+| 棉花糖码头 | 0.991 | 523331 | 0.997 | 173313 |
+| 雪绒花滑道 | 0.995 | 342114 | 0.977 | 245441 |
+| 金沙绿洲 | 0.991 | 223313 | 1.004 | 715121 |
+| 冰晶峡谷 | 1.004 | 211111 | 1.010 | 122114 |
+| 赤岩峡谷 | 1.007 | 111121 | 0.990 | 216351 |
+| 银河天梯 | 0.985 | 254573 | 0.995 | 331222 |
+
+- Speed races: 0.985–1.007 on all nine tracks (the first three: 0.990–1.004). Item races spread more (0.977–1.010; the first three 0.981–1.004): items add chance.
+
+- 冰晶峡谷 and 赤岩峡谷 are left a little easier for the bot on purpose: a thumb on a phone loses more time in their bends than the bot does (see the playthroughs below).
+
+**大师.** AI pace 1.09 in item races (150cc: 1.07) and 1.03 in speed races (150cc: 1.015). They also drift 97% of gentler bends (85%), take a start boost 85% of the time (50%), ease off by at most 1% when ahead of the player (2.5%), and look for a straight to fire nitro on every 0.25–1.15 s (0.8–3.3 s).
+
+Nine tracks × six seeds = 54 races per row.
+
+| Rules | Class | Avg rank | Wins | Podiums | Avg rank, perfect start | Wins | Podiums |
+|---|---|---|---|---|---|---|---|
+| 竞速 | 100cc | 1.00 | 54/54 | 54/54 | 1.00 | 54/54 | 54/54 |
+| 竞速 | 150cc | 2.37 | 21/54 | 44/54 | 2.13 | 18/54 | 47/54 |
+| 竞速 | 大师 | 4.11 | 6/54 | 20/54 | 3.24 | 10/54 | 30/54 |
+| 道具 | 100cc | 1.06 | 51/54 | 54/54 | 1.02 | 53/54 | 54/54 |
+| 道具 | 150cc | 2.72 | 19/54 | 39/54 | 2.35 | 22/54 | 43/54 |
+| 道具 | 大师 | 3.22 | 18/54 | 31/54 | 3.52 | 14/54 | 29/54 |
+
+- Speed races: 大师 is the clear step up. The bot wins 6 of 54 without a start boost and 10 of 54 with a perfect one (150cc: 21 and 18), and averages 4.1 and 3.2.
+- Item races: the step is smaller (average rank 3.2–3.5 against 2.4–2.7 at 150cc). Items reshuffle the field whatever the class.
+- 50cc, 100cc and 150cc are unchanged from v2.7 (the unit test pins their values); the figures above for those classes include the new tracks.
+
+**Karts.** The player's kart, 150cc, all nine tracks, three seeds each, with a perfect start.
+
+| Kart | Speed race: avg time | Avg rank | Item race: avg time | Avg rank |
+|---|---|---|---|---|
+| 经典卡丁 | 63.0 s | 2.26 | 62.7 s | 2.48 |
+| 闪电 GT | 62.2 s | 1.81 | 62.2 s | 2.19 |
+| 闪电 GT·黑金 | 61.9 s | 1.78 | 62.1 s | 1.93 |
+| 闪电 GT·冰蓝 | 62.4 s | 1.93 | 62.1 s | 1.89 |
+| 喷射火箭 | 62.7 s | 2.04 | 62.6 s | 2.00 |
+| 喷射火箭·烈焰 | 62.5 s | 1.78 | 63.1 s | 2.52 |
+| 喷射火箭·星尘 | 62.6 s | 1.89 | 61.7 s | 1.74 |
+| 幻影星舰 | 62.6 s | 1.59 | 61.8 s | 2.19 |
+| 幻影星舰·暗夜 | 62.5 s | 1.52 | 61.7 s | 1.78 |
+| 幻影星舰·极光 | 63.0 s | 2.22 | 62.5 s | 2.07 |
+| 棉花糖·蜜桃 | 62.9 s | 2.22 | 63.4 s | 2.52 |
+| 棉花糖·薄荷 | 63.2 s | 2.44 | 62.6 s | 1.81 |
+| 棉花糖·葡萄 | 62.8 s | 2.48 | 62.5 s | 2.19 |
+
+- Race times span 61.9–63.2 s in speed races and 61.7–63.4 s in item races, about 2% and 2.7%. Ranks move with the items and the field as much as with the kart.
+
+- The bot never crashes, so acceleration (the marshmallow series) counts for less here than it does in play.
+
+## Real-time touch playthroughs
+
+The page in Chrome at normal speed, CPU renderer, a scripted thumb: it holds the inside half of the screen through bends (which starts and holds a drift), lets go on exit, taps for a start boost and for nitro.
+
+| Track | Class | Rules | Kart | Screen | Finish | Time | AI times | Start boost | Drifts | Rail hits |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 棉花糖码头 | 100cc | speed | 喷射火箭·星尘 | 430×932 | 1st | 64.2 s | 65.6–69.8 s | missed | 14 | 0 |
+| 雪绒花滑道 | 150cc | item | 棉花糖·蜜桃 | 430×932 | 5th | 64.6 s | 62.1–65.3 s | good | 8 | 1 |
+| 金沙绿洲 | 大师 | speed | 闪电 GT·黑金 | 430×932 | 6th | 69.6 s | 67.3–70.1 s | missed | 10 | 2 |
+| 冰晶峡谷 | 150cc | speed | 经典卡丁 | 430×932 | 7th | 73.5 s | 68.9–74.0 s | perfect | 16 | 4 |
+| 赤岩峡谷 | 150cc | speed | 经典卡丁 | 430×932 | 6th | 69.7 s | 65.5–70.0 s | good | 18 | 2 |
+| 银河天梯 | 大师 | speed | 幻影星舰·暗夜 | 932×430 | 7th | 80.4 s | 77.4–80.7 s | missed | 13 | 5 |
+
+- The scripted thumb is a rough driver. It never lifts off or picks a line, and it hit the rails two to five times on the technical tracks. Read its results as a floor, not as a target.
+- In v2.7 the same driver finished 4th–6th at 150cc on the first three tracks.
+- 冰晶峡谷 and 赤岩峡谷 were played three times while their `aiPace` was being set. With 1.121 / 1.054 (the bot's exact figures) the thumb finished 8th of 8 on both. With 1.06 / 1.04 the bot won every race. The kept values, 1.09 / 1.065, gave 7th and 6th above.
+
+No page errors in any of them.
+
+## New art
+
+- Snow: a valley between snow-capped ranges (the ground rises away from the road), snowy pines, snowmen, ice crystals, an ice arch, a frozen lake in the infield, a turning snowflake. Desert: dunes, mesas with a paler band, saguaros and shrubs, rock spires, sandstone arches with pennants, two pyramids, an oasis with palms in the infield, a windpump.
+- Weather is one `Points` object of 900 flakes (560 grains of sand) in a box that follows the camera. The vertex shader moves and wraps them, so a frame costs three uniform writes and one draw call.
+- Each theme has its song; snow and desert are new (the desert one in a scale with a minor second and a major third).
+- Draw calls and triangles on the new tracks: SwiftShader, 430×932, three spots of the lap each, with the post chain on and off (min–max)
+
+| Track | Draw calls | Triangles |
+|---|---|---|
+| 花田晴空环线 (for comparison) | 439–617 | 356k–491k |
+| 棉花糖码头 | 326–572 | 306k–459k |
+| 雪绒花滑道 | 461–562 | 328k–400k |
+| 金沙绿洲 | 523–600 | 387k–434k |
+| 冰晶峡谷 | 319–571 | 237k–400k |
+| 赤岩峡谷 | 373–571 | 300k–409k |
+| 银河天梯 | 466–543 | 364k–417k |
+
+The new tracks are no heavier than the first one. Frame times under SwiftShader (1.0–2.4 s) say nothing about a phone.
+
+## Garage layout audit
+
+Nine devices, portrait and landscape (18 combinations), now also every state of the tab row (three themes and the cups), the kart row with its series labels, and that nothing covers the start button.
+
+- The first run stopped on the iPhone 13 mini in landscape (812×375): with the tab row added, the panel was taller than the space above the garage row, and the start button sat under it. On screens up to 400 px high the track cards now drop their outline and the spacing tightens.
+- The next full run flagged the iPhone SE and a 780×360 Android phone in landscape, and the heading "撒欢。" running into the panel in the desktop layout on an iPad mini on its side (1133×744). All fixed, and each device re-checked on its own before the final run.
+- Theme tabs are 44 px tall on phones held upright and 36 px on landscape phones.
+- Final run, on the final build: 18 of 18 combinations clean, no page errors.
+
+## Tests
+
+- `npm test`: 103 of 103 pass. New in `tests/v28.test.js` (7 tests): track geometry, boost pads, cups, the classes (old values unchanged), 大师 against 150cc on every track, AI pace per track, the karts.
+- `npm run test:e2e`: on the final build 60 of 61 passed in 17 minutes. The one failure was a v2.5 test that waited a fixed 0.5 s for a 0.4 s fade and read an opacity of 0.004 instead of 0. It now waits for the fade; its file then passed three runs in a row. New in `tests/e2e/v28.test.js` (5 tests): the garage (rules, tabs, themes, classes, old saves), a speed cup of three races to its trophy, the kart series, all nine tracks started and driven, snow and desert under WebGL with their weather and the marshmallow kart.
+- Changed: the v2.4 test reads the speed button by its new attribute; the v2.5 test expects the four original bodies among the thirteen; the v2.7.1 diagnostics test accepts any version number.
+
+## Screenshots
+
+SwiftShader WebGL, 430×932 and 932×430. The two licensed-character karts are parked out of view in every race shot and the script checks that they are off screen; the garage shots have the 车型 tab open, so no driver cards are on screen.
+
+- `snow-and-desert.jpg`: 雪绒花滑道 (棉花糖·蜜桃), 冰晶峡谷 (闪电 GT·冰蓝), 金沙绿洲 (闪电 GT·黑金), 赤岩峡谷 (喷射火箭·烈焰). Snowflakes are visible as white specks on the snow tracks.
+- `pier-ladder-marshmallow.jpg`: 棉花糖码头, 银河天梯, and the marshmallow kart in a boost (clouds out, rockets lit).
+- `landscape.jpg`: 冰晶峡谷 and 赤岩峡谷 at 932×430.
+- `garage.jpg`: the garage with a theme open (two snow tracks), and with the cups open under speed rules and 大师, two trophies earned.
+- Not in the repo: the start grid of 花田晴空环线 and 雪绒花滑道 in the opening crane shot, checked for the grandstand. It now runs along the verge, facing the road.
+
+## Not verified — needs the phone
+
+- Frame rate on the new tracks, and what the weather layer costs on the phone's GPU.
+- Whether 大师 is the right step up for the player. It was set against a simulated driver and one scripted thumb.
+- How the snow track reads in daylight (white ground at full brightness), and the marshmallow kart at phone size.
+- The two new songs through the phone's speaker.
+- v2.7.1's fix for the freeze is still unconfirmed on the phone.

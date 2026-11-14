@@ -1,8 +1,8 @@
 import * as T from "./vendor/three.module.js";
-import { kartAsset } from "./kart-assets.js?v=39cf6a4b";
-import { buildBody, classicRig, poseRig, setEnvironment as setBodyEnvironment } from "./kart-bodies.js?v=39cf6a4b";
-import { dog, animateDog, reactDog, material, ellipsoid, roundedBox, star as starMesh, faceDepth } from "./models.js?v=39cf6a4b";
-import { CHARACTERS, KARTS, seeded } from "./race.js?v=39cf6a4b";
+import { kartAsset } from "./kart-assets.js?v=5d11c32d";
+import { buildBody, classicRig, poseRig, setEnvironment as setBodyEnvironment } from "./kart-bodies.js?v=5d11c32d";
+import { dog, animateDog, reactDog, material, ellipsoid, roundedBox, star as starMesh, faceDepth } from "./models.js?v=5d11c32d";
+import { CHARACTERS, KARTS, seeded } from "./race.js?v=5d11c32d";
 const scenerySphere = new T.SphereGeometry(1, 12, 8);
 const sphere = new T.SphereGeometry(1, 24, 18),
   unitBox = new T.BoxGeometry(1, 1, 1),
@@ -2375,7 +2375,12 @@ function grandstand(g, decor, track, theme, moving) {
     s = track.sample(-18, c.width / 2 + 13),
     stand = new T.Group();
   stand.position.copy(s.p);
-  stand.rotation.y = s.yaw + Math.PI / 2;
+  // Its 34 m length runs along the road, the tiers rising away from it.
+  // (From v2.2 to v2.7.1 it was turned a quarter too far: its base lay on
+  // the right-hand lanes 18-24 m before the finish line, and karts on that
+  // side drove through it. The v2.8 test that drops rays onto every road
+  // found it.)
+  stand.rotation.y = s.yaw + Math.PI;
   decor.add(stand);
   const wood = theme === 2 ? 0x7d86c4 : theme === 3 ? 0xdfe9f4 : 0xf2e2c4,
     trim = theme === 2 ? 0xb8c2ff : theme === 1 ? 0xf09cbc : theme === 3 ? 0x3d8fe0 : theme === 4 ? 0xd9673f : 0xe8a35f;
@@ -2636,10 +2641,27 @@ export function createWorld(track) {
     for (const side of [-1, 1])
       g.add(ribbon(track, side * (c.width / 2 + 7.7), 6.6, flowerRows(side > 0 ? [0xff5a66, 0xffd23f, 0xa779ff] : [0xff8fc7, 0xffffff, 0xff9838]), 0.02));
   }
-  const terrainGeo = new T.PlaneGeometry(650, 650, 80, 80);
+  // The ground: a square round the track. (The first three tracks keep the
+  // square they always had; the larger v2.8 tracks get one centred on them
+  // with 150 m to spare on every side.)
+  const xs = track.points.map((p) => p.x),
+    zs = track.points.map((p) => p.z),
+    span = { x0: Math.min(...xs), x1: Math.max(...xs), z0: Math.min(...zs), z1: Math.max(...zs) },
+    wide = track.index > 2,
+    ground = wide ? Math.max(650, span.x1 - span.x0 + 300, span.z1 - span.z0 + 300) : 650;
+  const terrainGeo = new T.PlaneGeometry(ground, ground, 80, 80);
   terrainGeo.rotateX(-Math.PI / 2);
-  terrainGeo.translate(65, 0, 0);
+  if (wide) terrainGeo.translate((span.x0 + span.x1) / 2, 0, (span.z0 + span.z1) / 2);
+  else terrainGeo.translate(65, 0, 0);
   const groundPoints = track.points.filter((_, i) => i % 8 === 0),
+    // How far a spot is from the nearest part of the road (centre line):
+    // scenery set out from one stretch must not land on another (the
+    // switchbacks and S-bends of the v2.8 tracks pass within 45 m).
+    clearOf = (x, z) => {
+      let d = Infinity;
+      for (const p of groundPoints) d = Math.min(d, (x - p.x) ** 2 + (z - p.z) ** 2);
+      return Math.sqrt(d);
+    },
     pos = terrainGeo.attributes.position,
     // A frozen lake (snow) or an oasis (desert) in the infield.
     lake = theme === 3 || theme === 4 ? infield(track) : null;
@@ -2714,7 +2736,8 @@ export function createWorld(track) {
       tr.position.y -= 0.35;
       tr.scale.setScalar(0.8 + rng() * 0.6);
       tree(tr, theme, rng);
-      decor.add(tr);
+      // (No tree where the grandstand stands, right of the grid.)
+      if (!(side > 0 && (d > track.length - 42 || d < 6))) decor.add(tr);
       if (i % 2 === 0) {
         const fl = new T.Group();
         fl.position.copy(track.sample(d, side * (c.width / 2 + 2 + rng() * 3)).p);
@@ -2725,8 +2748,10 @@ export function createWorld(track) {
     }
   }
   for (let i = 0; i < 18; i++) {
-    const s = track.sample((i / 18) * track.length, (i % 2 ? 1 : -1) * (35 + rng() * 45));
-    ball(decor, a.hills, [s.p.x, 1, s.p.z], [11 + rng() * 13, 8 + rng() * 12, 13 + rng() * 10]);
+    const s = track.sample((i / 18) * track.length, (i % 2 ? 1 : -1) * (35 + rng() * 45)),
+      size = [11 + rng() * 13, 8 + rng() * 12, 13 + rng() * 10];
+    if (clearOf(s.p.x, s.p.z) < Math.max(size[0], size[2]) + 12) continue; // (it would sit on another stretch of road)
+    ball(decor, a.hills, [s.p.x, 1, s.p.z], size);
   }
   for (let i = 0; i < (theme === 2 ? 0 : 14); i++) cloud(decor, [rng() * 500 - 180, 45 + rng() * 50, rng() * 500 - 250], 1 + rng() * 2, a.cloud[3]);
   for (const f of [0.18, 0.54, 0.82]) {
@@ -2901,6 +2926,7 @@ export function createWorld(track) {
     for (let i = 0; i < 16; i++) {
       const s = track.sample(rng() * track.length, (rng() < 0.5 ? 1 : -1) * (c.width / 2 + 9 + rng() * 16)),
         h = 3 + rng() * 5;
+      if (clearOf(s.p.x, s.p.z) < c.width / 2 + 7) continue; // (too near another stretch of road)
       let y = s.p.y;
       for (let k = 0; k < 3; k++) {
         const r = (1.6 - k * 0.35) * (0.8 + rng() * 0.4);

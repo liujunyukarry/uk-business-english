@@ -131,14 +131,17 @@ test("大师 speed race: the field is faster than at 150cc on every track, and a
 test("AI pace per track: the same class is about as hard on every track", () => {
   // The AI's best time against the bot's, 150cc speed race: within a few
   // per cent on all nine tracks (without `aiPace` the new tracks ranged from
-  // 2.5% faster than the bot to 7% slower).
+  // 2.5% faster than the bot to 7% slower). The two tracks with the most
+  // bends are left a little easier for a perfect drifter on purpose: a thumb
+  // on a phone loses more time there than this bot does.
   for (let track = 0; track < TRACKS.length; track++) {
     let ratio = 0;
     for (const seed of [1, 2, 3]) {
       const r = botRace(track, "hard", "speed", seed);
       ratio += Math.min(...r.racers.slice(1).map((x) => x.finish)) / r.player.finish / 3;
     }
-    assert(ratio > 0.965 && ratio < 1.025, TRACKS[track].name + ": AI best / bot = " + ratio.toFixed(3));
+    const technical = ["icecanyon", "redrock"].includes(TRACKS[track].id);
+    assert(ratio > 0.965 && ratio < (technical ? 1.05 : 1.025), TRACKS[track].name + ": AI best / bot = " + ratio.toFixed(3));
     const f = TRACKS[track].aiPace;
     assert(track < 3 ? f === undefined : f > 0.9 && f < 1.15, TRACKS[track].name + " aiPace " + f);
   }
