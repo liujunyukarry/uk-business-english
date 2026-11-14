@@ -84,6 +84,7 @@ export const CHARACTERS = [
 export const TRACKS = [
   {
     id: "meadow",
+    theme: 0,
     name: "花田晴空环线",
     tag: "FLOWER VALLEY",
     desc: "大风车、花田与长长的加速直道",
@@ -109,6 +110,7 @@ export const TRACKS = [
   },
   {
     id: "candy",
+    theme: 1,
     name: "蜜桃糖果海湾",
     tag: "CANDY COAST",
     desc: "奶油弯道、糖果路灯与薄荷海",
@@ -135,6 +137,7 @@ export const TRACKS = [
   },
   {
     id: "starlight",
+    theme: 2,
     name: "星光云端公路",
     tag: "STARDUST WAY",
     desc: "在发光的弯道上追逐流星",
@@ -159,6 +162,110 @@ export const TRACKS = [
       [-52, 4, -48],
     ],
   },
+  // v2.8: six more tracks in five themes (two new: snow and desert), for
+  // the 冒险杯 and the 大师杯. `pads` places the boost pads (fraction of the
+  // lap, lane) on straights; the first three tracks keep their v2.7 pads.
+  // `aiPace` evens out how strong the AI is from track to track: they lose
+  // more time than a drifting player in many tight bends and less on fast
+  // flowing tracks, so without it the same class was easy on one track and
+  // hard on the next (set from simulations, see QA.md). The two tracks with
+  // the most bends (冰晶峡谷, 赤岩峡谷) are set a little under what a perfect
+  // drifter would need: a thumb on a phone loses more there than the
+  // simulated driver does, and precise drifting should pay on those two.
+  {
+    id: "pier",
+    theme: 1,
+    name: "棉花糖码头",
+    tag: "MARSHMALLOW PIER",
+    desc: "沿着海湾的栈桥，连续 S 弯接长直道",
+    level: "冒险杯",
+    width: 16,
+    accent: "#e889b3",
+    aiPace: 0.984,
+    pads: [[0.168, 3], [0.598, -3], [0.754, 3]],
+    points: [[0, 1, 0], [4, 1, 70], [40, 2, 112], [96, 3, 104], [118, 2, 62], [158, 1, 40], [200, 2, 64], [214, 3, 118], [258, 2, 140], [290, 1, 96], [262, 0, 22], [214, 0, -30], [140, 0, -52], [70, 0, -78], [16, 1, -50]],
+  },
+  {
+    id: "snowfall",
+    theme: 3,
+    name: "雪绒花滑道",
+    tag: "SNOWFLAKE RUN",
+    desc: "从雪山腰一路滑下，弯道流畅",
+    level: "冒险杯",
+    width: 16,
+    accent: "#6fb6e8",
+    aiPace: 0.961,
+    pads: [[0.12, 3], [0.436, -3], [0.83, 3]],
+    points: [[0, 8, 0], [-6, 10, 80], [26, 13, 150], [92, 15, 170], [150, 12, 128], [140, 9, 66], [182, 6, 20], [236, 4, 30], [262, 3, -30], [214, 2, -92], [140, 2, -104], [76, 4, -66], [26, 6, -60]],
+  },
+  {
+    id: "oasis",
+    theme: 4,
+    name: "金沙绿洲",
+    tag: "GOLDEN OASIS",
+    desc: "最快的赛道：长直道与大半径弯",
+    level: "冒险杯",
+    width: 17,
+    accent: "#e2a24a",
+    aiPace: 0.965,
+    pads: [[0.128, 3], [0.502, -3], [0.86, 3]],
+    points: [[0, 0, 0], [0, 0, 120], [36, 1, 186], [104, 2, 196], [140, 2, 150], [136, 1, 80], [180, 1, 40], [250, 2, 58], [282, 1, 0], [250, 0, -66], [168, 0, -92], [90, 0, -86], [30, 0, -62]],
+  },
+  {
+    id: "icecanyon",
+    theme: 3,
+    name: "冰晶峡谷",
+    tag: "CRYSTAL CANYON",
+    desc: "九个弯一个接一个，漂移节奏决定一切",
+    level: "大师杯",
+    width: 15,
+    accent: "#7fd3f2",
+    aiPace: 1.09,
+    pads: [[0.192, 3], [0.45, -3], [0.798, 3]],
+    points: [[0, 4, 0], [0, 6, 70], [-26, 9, 120], [-6, 12, 170], [50, 13, 182], [86, 11, 146], [80, 9, 96], [118, 8, 66], [176, 9, 84], [214, 8, 136], [262, 7, 120], [270, 5, 60], [226, 4, 18], [232, 3, -40], [184, 2, -84], [116, 2, -70], [70, 2, -96], [22, 3, -62]],
+  },
+  {
+    id: "redrock",
+    theme: 4,
+    name: "赤岩峡谷",
+    tag: "RED ROCK CANYON",
+    desc: "红岩之间的急弯与连续变向",
+    level: "大师杯",
+    width: 15,
+    accent: "#d9673f",
+    aiPace: 1.065,
+    pads: [[0.198, 3], [0.498, -3], [0.864, 3]],
+    points: [[0, 2, 0], [8, 3, 66], [-24, 5, 112], [6, 7, 158], [64, 8, 170], [96, 6, 124], [70, 4, 78], [110, 3, 40], [170, 4, 54], [204, 6, 104], [250, 6, 92], [252, 4, 30], [214, 2, -30], [150, 1, -54], [110, 1, -22], [58, 1, -56], [8, 1, -46]],
+  },
+  {
+    id: "ladder",
+    theme: 2,
+    name: "银河天梯",
+    tag: "GALAXY LADDER",
+    desc: "之字形发卡弯一路爬上星空，再长长地俯冲下来",
+    level: "大师杯",
+    width: 16,
+    accent: "#a98cf5",
+    aiPace: 0.967,
+    pads: [[0.314, 3], [0.47, -3], [0.716, 3]],
+    points: [[0, 3, 0], [0, 5, 70], [30, 8, 112], [96, 11, 114], [146, 13, 126], [150, 15, 166], [104, 17, 176], [44, 19, 178], [-4, 20, 192], [-2, 21, 232], [48, 22, 244], [118, 23, 246], [182, 21, 222], [206, 17, 160], [204, 13, 92], [184, 9, 30], [140, 6, -16], [86, 4, -44], [34, 3, -52], [2, 3, -34]],
+  },
+];
+// Themes (v2.8): the look of a track (ATMOS in art.js), its music, and the
+// garage's grouping of tracks, KartRider style.
+export const THEMES = [
+  { id: "meadow", name: "花田", time: "正午", icon: "🌼" },
+  { id: "candy", name: "糖果海湾", time: "夕阳", icon: "🍑" },
+  { id: "star", name: "星光", time: "星夜", icon: "✨" },
+  { id: "snow", name: "冰雪", time: "清晨", icon: "❄️" },
+  { id: "desert", name: "沙漠", time: "午后", icon: "🌵" },
+];
+export const themeOf = (index) => TRACKS[index]?.theme ?? index;
+// Cups (v2.8): three races each, item or speed rules.
+export const CUPS = [
+  { id: "sunny", name: "晴空杯", tag: "SUNNY CUP", icon: "🌼", level: "入门", tracks: [0, 1, 2] },
+  { id: "adventure", name: "冒险杯", tag: "ADVENTURE CUP", icon: "🧭", level: "进阶", tracks: [3, 4, 5] },
+  { id: "master", name: "大师杯", tag: "MASTER CUP", icon: "👑", level: "高手", tracks: [6, 7, 8] },
 ];
 export const ITEMS = {
   boost: { name: "冲刺蘑菇", icon: "🍄", desc: "短时极速冲刺" },
@@ -206,9 +313,26 @@ export const SPECIALS = {
 };
 // Gauge gains (out of 100).
 export const GAUGE = { drift: [0, 9, 13, 19], coin: 6, landed: 15, hurt: 12, perSecond: 1.5, ai: 0.34 };
-// How readily an AI fires an attack whose victim would be the player (it
-// waits a few seconds otherwise): about 2-3 hits on the player per race.
-const AGGRESSION = { easy: 0.3, normal: 0.5, hard: 0.7 };
+// AI skill by class (v2.8 gathers what was spread over the code, values
+// unchanged, and adds 大师 / master):
+// - aggression: how readily an AI fires an attack whose victim would be the
+//   player (it waits a few seconds otherwise): about 2-3 hits per race;
+// - dodge: chance to steer round a banana in its line;
+// - cornerDrift: chance to drift a gentler bend (tight ones always);
+// - start: chance of a start boost;
+// - ahead / behind: how much an AI ahead of the player eases off, and one
+//   behind pushes on (fraction of its pace, at 220 m and beyond);
+// - nitro: seconds between looks for a straight to fire nitro on.
+// Master AIs barely ease off when ahead, drift every bend, and fire nitro
+// as soon as a straight opens up.
+export const AI_SKILL = {
+  easy: { aggression: 0.3, dodge: 0.45, cornerDrift: 0.35, start: 0.15, ahead: 0.025, behind: 0.035, nitro: [0.8, 2.5] },
+  normal: { aggression: 0.5, dodge: 0.75, cornerDrift: 0.6, start: 0.3, ahead: 0.025, behind: 0.035, nitro: [0.8, 2.5] },
+  hard: { aggression: 0.7, dodge: 0.95, cornerDrift: 0.85, start: 0.5, ahead: 0.025, behind: 0.035, nitro: [0.8, 2.5] },
+  master: { aggression: 0.8, dodge: 0.98, cornerDrift: 0.97, start: 0.85, ahead: 0.01, behind: 0.04, nitro: [0.25, 0.9] },
+};
+const skill = (d) => AI_SKILL[d] || AI_SKILL.normal;
+export const DIFFICULTIES = Object.keys(AI_SKILL);
 // Cornering: the outward push in a bend is curvature x speed^2 x PUSH (in
 // lane metres per second). Plain steering can hold an ordinary bend; a
 // tight one taken flat out needs a drift (or lifting off), as in KartRider.
@@ -227,8 +351,8 @@ export const BEAR_RAM = { range: 60, closing: 18, top: 64, chase: 4.5, reach: 2.
 // AI pace by class. Speed races have no items to slow the leaders down, so
 // 150cc runs a touch slower there to stay winnable for a good drifter.
 export const AI_PACE = {
-  item: { easy: 0.86, normal: 0.97, hard: 1.07 },
-  speed: { easy: 0.86, normal: 0.97, hard: 1.015 },
+  item: { easy: 0.86, normal: 0.97, hard: 1.07, master: 1.09 },
+  speed: { easy: 0.86, normal: 0.97, hard: 1.015, master: 1.03 },
 };
 // Slipstream (尾流), both modes: sit close behind a kart in its line for a
 // moment and you are pulled past with a short boost.
@@ -237,12 +361,31 @@ export const DRAFT = { min: 3.5, max: 16, lane: 1.8, charge: 1.1, boost: 1, kick
 // driver's own stats. speed / accel / grip multiply the driver's; boost
 // stretches every boost; charge speeds up drift sparks, nitro and the
 // special gauge. AI racers ride assorted bodies for looks only.
+// v2.8: karts come in series (KartRider style), each a body with its own
+// character in three liveries that lean a little one way or another.
+// `body` is the model (kart-bodies.js), `trim` its colours.
 export const KARTS = {
-  classic: { name: "经典卡丁", speed: 1, accel: 1, grip: 1, boost: 1, charge: 1 },
-  thunder: { name: "闪电 GT", speed: 1.015, accel: 0.88, grip: 0.98, boost: 1, charge: 1 },
-  jet: { name: "喷射火箭", speed: 0.99, accel: 1, grip: 0.94, boost: 1.12, charge: 1 },
-  phantom: { name: "幻影星舰", speed: 0.99, accel: 1.03, grip: 1.08, boost: 1, charge: 1.15 },
+  classic: { name: "经典卡丁", series: "classic", speed: 1, accel: 1, grip: 1, boost: 1, charge: 1 },
+  thunder: { name: "闪电 GT", series: "thunder", body: "thunder", speed: 1.015, accel: 0.88, grip: 0.98, boost: 1, charge: 1 },
+  thunder2: { name: "闪电 GT·黑金", series: "thunder", body: "thunder", trim: { paint: 0x1c1e24, stripe: 0xe2b34a, tail: 0xffae3a, under: 0xffae3a, rim: 0xe2b34a, metal: 0.65 }, speed: 1.02, accel: 0.85, grip: 0.97, boost: 1, charge: 1 },
+  thunder3: { name: "闪电 GT·冰蓝", series: "thunder", body: "thunder", trim: { paint: 0xeef3f9, stripe: 0x3d9ef0, tail: 0x48d4ff, under: 0x48d4ff, metal: 0.3 }, speed: 1.01, accel: 0.92, grip: 1, boost: 1, charge: 1 },
+  jet: { name: "喷射火箭", series: "jet", body: "jet", speed: 0.99, accel: 1, grip: 0.94, boost: 1.12, charge: 1 },
+  jet2: { name: "喷射火箭·烈焰", series: "jet", body: "jet", trim: { body: 0x2a2a30, accent: 0xff4a1f, fire: 0xff5a2a, under: 0xff4a1f, rim: 0xd8dde4 }, speed: 0.985, accel: 0.99, grip: 0.93, boost: 1.17, charge: 1 },
+  jet3: { name: "喷射火箭·星尘", series: "jet", body: "jet", trim: { body: 0xbfaef2, accent: 0xf4f1ff, fire: 0x8ad8ff, under: 0x9a7bff, rim: 0xe9e4ff }, speed: 0.995, accel: 1.02, grip: 0.96, boost: 1.08, charge: 1 },
+  phantom: { name: "幻影星舰", series: "phantom", body: "phantom", speed: 0.99, accel: 1.03, grip: 1.08, boost: 1, charge: 1.15 },
+  phantom2: { name: "幻影星舰·暗夜", series: "phantom", body: "phantom", trim: { paint: 0x2a1a42, graphite: 0x3b2b57, glass: 0x3a1f5a, neon: 0xff4fd8, neon2: 0x7f6bff }, speed: 0.985, accel: 1.02, grip: 1.1, boost: 1, charge: 1.2 },
+  phantom3: { name: "幻影星舰·极光", series: "phantom", body: "phantom", trim: { paint: 0xe8eef6, graphite: 0xaab6c6, glass: 0x2a5a7a, neon: 0x4dffb0, neon2: 0x4de3ff }, speed: 0.995, accel: 1.01, grip: 1.06, boost: 1, charge: 1.1 },
+  puff: { name: "棉花糖·蜜桃", series: "puff", body: "puff", speed: 0.985, accel: 1.1, grip: 1.05, boost: 1.04, charge: 1.04 },
+  puff2: { name: "棉花糖·薄荷", series: "puff", body: "puff", trim: { shell: 0x8fe3c8, cream: 0xfffaf0, accent: 0x3fb98f, glow: 0xb6ffe6, under: 0x6fe0c0 }, speed: 0.985, accel: 1.08, grip: 1.08, boost: 1, charge: 1.08 },
+  puff3: { name: "棉花糖·葡萄", series: "puff", body: "puff", trim: { shell: 0xb79bf0, cream: 0xfff6fb, accent: 0x8a5ad8, glow: 0xe2c8ff, under: 0xa57cff }, speed: 0.99, accel: 1.06, grip: 1.04, boost: 1.08, charge: 1.04 },
 };
+export const SERIES = [
+  { id: "classic", name: "经典", tag: "均衡好上手" },
+  { id: "thunder", name: "闪电", tag: "极速型" },
+  { id: "jet", name: "火箭", tag: "冲刺型" },
+  { id: "phantom", name: "幻影", tag: "操控型" },
+  { id: "puff", name: "棉花糖", tag: "起步型" },
+];
 // Start boost (起步加速), KartRider style: press (touch anywhere on the
 // steering halves, the drift button, or ↑ / Space / Shift) at the moment the
 // countdown runs out. A press up to `window` s before GO counts (`perfect`
@@ -500,8 +643,8 @@ export class Race {
           cooldown: 0,
           taken: new Float32Array(8),
         });
-    for (const f of [0.2, 0.48, 0.77])
-      this.pads.push({ distance: this.track.length * f, lane: f === 0.48 ? -3 : 3 });
+    for (const [f, lane] of this.track.config.pads || [[0.2, 3], [0.48, -3], [0.77, 3]])
+      this.pads.push({ distance: this.track.length * f, lane });
   }
   event(type, data = {}) {
     this.events.push({ type, ...data });
@@ -990,7 +1133,7 @@ export class Race {
           this.lateStart = START.late;
           this.earlyPress = p.startPress !== null;
         }
-        const chance = { easy: 0.15, normal: 0.3, hard: 0.5 }[this.difficulty] ?? 0.3;
+        const chance = skill(this.difficulty).start;
         for (const r of this.racers.slice(1)) if (this.rng() < chance) this.startBoost(r, 0.9, "drift1", 10);
       }
       return;
@@ -1132,7 +1275,7 @@ export class Race {
         }
         if (hazard && r.dodgeId !== hazard.id) {
           r.dodgeId = hazard.id;
-          const dodge = this.rng() < ({ easy: 0.45, normal: 0.75, hard: 0.95 }[this.difficulty] || 0.75);
+          const dodge = this.rng() < skill(this.difficulty).dodge;
           const roomLeft = hazard.lane - 2.8 > -half + 1.4,
             roomRight = hazard.lane + 2.8 < half - 1.4;
           let side = r.lane <= hazard.lane ? -1 : 1; // keep to the side we are already on
@@ -1153,20 +1296,21 @@ export class Race {
           const aimed = this.aimsAtPlayer(r, r.item),
             immune = this.player.guard > 0 || this.player.star > 0;
           if (aimed && immune) r.aiItem = 0.5 + this.rng() * 0.5;
-          else if (aimed && (r.itemPatient || this.rng() > (AGGRESSION[this.difficulty] ?? 0.5))) {
+          else if (aimed && (r.itemPatient || this.rng() > skill(this.difficulty).aggression)) {
             r.itemPatient = true;
             r.aiItem = 1.5 + this.rng() * 2;
           } else this.useItem(r);
         }
         if (r.nitroCharges > 0 && (r.aiNitro -= dt) <= 0) {
-          r.aiNitro = 0.8 + this.rng() * 2.5;
+          const [wait, spread] = skill(this.difficulty).nitro;
+          r.aiNitro = wait + this.rng() * spread;
           if (Math.abs(this.track.curvature(r.distance + 25)) < 0.012 && r.stun <= 0) this.useNitro(r);
         }
         if (r.special >= 100 && (r.aiSpecial -= dt) <= 0) {
           r.aiSpecial = 1 + this.rng() * 3;
           const attack = this.aimsAtPlayer(r, "special:" + r.character.id),
             immune = this.player.guard > 0 || this.player.star > 0;
-          if (this.aiSpecialUseful(r) && (!attack || (!immune && this.rng() < (AGGRESSION[this.difficulty] ?? 0.5))))
+          if (this.aiSpecialUseful(r) && (!attack || (!immune && this.rng() < skill(this.difficulty).aggression)))
             this.useSpecial(r);
         }
         // Corner mini-turbo: the AI visibly drifts through a real corner and
@@ -1201,7 +1345,7 @@ export class Race {
           // flat out); gentler ones sometimes, more often on harder classes.
           if (
             Math.abs(curve) > 0.03 ||
-            this.rng() < ({ easy: 0.35, normal: 0.6, hard: 0.85 }[this.difficulty] || 0.6)
+            this.rng() < skill(this.difficulty).cornerDrift
           ) {
             r.cornerDrift = dt;
             r.drifting = true;
@@ -1256,7 +1400,8 @@ export class Race {
         base *=
           (AI_PACE[this.rules][this.difficulty] || 0.97) +
           (r.id - 4) * 0.006 +
-          clamp((this.player.distance - r.distance) / 220, -0.025, 0.035);
+          clamp((this.player.distance - r.distance) / 220, -skill(this.difficulty).ahead, skill(this.difficulty).behind);
+      if (!isPlayer) base *= this.track.config.aiPace || 1;
       // Close behind a kart still in our line: ease off to its pace rather
       // than bump-and-push. The cap rises smoothly with the gap.
       let capped = false;

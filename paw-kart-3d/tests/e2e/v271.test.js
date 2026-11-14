@@ -161,7 +161,7 @@ test("diagnostics: settings → 运行诊断 shows the build, the renderer, fram
   await r.page.tap("#race-settings");
   await r.page.tap("#diag summary");
   const text = await r.page.$eval("#diag-text", (e) => e.textContent);
-  for (const line of [/^版本 2\.7\.1 · \w+/m, /^渲染：兼容模式/m, /^屏幕：390×844/m, /^画面特效：不支持/m, /^帧率：.* · 比赛中最慢一帧 \d+ ms/m, /^画面中断：0 次/m, /^资源：.*车辆缓存 \d+/m, /^错误：0$/m])
+  for (const line of [/^版本 2\.\d+(\.\d+)? · \w+/m, /^渲染：兼容模式/m, /^屏幕：390×844/m, /^画面特效：不支持/m, /^帧率：.* · 比赛中最慢一帧 \d+ ms/m, /^画面中断：0 次/m, /^资源：.*车辆缓存 \d+/m, /^错误：0$/m])
     assert.match(text, line);
   const box = await r.page.$eval("#diag summary", (e) => {
     const b = e.getBoundingClientRect(),

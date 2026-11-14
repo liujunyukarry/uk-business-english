@@ -278,16 +278,20 @@ function mountWheels(body, spec) {
 // Transforms: the rear wing rises on telescoping struts and tilts into attack,
 // carbon blades slide out of the side pods, the front wing's endplates flip
 // out like canards, and the tail pipes extend.
-function thunder() {
+// Liveries (v2.8 series): each body takes a `trim` of colours; the default
+// is the original look. Materials are cached per colour.
+const hex = (n) => n.toString(16);
+function thunder(trim = {}) {
+  const t = { paint: 0xd42a3c, stripe: 0xf5f3ee, tail: 0xff3046, under: 0xff4d6a, rim: 0xe3e8ee, metal: 0.5, ...trim };
   const g = new T.Group(),
     p = new Parts(),
-    red = paint("gt-paint", 0xd42a3c, { metalness: 0.5, roughness: 0.3 }),
-    pearl = paint("gt-pearl", 0xf5f3ee, { metalness: 0.2, roughness: 0.28, reflect: 0.9 }),
+    red = paint("gt-paint-" + hex(t.paint), t.paint, { metalness: t.metal, roughness: 0.3 }),
+    pearl = paint("gt-pearl-" + hex(t.stripe), t.stripe, { metalness: 0.2 + (t.stripe === 0xf5f3ee ? 0 : 0.5), roughness: 0.28, reflect: 0.9 }),
     carbon = std("carbon", { color: 0x24282d, metalness: 0.35, roughness: 0.42 }, 0.6),
-    chrome = std("chrome", { color: 0xe3e8ee, metalness: 1, roughness: 0.14 }, 1.5),
+    chrome = t.rim === 0xe3e8ee ? std("chrome", { color: 0xe3e8ee, metalness: 1, roughness: 0.14 }, 1.5) : std("rim-" + hex(t.rim), { color: t.rim, metalness: 0.9, roughness: 0.2 }, 1.3),
     lights = glowing(0xfff6d8),
-    tail = glowing(0xff3046),
-    under = underglow(0xff4d6a, 0.5);
+    tail = glowing(t.tail),
+    under = underglow(t.under, 0.5);
   // Nose: a wedge rising to the cowl in front of the driver.
   p.add(smoothProfile([[0.25, 0.24], [1.0, 0.2], [1.62, 0.2], [1.86, 0.3], [1.66, 0.42], [1.1, 0.55], [0.55, 0.74], [0.25, 0.74]], 0.92, 0.08), red);
   // White racing stripes over the nose.
@@ -414,16 +418,17 @@ function thunder() {
 // --- 喷射火箭: twin side rockets and a glowing turbine behind the seat ---------
 // Transforms: delta wings swing out from upright fins, the side rockets slide
 // outward on their pylons, the tail fins spread, and the turbine spools up.
-function jet() {
+function jet(trim = {}) {
+  const t = { body: 0xf7f6f2, accent: 0xff7a1a, fire: 0xff9a3a, under: 0xff8a3a, rim: 0xf0b543, ...trim };
   const g = new T.Group(),
     p = new Parts(),
-    white = paint("jet-white", 0xf7f6f2, { metalness: 0.25, roughness: 0.24, reflect: 0.9 }),
-    orange = paint("jet-orange", 0xff7a1a, { metalness: 0.4, roughness: 0.3 }),
+    white = paint("jet-white-" + hex(t.body), t.body, { metalness: 0.25, roughness: 0.24, reflect: 0.9 }),
+    orange = paint("jet-orange-" + hex(t.accent), t.accent, { metalness: 0.4, roughness: 0.3 }),
     steel = std("jet-steel", { color: 0x9aa3ad, metalness: 0.9, roughness: 0.26 }, 1.3),
     carbon = std("carbon", { color: 0x24282d, metalness: 0.35, roughness: 0.42 }, 0.6),
     chrome = std("chrome", { color: 0xe3e8ee, metalness: 1, roughness: 0.14 }, 1.5),
-    fire = glowing(0xff9a3a),
-    under = underglow(0xff8a3a, 0.45);
+    fire = glowing(t.fire),
+    under = underglow(t.under, 0.45);
   // Central tub with a pointed nose.
   p.add(smoothProfile([[-0.62, 0.24], [0.6, 0.22], [1.45, 0.24], [1.95, 0.34], [1.5, 0.5], [0.8, 0.66], [0.32, 0.72], [-0.62, 0.62]], 0.86, 0.1), white);
   p.add(smoothProfile([[0.9, 0.62], [1.45, 0.49], [1.9, 0.36], [1.94, 0.33], [1.46, 0.45], [0.9, 0.58]], 0.5, 0.02), orange, M([0, 0.01, 0]));
@@ -508,7 +513,7 @@ function jet() {
         [true, 0.9, 0.38, 0.95, 0.38, 0.34],
         [false, 0.98, 0.45, -0.78, 0.45, 0.46],
       ],
-      style: { rim: std("gold-rim", { color: 0xf0b543, metalness: 0.9, roughness: 0.22 }, 1.3), spokes: 6 },
+      style: { rim: std("rim-" + hex(t.rim), { color: t.rim, metalness: 0.9, roughness: 0.22 }, 1.3), spokes: 6 },
     }),
     exhaust: [
       { tip: new T.Vector3(0, 0.9, -1.56), dir: new T.Vector3(0, 0.62, -0.78).normalize(), size: 1.5 },
@@ -529,15 +534,16 @@ function jet() {
 // --- 幻影星舰: a black glossy body traced with neon -------------------------------
 // Transforms into hover mode: the wheels fold flat into glowing hover pads and
 // the body rises, the wing foils split into an X, and the thrusters extend.
-function phantom() {
+function phantom(trim = {}) {
+  const t = { paint: 0x15171c, graphite: 0x2b2f38, glass: 0x1f3b5a, neon: 0x3ff4ff, neon2: 0xb46bff, ...trim };
   const g = new T.Group(),
     p = new Parts(),
-    black = paint("ph-black", 0x15171c, { metalness: 0.7, roughness: 0.24, reflect: 1.3 }),
-    graphite = std("ph-graphite", { color: 0x2b2f38, metalness: 0.6, roughness: 0.33 }, 0.9),
-    glass = std("ph-glass", { color: 0x1f3b5a, metalness: 0.4, roughness: 0.04 }, 1.6),
-    cyan = glowing(0x3ff4ff),
-    violet = glowing(0xb46bff),
-    under = underglow(0x3ff4ff, 0.5);
+    black = paint("ph-black-" + hex(t.paint), t.paint, { metalness: 0.7, roughness: 0.24, reflect: 1.3 }),
+    graphite = std("ph-graphite-" + hex(t.graphite), { color: t.graphite, metalness: 0.6, roughness: 0.33 }, 0.9),
+    glass = std("ph-glass-" + hex(t.glass), { color: t.glass, metalness: 0.4, roughness: 0.04 }, 1.6),
+    cyan = glowing(t.neon),
+    violet = glowing(t.neon2),
+    under = underglow(t.neon, 0.5);
   // Long low nose, flowing into the cowl; a windscreen arc above it.
   p.add(smoothProfile([[0.25, 0.24], [1.2, 0.2], [1.75, 0.22], [1.95, 0.28], [1.7, 0.36], [1.05, 0.5], [0.55, 0.68], [0.25, 0.7]], 0.96, 0.09), black);
   p.add(new T.CylinderGeometry(0.5, 0.5, 0.06, 32, 1, true, -1.0, 2.0), glass, M([0, 0.62, 0.42], [Math.PI / 2 - 0.75, 0, 0], [1, 1, 0.55]));
@@ -675,12 +681,134 @@ export function classicRig(accent = 0xeeae55) {
   return { group: g, glow: [neon, flame], rig: { parts, spin: [], tilt: 0, lift: 0.03 } };
 }
 
-const BUILDERS = { thunder, jet, phantom };
+// --- 棉花糖 (v2.8): a round sweet-shop kart --------------------------------------
+// A glossy rounded tub with a cream rim, a button nose and chunky wheels.
+// Transforms: two cotton-candy clouds puff out at its sides, a pair of candy
+// rockets slide out of the tail, and a lollipop swirl turns behind the seat.
+function puff(trim = {}) {
+  const t = { shell: 0xffa9c2, cream: 0xfff4ea, accent: 0xff6f9f, glow: 0xffc1dc, under: 0xff8fbd, ...trim };
+  const g = new T.Group(),
+    p = new Parts(),
+    shell = paint("puff-shell-" + hex(t.shell), t.shell, { metalness: 0.15, roughness: 0.22, reflect: 0.8 }),
+    // (The tub is seen from inside too: both faces drawn, lit the right way.)
+    tubPaint = (() => {
+      const key = "puff-tub-" + hex(t.shell);
+      if (!cache.has(key)) {
+        const m = shell.clone();
+        m.side = T.DoubleSide;
+        cache.set(key, m);
+      }
+      return cache.get(key);
+    })(),
+    seat = std("puff-seat-" + hex(t.shell), { color: new T.Color(t.shell).multiplyScalar(0.78), roughness: 0.6 }, 0.3),
+    cream = std("puff-cream-" + hex(t.cream), { color: t.cream, metalness: 0, roughness: 0.55 }, 0.4),
+    accent = paint("puff-accent-" + hex(t.accent), t.accent, { metalness: 0.3, roughness: 0.25, reflect: 0.9 }),
+    carbon = std("carbon", { color: 0x24282d, metalness: 0.35, roughness: 0.42 }, 0.6),
+    chrome = std("chrome", { color: 0xe3e8ee, metalness: 1, roughness: 0.14 }, 1.5),
+    lights = glowing(0xfff6e8),
+    sweet = glowing(t.glow),
+    under = underglow(t.under, 0.45);
+  // The tub: the lower half of a squashed egg, open at the top (the driver
+  // sits in it), with a floor inside; and a cream rim round its edge.
+  const tub = new T.SphereGeometry(1, 40, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2);
+  p.add(tub, tubPaint, M([0, 0.82, 0.1], [0, 0, 0], [0.86, 0.6, 1.55]));
+  p.add(new T.CircleGeometry(1, 40), seat, M([0, 0.5, 0.1], [-Math.PI / 2, 0, 0], [0.8, 1.45, 1]));
+  // A rounded hood over the front half, like a scoop of ice cream.
+  const dome = new T.SphereGeometry(1, 32, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+  p.add(dome, shell, M([0, 0.8, 0.98], [0, 0, 0], [0.8, 0.34, 0.66]));
+  p.add(new T.TorusGeometry(1, 0.075, 10, 64), cream, M([0, 0.83, 0.1], [Math.PI / 2, 0, 0], [0.86, 1.55, 1]));
+  // Cream drips over the rim, and a row of sprinkles on the nose.
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 14) * Math.PI * 2,
+      x = Math.sin(a) * 0.86,
+      z = 0.1 + Math.cos(a) * 1.55;
+    p.add(unitSphere, cream, M([x * 1.01, 0.76, z], [0, 0, 0], [0.09, 0.13 + (i % 3) * 0.03, 0.09]));
+  }
+  for (let i = 0; i < 6; i++) p.add(unitBox, [accent, cream, sweet][i % 3], M([(i - 2.5) * 0.12, 0.62 + Math.abs(i - 2.5) * -0.012, 1.58 - Math.abs(i - 2.5) * 0.02], [0.4, i * 0.7, 0.3], [0.035, 0.035, 0.11]));
+  // Button nose bumper and round headlights.
+  p.add(unitSphere, accent, M([0, 0.5, 1.68], [0, 0, 0], [0.22, 0.18, 0.14]));
+  for (const s of [-1, 1]) p.add(unitSphere, lights, M([s * 0.42, 0.68, 1.45], [0, 0, 0], [0.11, 0.09, 0.06]));
+  // Seat cushion, and two round tail lights.
+  p.add(softBox, cream, M([0, 0.98, -0.68], [-0.2, 0, 0], [0.82, 0.5, 0.22]));
+  for (const s of [-1, 1]) p.add(unitSphere, sweet, M([s * 0.34, 0.66, -1.42], [0, 0, 0], [0.12, 0.1, 0.05]));
+  p.add(new T.PlaneGeometry(2.4, 4), under, M([0, 0.04, 0.1], [-Math.PI / 2, 0, 0]));
+  p.build(g);
+  const parts = [],
+    spin = [];
+  // Cotton-candy clouds puff out at the sides.
+  for (const s of [-1, 1]) {
+    const cloud = piece(
+      g,
+      [s * 0.7, 0.86, -0.35],
+      (q) => {
+        for (const [x, y, z, r] of [[0.32, 0.05, 0.1, 0.3], [0.62, 0.12, -0.12, 0.26], [0.45, 0.3, -0.05, 0.24], [0.85, 0.02, -0.3, 0.2], [0.2, 0.22, -0.25, 0.2]])
+          q.add(unitSphere, cream, M([s * x, y, z], [0, 0, 0], [r, r * 0.85, r]));
+        q.add(unitSphere, sweet, M([s * 0.98, 0.0, -0.4], [0, 0, 0], [0.08, 0.08, 0.08]));
+      },
+      { s: [0.15, 0.15, 0.15] },
+      { p: [s * 0.08, 0.06, 0] },
+      [0.1, 0.9],
+    );
+    cloud.hideFolded = true;
+    parts.push(cloud);
+  }
+  // Candy rockets slide out of the tail.
+  for (const s of [-1, 1]) {
+    const rocket = piece(
+      g,
+      [s * 0.36, 0.62, -1.1],
+      (q) => {
+        q.add(lathe([[0, 0.3], [0.08, 0.24], [0.13, 0.1], [0.13, -0.22], [0.11, -0.28]], 20), accent);
+        q.add(lathe([[0.132, 0.02], [0.135, -0.08], [0.132, -0.1]], 20), cream);
+        q.add(new T.TorusGeometry(0.1, 0.022, 8, 20), chrome, M([0, 0, -0.28]));
+        q.add(new T.CircleGeometry(0.09, 18), sweet, M([0, 0, -0.29], [0, Math.PI, 0]));
+      },
+      { s: [0.5, 0.5, 0.5] },
+      { p: [s * 0.18, 0.02, -0.3] },
+      [0.2, 0.85],
+    );
+    rocket.hideFolded = true;
+    parts.push(rocket);
+  }
+  // A lollipop swirl on a stick behind the seat: turns slowly, fast in a boost.
+  const swirl = new T.Group();
+  swirl.position.set(0, 1.55, -0.92);
+  g.add(swirl);
+  const sp = new Parts();
+  sp.add(unitCyl, cream, M([0, -0.32, 0], [0, 0, 0], [0.025, 0.5, 0.025]));
+  sp.add(new T.CylinderGeometry(0.26, 0.26, 0.06, 28), cream, M([0, 0, 0], [Math.PI / 2, 0, 0]));
+  for (let i = 0; i < 3; i++) sp.add(new T.TorusGeometry(0.07 + i * 0.07, 0.022, 6, 24, Math.PI * 1.6), [accent, sweet, accent][i], M([0, 0, 0.035], [0, 0, i * 1.2]));
+  sp.build(swirl, { shadows: false });
+  spin.push({ obj: swirl, axis: "z", idle: 1.2, boost: 14 });
+  return {
+    group: g,
+    wheels: mountWheels(g, {
+      layout: [
+        [true, 0.86, 0.36, 0.98, 0.36, 0.34],
+        [false, 0.9, 0.42, -0.82, 0.42, 0.44],
+      ],
+      style: { rim: cream, spokes: 4, hub: accent },
+    }),
+    exhaust: [-1, 1].map((s) => ({
+      tip: new T.Vector3(s * 0.36, 0.64, -1.38),
+      tip1: new T.Vector3(s * 0.54, 0.66, -1.68),
+      dir: new T.Vector3(s * 0.4, 0.58, -0.7).normalize(),
+      size: 0.9,
+    })),
+    glow: [sweet, under],
+    rig: { parts, spin, tilt: 0, lift: 0.05 },
+    plate: [0, 0.44, 1.66],
+    antenna: [-0.62, 0.86, -0.9],
+  };
+}
+
+const BUILDERS = { thunder, jet, phantom, puff };
 export const PREMIUM_BODIES = Object.keys(BUILDERS);
 // Build a premium body: { group, wheels, exhaust: [{tip, tip1?, dir, size}],
 // glow, rig, plate, antenna }. Glowing materials are fresh per kart (they
-// pulse with that kart's boosts); everything else is shared.
-export function buildBody(id) {
+// pulse with that kart's boosts); everything else is shared. `trim`: the
+// livery's colours (v2.8).
+export function buildBody(id, trim) {
   const make = BUILDERS[id];
-  return make ? make() : null;
+  return make ? make(trim) : null;
 }
